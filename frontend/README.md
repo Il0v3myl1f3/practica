@@ -9,9 +9,9 @@ TypeScript.
 Autentificarea este pe JWT: `POST /api/authenticate` cu `{username, password}`
 întoarce un token care se trimite mai departe ca `Authorization: Bearer <token>`.
 
-> Înainte ca Angular-ul să poată apela API-ul, trebuie adăugat
-> `http://localhost:4200` în `jhipster.cors.allowed-origins` din
-> `backend/src/main/resources/config/application-dev.yml`.
+CORS este deja configurat pentru `http://localhost:4200` pe profilul `dev`
+(`backend/src/main/resources/config/application-dev.yml`). Dacă pornești Angular
+pe alt port, actualizează `jhipster.cors.allowed-origins` acolo.
 
 ## design/
 

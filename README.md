@@ -54,8 +54,6 @@ verificare, variabilele de personalizare `{{nume}}`, `{{prenume}}`, `{{grup}}`,
 
 ## De făcut
 
-- [ ] CORS pentru Angular — `backend/src/main/resources/config/application-dev.yml`
-      permite acum doar portul 8100
 - [ ] Unicitate per organizație: email destinatar, nume grup, nume șablon
 - [ ] Logica de business din finalul `app.jdl`: parser CSV, conflict de canale,
       substituția variabilelor, agregarea statusului de livrare
