@@ -47,18 +47,26 @@ function csvCell(v: unknown): string {
   return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
-/** BOM-ul e obligatoriu: fara el Excel strica diacriticele. */
-export function downloadCsv(rows: unknown[][], basename: string): void {
-  const csv = rows.map(r => r.map(csvCell).join(',')).join('\r\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+/** Declanseaza descarcarea unui fisier deja construit in memorie. */
+export function saveBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${basename}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+export function stamp(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** BOM-ul e obligatoriu: fara el Excel strica diacriticele. */
+export function downloadCsv(rows: unknown[][], basename: string): void {
+  const csv = rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+  saveBlob(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), `${basename}-${stamp()}.csv`);
 }
 
 export function findColumn(header: string[], pattern: RegExp): number {

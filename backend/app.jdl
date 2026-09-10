@@ -169,10 +169,12 @@ filter Recipient, Message
 //     invalid -> respinse; email duplicat (existent sau in acelasi fisier)
 //     -> sarit; rezultatul intra intr-un staging editabil, comis explicit.
 //     Grupurile noi din CSV se creeaza automat.
-//  4. Import CSV sabloane: doar "nume" obligatoriu, subject implicit = name,
-//     \n literal -> newline real, duplicat dupa nume -> sarit.
-//  5. Export CSV: BOM UTF-8, antet nume,prenume,email,grup respectiv
-//     nume,descriere,subiect,continut.
+//  4. Sabloanele intra si ies ca arhiva ZIP cu un HTML complet per sablon:
+//     numele fisierului = numele sablonului, <title> = subiect,
+//     meta description = descriere, meta template-name = numele adevarat
+//     (fisierul nu poate purta / \ : * ? " < > |), <body> = continut.
+//     Duplicat dupa nume -> sarit la import.
+//  5. Export CSV destinatari: BOM UTF-8, antet nume,prenume,email,grup.
 //  6. Conflict de canal la trimitere: pentru fiecare destinatar selectat,
 //     missing = canale alese fara RecipientChannel activ corespunzator.
 //     unreachable = missing == toate canalele alese. Trimiterea e blocata

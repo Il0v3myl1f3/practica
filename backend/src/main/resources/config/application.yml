@@ -136,6 +136,14 @@ spring:
     ansi:
       console-available: true
 
+spring:
+  servlet:
+    multipart:
+      # Arhiva de sabloane e mica; limita implicita de 1MB ar fi fost strimta
+      # doar daca cineva pune imagini inline in HTML-uri.
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 server:
   servlet:
     session:

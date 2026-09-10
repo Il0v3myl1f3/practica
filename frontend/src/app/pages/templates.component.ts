@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { ApiService } from '../core/api.service';
 import { ComposeStore, Store } from '../core/store';
 import { ToastService } from '../core/toast.service';
-import { COL, downloadCsv, findColumn, parseCsv } from '../core/csv';
+import { saveBlob, stamp } from '../core/csv';
 import { plural } from '../core/format';
 import { Template } from '../core/models';
 import { templateToHtml } from '../shared/editor.component';
@@ -25,12 +25,12 @@ const COLS = 'minmax(200px, 1fr) 160px';
           <input placeholder="Caută șablon…" [ngModel]="q()" (ngModelChange)="q.set($event)" />
         </label>
         <span class="grow"></span>
-        <button type="button" class="btn btn-ghost sm" (click)="file.click()"><app-icon [icon]="I.Upload" [size]="15" />Importă CSV</button>
-        <button type="button" class="btn btn-ghost sm" (click)="exportCsv()"><app-icon [icon]="I.Download" [size]="15" />Exportă CSV</button>
+        <button type="button" class="btn btn-ghost sm" (click)="file.click()"><app-icon [icon]="I.Upload" [size]="15" />Importă ZIP</button>
+        <button type="button" class="btn btn-ghost sm" (click)="exportZip()"><app-icon [icon]="I.Download" [size]="15" />Exportă ZIP</button>
         <button type="button" class="btn btn-primary sm" (click)="router.navigate(['/sabloane/nou'])">
           <app-icon [icon]="I.Plus" [size]="15" />Șablon nou
         </button>
-        <input #file type="file" accept=".csv,text/csv" hidden (change)="onFile($event)" />
+        <input #file type="file" accept=".zip,application/zip" hidden (change)="onFile($event)" />
       </div>
 
       <div class="tbody">
@@ -114,13 +114,14 @@ export class TemplatesComponent {
     });
   }
 
-  exportCsv(): void {
-    const rows = [
-      ['nume', 'descriere', 'subiect', 'continut'],
-      ...this.store.templates().map(t => [t.name, t.description, t.subject, t.body]),
-    ];
-    downloadCsv(rows, 'sabloane');
-    this.toast.show(`${this.store.templates().length} șabloane exportate în CSV.`);
+  exportZip(): void {
+    this.api.exportTemplatesZip().subscribe({
+      next: blob => {
+        saveBlob(blob, `sabloane-${stamp()}.zip`);
+        this.toast.show(`${plural(this.store.templates().length, 'șablon exportat', 'șabloane exportate')} în arhivă.`);
+      },
+      error: e => this.toast.error(e),
+    });
   }
 
   onFile(e: Event): void {
@@ -129,45 +130,16 @@ export class TemplatesComponent {
     input.value = '';
     if (!f) return;
 
-    const reader = new FileReader();
-    reader.onerror = () => this.toast.show('Fișierul nu a putut fi citit.');
-    reader.onload = () => {
-      const rows = parseCsv(String(reader.result ?? ''));
-      if (rows.length < 2) return this.toast.show('Fișierul este gol sau are doar antetul.');
-      const head = rows[0];
-      const iName = findColumn(head, COL.tplName);
-      if (iName < 0) {
-        return this.toast.show('Lipsește coloana obligatorie: nume.');
-      }
-      const iDesc = findColumn(head, COL.tplDesc);
-      const iSubject = findColumn(head, COL.tplSubject);
-      const iBody = findColumn(head, COL.tplBody);
-
-      const payload: Template[] = rows
-        .slice(1)
-        .map(r => ({
-          id: null,
-          name: (r[iName] ?? '').trim(),
-          description: iDesc >= 0 ? (r[iDesc] ?? '').trim() : '',
-          subject: iSubject >= 0 ? (r[iSubject] ?? '').trim() : '',
-          // "\n" scris literal in CSV devine rand nou real.
-          body: iBody >= 0 ? (r[iBody] ?? '').replace(/\\n/g, '\n') : '',
-        }))
-        .filter(t => !!t.name);
-
-      if (!payload.length) return this.toast.show('Nicio linie validă de importat.');
-
-      this.api.importTemplates(payload).subscribe({
-        next: created => {
-          this.store.loadTemplates();
-          const skipped = payload.length - created.length;
-          this.toast.show(
-            `${plural(created.length, 'șablon adăugat', 'șabloane adăugate')}${skipped ? `, ${skipped} sărite (nume existent)` : ''}.`,
-          );
-        },
-        error: err => this.toast.error(err),
-      });
-    };
-    reader.readAsText(f, 'utf-8');
+    this.api.importTemplatesZip(f).subscribe({
+      next: created => {
+        this.store.loadTemplates();
+        this.toast.show(
+          created.length
+            ? `${plural(created.length, 'șablon adăugat', 'șabloane adăugate')} din arhivă.`
+            : 'Niciun șablon nou — toate numele există deja.',
+        );
+      },
+      error: err => this.toast.error(err),
+    });
   }
 }

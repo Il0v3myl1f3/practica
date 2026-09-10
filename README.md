@@ -67,7 +67,8 @@ verificare, variabilele de personalizare `{{nume}}`, `{{prenume}}`, `{{grup}}`,
 
 Toate ecranele din prototip sunt implementate și legate de backend: login pe JWT,
 panou cu indicatori, istoricul trimiterilor cu filtre și sortare, ciorne,
-destinatari cu import/export CSV, șabloane, și fluxul de trimitere în trei pași
+destinatari cu import/export CSV (cu ecran de verificare unde poți corecta
+liniile citite din fișier), șabloane cu import/export ZIP, și fluxul de trimitere în trei pași
 cu editor bogat, variabile de personalizare și rezolvarea conflictelor de canal.
 
 Trimiterea creează livrări reale, una per destinatar și canal, din care se

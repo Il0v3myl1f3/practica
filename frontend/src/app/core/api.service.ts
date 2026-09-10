@@ -57,8 +57,15 @@ export class ApiService {
     return this.http.post<Template>(`${API}/api/app/templates`, body);
   }
 
-  importTemplates(rows: Template[]): Observable<Template[]> {
-    return this.http.post<Template[]>(`${API}/api/app/templates/bulk`, rows);
+  /** Toate sabloanele, ca arhiva ZIP cu cate un HTML fiecare. */
+  exportTemplatesZip(): Observable<Blob> {
+    return this.http.get(`${API}/api/app/templates/export`, { responseType: 'blob' });
+  }
+
+  importTemplatesZip(file: File): Observable<Template[]> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<Template[]>(`${API}/api/app/templates/import`, form);
   }
 
   deleteTemplate(id: number): Observable<void> {

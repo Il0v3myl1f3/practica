@@ -16,6 +16,9 @@ interface Staged extends RecipientUpsert {
   key: number;
 }
 
+/** Modalul de editare serveste si lista reala, si randurile citite din fisier. */
+type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; key: number };
+
 @Component({
   selector: 'app-people',
   standalone: true,
@@ -49,6 +52,9 @@ interface Staged extends RecipientUpsert {
               <span class="cell-muted">{{ s.email }}</span>
               <span>{{ s.group }}</span>
               <span class="cell-actions">
+                <button type="button" class="icon-btn" title="Corectează linia" (click)="openEditStaged(s)">
+                  <app-icon [icon]="I.Pencil" />
+                </button>
                 <button type="button" class="icon-btn" title="Scoate din import" (click)="dropStaged(s)">
                   <app-icon [icon]="I.Trash2" />
                 </button>
@@ -142,7 +148,7 @@ interface Staged extends RecipientUpsert {
     @if (editing()) {
       <div class="backdrop" (click)="closeEdit($event)">
         <div class="modal" (click)="$event.stopPropagation()">
-          <h3>{{ editing()!.id ? 'Editează destinatarul' : 'Destinatar nou' }}</h3>
+          <h3>{{ editTitle() }}</h3>
           <div class="form">
             <div class="two">
               <label class="field"><span>Prenume</span><input class="input" [(ngModel)]="form.firstName" /></label>
@@ -235,7 +241,7 @@ export class PeopleComponent {
   readonly groupFilter = signal('');
   readonly page = signal(0);
 
-  readonly editing = signal<Recipient | { id: null } | null>(null);
+  readonly editing = signal<EditTarget | null>(null);
   readonly editError = signal('');
   form: RecipientUpsert = blank();
 
@@ -285,11 +291,31 @@ export class PeopleComponent {
 
   // ------------------------------------------------------------ editare
 
+  editTitle = computed(() => {
+    const e = this.editing();
+    if (!e) return '';
+    if (e.scope === 'staged') return 'Corectează linia din import';
+    return e.id ? 'Editează destinatarul' : 'Destinatar nou';
+  });
+
   openNew(): void {
     this.form = blank();
     this.form.group = this.store.groupNames()[0] ?? '';
     this.editError.set('');
-    this.editing.set({ id: null });
+    this.editing.set({ scope: 'people', id: null });
+  }
+
+  openEditStaged(s: Staged): void {
+    this.form = {
+      firstName: s.firstName,
+      lastName: s.lastName,
+      email: s.email,
+      group: s.group,
+      phoneNumber: s.phoneNumber ?? '',
+      telegramChatId: s.telegramChatId ?? '',
+    };
+    this.editError.set('');
+    this.editing.set({ scope: 'staged', key: s.key });
   }
 
   openEdit(p: Recipient): void {
@@ -302,7 +328,7 @@ export class PeopleComponent {
       telegramChatId: p.telegramChatId ?? '',
     };
     this.editError.set('');
-    this.editing.set(p);
+    this.editing.set({ scope: 'people', id: p.id });
   }
 
   closeEdit(e: Event): void {
@@ -320,16 +346,35 @@ export class PeopleComponent {
     if (!f.group.trim()) {
       return this.editError.set('Alege un grup.');
     }
-    const current = this.editing();
+    const target = this.editing();
+    if (!target) return;
+
+    if (target.scope === 'staged') {
+      // Randul din import nu a fost inca scris in baza: se corecteaza local.
+      // Emailul trebuie sa ramana unic si fata de lista reala, si fata de
+      // celelalte randuri din acelasi fisier.
+      const email = f.email.trim().toLowerCase();
+      const clash =
+        this.store.recipients().some(p => p.email.toLowerCase() === email) ||
+        (this.staged() ?? []).some(s => s.key !== target.key && s.email.toLowerCase() === email);
+      if (clash) {
+        return this.editError.set('Un alt destinatar are deja acest email.');
+      }
+      this.staged.set((this.staged() ?? []).map(s => (s.key === target.key ? { ...s, ...f, key: s.key } : s)));
+      this.editing.set(null);
+      this.toast.show('Linie corectată.');
+      return;
+    }
+
     const done = () => {
       this.editing.set(null);
       this.store.loadRecipients();
       this.store.loadGroups();
-      this.toast.show(current && 'id' in current && current.id ? 'Destinatar actualizat.' : 'Destinatar adăugat.');
+      this.toast.show(target.id ? 'Destinatar actualizat.' : 'Destinatar adăugat.');
     };
     const fail = (e: unknown) => this.editError.set(errMessage(e));
-    if (current && 'id' in current && current.id) {
-      this.api.updateRecipient(current.id, f).subscribe({ next: done, error: fail });
+    if (target.id) {
+      this.api.updateRecipient(target.id, f).subscribe({ next: done, error: fail });
     } else {
       this.api.createRecipient(f).subscribe({ next: done, error: fail });
     }

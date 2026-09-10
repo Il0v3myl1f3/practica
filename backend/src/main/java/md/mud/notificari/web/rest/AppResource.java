@@ -1,5 +1,8 @@
 package md.mud.notificari.web.rest;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import md.mud.notificari.service.app.AppDtos.ComposePayload;
@@ -13,7 +16,11 @@ import md.mud.notificari.service.app.AppDtos.SendPayload;
 import md.mud.notificari.service.app.AppDtos.SendResult;
 import md.mud.notificari.service.app.AppDtos.TemplateView;
 import md.mud.notificari.service.app.AppService;
+import md.mud.notificari.service.app.TemplateArchiveService;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,7 +30,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * The API the Angular client talks to. One endpoint per thing a screen needs,
@@ -34,9 +43,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AppResource {
 
     private final AppService app;
+    private final TemplateArchiveService archive;
 
-    public AppResource(AppService app) {
+    public AppResource(AppService app, TemplateArchiveService archive) {
         this.app = app;
+        this.archive = archive;
     }
 
     // ------------------------------------------------------------- dashboard
@@ -91,9 +102,26 @@ public class AppResource {
         return app.createTemplate(body);
     }
 
-    @PostMapping("/templates/bulk")
-    public List<TemplateView> importTemplates(@RequestBody List<TemplateView> body) {
-        return app.importTemplates(body);
+    /** Toate sabloanele, ca arhiva ZIP cu cate un fisier HTML fiecare. */
+    @GetMapping(value = "/templates/export", produces = "application/zip")
+    public ResponseEntity<byte[]> exportTemplates() {
+        byte[] zip = archive.export(app.templates());
+        String name = "sabloane-" + LocalDate.now() + ".zip";
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(name).build().toString())
+            .body(zip);
+    }
+
+    @PostMapping(value = "/templates/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public List<TemplateView> importTemplates(@RequestPart("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Nu ai ales niciun fisier.");
+        }
+        try (InputStream in = file.getInputStream()) {
+            return app.importTemplates(archive.read(in));
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Fisierul nu a putut fi citit.");
+        }
     }
 
     @DeleteMapping("/templates/{id}")
