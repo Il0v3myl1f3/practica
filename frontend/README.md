@@ -1,6 +1,12 @@
 # Frontend
 
-Clientul Angular al aplicației. **Încă nu este generat.**
+Clientul Angular al aplicației — Angular 22, SCSS, fără SSR, fără librărie de
+componente (design system propriu, pe token-urile MUD).
+
+```bash
+npm install     # prima dată
+npm start       # http://localhost:4200
+```
 
 Backend-ul expune deja API-ul complet la `http://localhost:8080` — vezi
 `/v3/api-docs` pentru contractul OpenAPI, din care se poate genera clientul

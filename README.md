@@ -9,14 +9,14 @@ Monorepo cu două proiecte independente:
 | Folder | Ce e | Stare |
 |---|---|---|
 | [`backend/`](backend) | API REST — Spring Boot 4 + JHipster 9, PostgreSQL, JWT | funcțional |
-| [`frontend/`](frontend) | Client Angular | de început |
+| [`frontend/`](frontend) | Client Angular 22 (SCSS, fără SSR) | schelet |
 | [`frontend/design/`](frontend/design) | Prototipul de UI și token-urile de design MUD | referință |
 
 ## Pornire rapidă
 
 ```bash
-cd backend
-./mvnw            # http://localhost:8080, cont admin/admin
+cd backend && ./mvnw          # API pe http://localhost:8080, cont admin/admin
+cd frontend && npm start      # UI pe http://localhost:4200
 ```
 
 Baza de date de dezvoltare este H2 pe disc — nu trebuie instalat nimic.
@@ -58,4 +58,3 @@ verificare, variabilele de personalizare `{{nume}}`, `{{prenume}}`, `{{grup}}`,
 - [ ] Logica de business din finalul `app.jdl`: parser CSV, conflict de canale,
       substituția variabilelor, agregarea statusului de livrare
 - [ ] Integrarea efectivă cu providerii de email / Telegram / WhatsApp
-- [ ] Scheletul Angular în `frontend/`
