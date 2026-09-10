@@ -5,18 +5,20 @@ import { ApiService } from '../core/api.service';
 import { ComposeStore, Store } from '../core/store';
 import { ToastService } from '../core/toast.service';
 import { Channel, Recipient, SendResult, channelTitle } from '../core/models';
+import { IconComponent } from '../shared/icon.component';
+import { Check, ChevronDown, ChevronRight, Minus, Search } from '../shared/icons';
 
 const COLS = 'minmax(140px, 2fr) minmax(0, 1.4fr) 190px';
 
 @Component({
   selector: 'app-compose-recipients',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   template: `
     <section class="shell">
       <div class="toolbar">
         <label class="search-wrap">
-          <span>⌕</span>
+          <app-icon [icon]="I.Search" [size]="16" />
           <input placeholder="Caută nume, email sau grup…" [ngModel]="q()" (ngModelChange)="q.set($event)" />
         </label>
         <select class="select filter" [ngModel]="groupFilter()" (ngModelChange)="groupFilter.set($event)">
@@ -54,12 +56,16 @@ const COLS = 'minmax(140px, 2fr) minmax(0, 1.4fr) 190px';
         @for (g of groups(); track g.name) {
           <div class="group-head" (click)="toggleOpen(g.name)">
             <span class="checkbox" [class.on]="g.allOn" [class.partial]="g.someOn" (click)="toggleGroup($event, g)">
-              {{ g.allOn ? '✓' : g.someOn ? '–' : '' }}
+              @if (g.allOn) {
+                <app-icon [icon]="I.Check" [size]="14" [stroke]="2.5" />
+              } @else if (g.someOn) {
+                <app-icon [icon]="I.Minus" [size]="14" [stroke]="2.5" />
+              }
             </span>
             <b>{{ g.name }}</b>
             <span class="count">{{ g.selectedCount }}/{{ g.people.length }}</span>
             <span class="grow"></span>
-            <span class="chev">{{ isOpen(g.name) ? '▾' : '▸' }}</span>
+            <app-icon class="chev" [icon]="isOpen(g.name) ? I.ChevronDown : I.ChevronRight" [size]="16" />
           </div>
 
           @if (isOpen(g.name)) {
@@ -72,7 +78,11 @@ const COLS = 'minmax(140px, 2fr) minmax(0, 1.4fr) 190px';
                 (click)="c.toggleRecipient(p.id)"
               >
                 <span class="name">
-                  <span class="checkbox sm" [class.on]="isSelected(p.id)">{{ isSelected(p.id) ? '✓' : '' }}</span>
+                  <span class="checkbox sm" [class.on]="isSelected(p.id)">
+                    @if (isSelected(p.id)) {
+                      <app-icon [icon]="I.Check" [size]="13" [stroke]="2.5" />
+                    }
+                  </span>
                   <span class="cell-strong">{{ p.name }}</span>
                 </span>
                 <span class="cell-muted">{{ p.email }}</span>
@@ -125,7 +135,11 @@ const COLS = 'minmax(140px, 2fr) minmax(0, 1.4fr) 190px';
                     {{ p.channels.includes(ch) ? (pick().includes(ch) ? 'Se trimite' : 'Nu se trimite') : 'Destinatarul nu are acest canal configurat' }}
                   </small>
                 </span>
-                <span class="checkbox sm" [class.on]="pick().includes(ch)">{{ pick().includes(ch) ? '✓' : '' }}</span>
+                <span class="checkbox sm" [class.on]="pick().includes(ch)">
+                  @if (pick().includes(ch)) {
+                    <app-icon [icon]="I.Check" [size]="13" [stroke]="2.5" />
+                  }
+                </span>
               </button>
             }
           </div>
@@ -161,7 +175,7 @@ const COLS = 'minmax(140px, 2fr) minmax(0, 1.4fr) 190px';
     @if (result(); as r) {
       <div class="backdrop">
         <div class="modal">
-          <div class="ok-mark">✓</div>
+          <div class="ok-mark"><app-icon [icon]="I.Check" [size]="22" [stroke]="2.5" /></div>
           <h3>Mesaj trimis</h3>
           <p class="modal-sub">
             {{ r.recipientCount }} {{ r.recipientCount === 1 ? 'destinatar a primit mesajul' : 'destinatari au primit mesajul' }}
@@ -281,6 +295,7 @@ export class ComposeRecipientsComponent {
 
   readonly cols = COLS;
   readonly title = channelTitle;
+  readonly I = { Search, Check, Minus, ChevronDown, ChevronRight };
 
   readonly q = signal('');
   readonly groupFilter = signal('');

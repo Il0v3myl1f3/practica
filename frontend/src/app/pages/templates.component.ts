@@ -8,24 +8,28 @@ import { COL, downloadCsv, findColumn, parseCsv } from '../core/csv';
 import { plural } from '../core/format';
 import { Template } from '../core/models';
 import { templateToHtml } from '../shared/editor.component';
+import { IconComponent } from '../shared/icon.component';
+import { Download, Plus, Search, Trash2, Upload } from '../shared/icons';
 
 const COLS = 'minmax(200px, 1fr) 160px';
 
 @Component({
   selector: 'app-templates',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   template: `
     <section class="shell">
       <div class="toolbar">
         <label class="search-wrap">
-          <span>⌕</span>
+          <app-icon [icon]="I.Search" [size]="16" />
           <input placeholder="Caută șablon…" [ngModel]="q()" (ngModelChange)="q.set($event)" />
         </label>
         <span class="grow"></span>
-        <button type="button" class="btn btn-ghost sm" (click)="file.click()">Importă CSV</button>
-        <button type="button" class="btn btn-ghost sm" (click)="exportCsv()">Exportă CSV</button>
-        <button type="button" class="btn btn-primary sm" (click)="router.navigate(['/sabloane/nou'])">Șablon nou</button>
+        <button type="button" class="btn btn-ghost sm" (click)="file.click()"><app-icon [icon]="I.Upload" [size]="15" />Importă CSV</button>
+        <button type="button" class="btn btn-ghost sm" (click)="exportCsv()"><app-icon [icon]="I.Download" [size]="15" />Exportă CSV</button>
+        <button type="button" class="btn btn-primary sm" (click)="router.navigate(['/sabloane/nou'])">
+          <app-icon [icon]="I.Plus" [size]="15" />Șablon nou
+        </button>
         <input #file type="file" accept=".csv,text/csv" hidden (change)="onFile($event)" />
       </div>
 
@@ -42,7 +46,7 @@ const COLS = 'minmax(200px, 1fr) 160px';
             </div>
             <span class="cell-actions">
               <button type="button" class="btn btn-ghost xs" (click)="use(t)">Folosește</button>
-              <button type="button" class="icon-btn" title="Șterge" (click)="remove(t)">🗑</button>
+              <button type="button" class="icon-btn" title="Șterge" (click)="remove(t)"><app-icon [icon]="I.Trash2" /></button>
             </span>
           </div>
         }
@@ -72,6 +76,7 @@ export class TemplatesComponent {
   private toast = inject(ToastService);
 
   readonly cols = COLS;
+  readonly I = { Search, Trash2, Upload, Download, Plus };
   readonly q = signal('');
 
   constructor() {

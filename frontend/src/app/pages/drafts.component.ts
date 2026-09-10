@@ -6,18 +6,20 @@ import { ComposeStore, Store } from '../core/store';
 import { ToastService } from '../core/toast.service';
 import { dateLabel, plural } from '../core/format';
 import { Channel, MessageView, channelTitle } from '../core/models';
+import { IconComponent } from '../shared/icon.component';
+import { Search, Trash2 } from '../shared/icons';
 
 const COLS = 'minmax(160px, 2fr) 130px 140px';
 
 @Component({
   selector: 'app-drafts',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   template: `
     <section class="shell">
       <div class="toolbar">
         <label class="search-wrap">
-          <span>⌕</span>
+          <app-icon [icon]="I.Search" [size]="16" />
           <input placeholder="Caută după subiect…" [ngModel]="q()" (ngModelChange)="q.set($event)" />
         </label>
         <button type="button" class="btn btn-primary sm" (click)="newMessage()">Mesaj nou</button>
@@ -37,7 +39,7 @@ const COLS = 'minmax(160px, 2fr) 130px 140px';
             <span class="cell-muted">{{ channelsLabel(d.channels) }}</span>
             <span class="cell-actions">
               <button type="button" class="btn btn-ghost xs" (click)="resume(d)">Continuă</button>
-              <button type="button" class="icon-btn" title="Șterge" (click)="remove(d)">🗑</button>
+              <button type="button" class="icon-btn" title="Șterge" (click)="remove(d)"><app-icon [icon]="I.Trash2" /></button>
             </span>
           </div>
         }
@@ -62,6 +64,7 @@ export class DraftsComponent {
   private toast = inject(ToastService);
 
   readonly cols = COLS;
+  readonly I = { Search, Trash2 };
   readonly q = signal('');
 
   constructor() {

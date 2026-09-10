@@ -6,11 +6,13 @@ import { ComposeStore, Store } from '../core/store';
 import { ToastService } from '../core/toast.service';
 import { CHANNELS, Channel, channelTitle } from '../core/models';
 import { EditorComponent, plainText } from '../shared/editor.component';
+import { IconComponent } from '../shared/icon.component';
+import { Check, ImagePlus, X } from '../shared/icons';
 
 @Component({
   selector: 'app-compose',
   standalone: true,
-  imports: [FormsModule, EditorComponent],
+  imports: [FormsModule, EditorComponent, IconComponent],
   template: `
     <div class="cols">
       <section class="shell pad">
@@ -30,10 +32,12 @@ import { EditorComponent, plainText } from '../shared/editor.component';
             @for (img of c.attachments(); track img.url) {
               <div class="thumb">
                 <img [src]="img.url" [alt]="img.fileName" />
-                <button type="button" class="x" (click)="removeImage(img.url)" title="Șterge">×</button>
+                <button type="button" class="x" (click)="removeImage(img.url)" title="Șterge">
+                  <app-icon [icon]="I.X" [size]="13" [stroke]="2.5" />
+                </button>
               </div>
             }
-            <button type="button" class="add" (click)="file.click()">＋</button>
+            <button type="button" class="add" (click)="file.click()"><app-icon [icon]="I.ImagePlus" [size]="22" /></button>
             <input #file type="file" accept="image/*" multiple hidden (change)="onFiles($event)" />
           </div>
           <p class="hint">{{ imagesHint() }}</p>
@@ -48,7 +52,7 @@ import { EditorComponent, plainText } from '../shared/editor.component';
               <button type="button" class="channel" [class.on]="c.channels().includes(ch.id)" (click)="pick($event, ch.id)">
                 <span>{{ ch.title }}</span>
                 @if (c.channels().includes(ch.id)) {
-                  <span class="mark">✓</span>
+                  <app-icon class="mark" [icon]="I.Check" [size]="15" [stroke]="2.5" />
                 }
               </button>
             }
@@ -140,6 +144,7 @@ export class ComposeComponent {
   private toast = inject(ToastService);
 
   readonly channels = CHANNELS;
+  readonly I = { Check, X, ImagePlus };
 
   channelsLabel = computed(() => this.c.channels().map(channelTitle).join(' + '));
 

@@ -4,6 +4,18 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../core/auth.service';
 import { ComposeStore, Store } from '../core/store';
+import { IconComponent } from '../shared/icon.component';
+import {
+  Check,
+  FileText,
+  LayoutGrid,
+  LayoutTemplate,
+  LogOut,
+  PanelLeft,
+  Plus,
+  Send,
+  Users,
+} from '../shared/icons';
 
 const FLOW = ['/mesaj/sablon', '/mesaj/compune', '/mesaj/destinatari'];
 
@@ -22,7 +34,7 @@ const TITLES: Record<string, [string, string]> = {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink],
+  imports: [RouterOutlet, RouterLink, IconComponent],
   template: `
     <div class="layout">
       <nav class="rail" [class.closed]="!railOpen()">
@@ -39,19 +51,19 @@ const TITLES: Record<string, [string, string]> = {
         <div class="rail-body">
           <div class="rail-heading">Comunicare</div>
           <a class="nav" routerLink="/panou" [class.on]="is('/panou')" title="Panou">
-            <span class="ico">▦</span>@if (railOpen()) {<span class="lbl">Panou</span>}
+            <app-icon class="ico" [icon]="I.LayoutGrid" />@if (railOpen()) {<span class="lbl">Panou</span>}
           </a>
           <a class="nav" (click)="newMessage()" [class.on]="inFlow()" title="Mesaj nou">
-            <span class="ico">＋</span>@if (railOpen()) {<span class="lbl">Mesaj nou</span>}
+            <app-icon class="ico" [icon]="I.Plus" />@if (railOpen()) {<span class="lbl">Mesaj nou</span>}
           </a>
           <a class="nav" routerLink="/trimise" [class.on]="is('/trimise')" title="Mesaje trimise">
-            <span class="ico">➤</span>
+            <app-icon class="ico" [icon]="I.Send" />
             @if (railOpen()) {
               <span class="lbl">Mesaje trimise</span><span class="badge">{{ store.sent().length }}</span>
             }
           </a>
           <a class="nav" routerLink="/ciorne" [class.on]="is('/ciorne')" title="Ciorne">
-            <span class="ico">🗎</span>
+            <app-icon class="ico" [icon]="I.FileText" />
             @if (railOpen()) {
               <span class="lbl">Ciorne</span><span class="badge">{{ store.drafts().length }}</span>
             }
@@ -59,13 +71,13 @@ const TITLES: Record<string, [string, string]> = {
 
           <div class="rail-heading">Administrare</div>
           <a class="nav" routerLink="/destinatari" [class.on]="is('/destinatari')" title="Destinatari">
-            <span class="ico">👥</span>
+            <app-icon class="ico" [icon]="I.Users" />
             @if (railOpen()) {
               <span class="lbl">Destinatari</span><span class="badge">{{ store.recipients().length }}</span>
             }
           </a>
           <a class="nav" routerLink="/sabloane" [class.on]="is('/sabloane')" title="Șabloane">
-            <span class="ico">▤</span>
+            <app-icon class="ico" [icon]="I.LayoutTemplate" />
             @if (railOpen()) {
               <span class="lbl">Șabloane</span><span class="badge">{{ store.templates().length }}</span>
             }
@@ -77,7 +89,9 @@ const TITLES: Record<string, [string, string]> = {
           @if (railOpen()) {
             <div class="who">
               <div class="login">{{ auth.login() }}</div>
-              <button type="button" class="link" (click)="auth.signOut()">Ieși din cont</button>
+              <button type="button" class="link" (click)="auth.signOut()">
+                <app-icon [icon]="I.LogOut" [size]="12" />Ieși din cont
+              </button>
             </div>
           }
         </div>
@@ -85,7 +99,7 @@ const TITLES: Record<string, [string, string]> = {
 
       <div class="main">
         <header class="top">
-          <button type="button" class="icon-btn" (click)="railOpen.set(!railOpen())" title="Restrânge meniul">☰</button>
+          <button type="button" class="icon-btn" (click)="railOpen.set(!railOpen())" title="Restrânge meniul"><app-icon [icon]="I.PanelLeft" /></button>
           <div class="crumbs">
             @for (c of crumbs(); track c.label; let last = $last) {
               @if (!$first) {<span class="sep">/</span>}
@@ -111,7 +125,11 @@ const TITLES: Record<string, [string, string]> = {
                   <div class="step-wrap">
                     <button type="button" class="step" [class.active]="i === stepIndex()" [disabled]="i > stepIndex()" (click)="goStep(i)">
                       <span class="dot" [class.done]="i < stepIndex()" [class.active]="i === stepIndex()">
-                        {{ i < stepIndex() ? '✓' : i + 1 }}
+                        @if (i < stepIndex()) {
+                          <app-icon [icon]="I.Check" [size]="13" [stroke]="2.5" />
+                        } @else {
+                          {{ i + 1 }}
+                        }
                       </span>
                       <span class="step-label">{{ s.label }}</span>
                     </button>
@@ -232,7 +250,17 @@ const TITLES: Record<string, [string, string]> = {
       }
       .who { min-width: 0; }
       .login { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
-      .link { border: none; background: none; padding: 0; font-size: 12px; color: var(--brand); cursor: pointer; }
+      .link {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        border: none;
+        background: none;
+        padding: 0;
+        font-size: 12px;
+        color: var(--brand);
+        cursor: pointer;
+      }
       .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
       .top {
         height: 56px;
@@ -299,6 +327,8 @@ export class ShellComponent {
   readonly store = inject(Store);
   private compose = inject(ComposeStore);
   private router = inject(Router);
+
+  readonly I = { LayoutGrid, Plus, Send, FileText, Users, LayoutTemplate, PanelLeft, LogOut, Check };
 
   readonly railOpen = signal(true);
   readonly steps = [

@@ -3,14 +3,17 @@ import { Router } from '@angular/router';
 import { ComposeStore, Store } from '../core/store';
 import { Template } from '../core/models';
 import { templateToHtml } from '../shared/editor.component';
+import { IconComponent } from '../shared/icon.component';
+import { Plus } from '../shared/icons';
 
 @Component({
   selector: 'app-compose-pick',
   standalone: true,
+  imports: [IconComponent],
   template: `
     <div class="grid">
       <button type="button" class="card blank" (click)="blank()">
-        <div class="mark">＋</div>
+        <div class="mark"><app-icon [icon]="Plus" [size]="18" /></div>
         <div class="body">
           <div class="name">Mesaj gol</div>
           <div class="desc">Pornește de la zero, fără text predefinit.</div>
@@ -68,6 +71,8 @@ export class ComposePickComponent {
   readonly store = inject(Store);
   private compose = inject(ComposeStore);
   private router = inject(Router);
+
+  readonly Plus = Plus;
 
   constructor() {
     this.store.loadTemplates();

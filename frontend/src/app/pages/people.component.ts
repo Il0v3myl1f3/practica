@@ -6,6 +6,8 @@ import { ToastService } from '../core/toast.service';
 import { COL, EMAIL_RE, downloadCsv, findColumn, parseCsv } from '../core/csv';
 import { pagerItems, plural } from '../core/format';
 import { Recipient, RecipientUpsert } from '../core/models';
+import { IconComponent } from '../shared/icon.component';
+import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Search, Trash2, Upload } from '../shared/icons';
 
 const PAGE = 10;
 const COLS = 'minmax(160px, 2fr) minmax(0, 1.4fr) 150px 110px 88px';
@@ -17,7 +19,7 @@ interface Staged extends RecipientUpsert {
 @Component({
   selector: 'app-people',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   template: `
     @if (staged() !== null) {
       <!-- Verificarea importului: randurile citite din fisier, editabile inainte de a fi scrise. -->
@@ -47,7 +49,9 @@ interface Staged extends RecipientUpsert {
               <span class="cell-muted">{{ s.email }}</span>
               <span>{{ s.group }}</span>
               <span class="cell-actions">
-                <button type="button" class="icon-btn" title="Scoate din import" (click)="dropStaged(s)">🗑</button>
+                <button type="button" class="icon-btn" title="Scoate din import" (click)="dropStaged(s)">
+                  <app-icon [icon]="I.Trash2" />
+                </button>
               </span>
             </div>
           } @empty {
@@ -59,7 +63,7 @@ interface Staged extends RecipientUpsert {
       <section class="shell">
         <div class="toolbar">
           <label class="search-wrap">
-            <span>⌕</span>
+            <app-icon [icon]="I.Search" [size]="16" />
             <input placeholder="Caută nume, email sau grup…" [ngModel]="q()" (ngModelChange)="q.set($event); page.set(0)" />
           </label>
 
@@ -75,9 +79,15 @@ interface Staged extends RecipientUpsert {
           }
 
           <span class="grow"></span>
-          <button type="button" class="btn btn-ghost sm" (click)="file.click()">Importă CSV</button>
-          <button type="button" class="btn btn-ghost sm" (click)="exportCsv()">Exportă CSV</button>
-          <button type="button" class="btn btn-primary sm" (click)="openNew()">Adaugă</button>
+          <button type="button" class="btn btn-ghost sm" (click)="file.click()">
+            <app-icon [icon]="I.Upload" [size]="15" />Importă CSV
+          </button>
+          <button type="button" class="btn btn-ghost sm" (click)="exportCsv()">
+            <app-icon [icon]="I.Download" [size]="15" />Exportă CSV
+          </button>
+          <button type="button" class="btn btn-primary sm" (click)="openNew()">
+            <app-icon [icon]="I.Plus" [size]="15" />Adaugă
+          </button>
           <input #file type="file" accept=".csv,text/csv" hidden (change)="onFile($event)" />
         </div>
 
@@ -97,8 +107,12 @@ interface Staged extends RecipientUpsert {
                 }
               </span>
               <span class="cell-actions">
-                <button type="button" class="icon-btn" title="Editează" (click)="openEdit(p)">✎</button>
-                <button type="button" class="icon-btn" title="Șterge" (click)="toDelete.set(p)">🗑</button>
+                <button type="button" class="icon-btn" title="Editează" (click)="openEdit(p)">
+                  <app-icon [icon]="I.Pencil" />
+                </button>
+                <button type="button" class="icon-btn" title="Șterge" (click)="toDelete.set(p)">
+                  <app-icon [icon]="I.Trash2" />
+                </button>
               </span>
             </div>
           }
@@ -111,7 +125,7 @@ interface Staged extends RecipientUpsert {
         <div class="pager">
           <span>{{ rangeLabel() }}</span>
           <div class="pager-items">
-            <button type="button" class="pager-item" [disabled]="page() === 0" (click)="page.set(page() - 1)">‹</button>
+            <button type="button" class="pager-item" [disabled]="page() === 0" (click)="page.set(page() - 1)"><app-icon [icon]="I.ChevronLeft" [size]="16" /></button>
             @for (p of pages(); track $index) {
               @if (p === '…') {
                 <span class="pager-item" style="cursor:default">…</span>
@@ -119,7 +133,7 @@ interface Staged extends RecipientUpsert {
                 <button type="button" class="pager-item" [class.on]="p === page()" (click)="page.set(+p)">{{ +p + 1 }}</button>
               }
             }
-            <button type="button" class="pager-item" [disabled]="page() >= pageCount() - 1" (click)="page.set(page() + 1)">›</button>
+            <button type="button" class="pager-item" [disabled]="page() >= pageCount() - 1" (click)="page.set(page() + 1)"><app-icon [icon]="I.ChevronRight" [size]="16" /></button>
           </div>
         </div>
       </section>
@@ -215,6 +229,7 @@ export class PeopleComponent {
   readonly cols = COLS;
   readonly stagedCols = 'minmax(160px, 2fr) minmax(0, 1.4fr) 150px 88px';
   readonly plural = plural;
+  readonly I = { Search, Trash2, Upload, Download, Plus, Pencil, ChevronLeft, ChevronRight };
 
   readonly q = signal('');
   readonly groupFilter = signal('');

@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { Store } from '../core/store';
 import { dateLabel, pagerItems } from '../core/format';
 import { CHANNELS, Channel, MessageStatus, channelTitle, statusLabel } from '../core/models';
+import { IconComponent } from '../shared/icon.component';
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Search } from '../shared/icons';
 
 const PAGE = 6;
 const COLS = 'minmax(180px, 2.2fr) 130px 100px 140px 100px';
@@ -11,12 +13,12 @@ const COLS = 'minmax(180px, 2.2fr) 130px 100px 140px 100px';
 @Component({
   selector: 'app-sent',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   template: `
     <section class="shell">
       <div class="toolbar">
         <label class="search-wrap">
-          <span>⌕</span>
+          <app-icon [icon]="I.Search" [size]="16" />
           <input placeholder="Caută după subiect…" [ngModel]="q()" (ngModelChange)="q.set($event); page.set(0)" />
         </label>
 
@@ -41,10 +43,16 @@ const COLS = 'minmax(180px, 2.2fr) 130px 100px 140px 100px';
 
       <div class="tbody">
         <div class="row head" [style.gridTemplateColumns]="cols" [style.minWidth]="'720px'">
-          <button type="button" class="sort" (click)="sortBy('subject')">Subiect {{ arrow('subject') }}</button>
+          <button type="button" class="sort" (click)="sortBy('subject')">
+            Subiect @if (arrow('subject'); as a) {<app-icon [icon]="a" [size]="13" />}
+          </button>
           <span>Canal</span>
-          <button type="button" class="sort" (click)="sortBy('count')">Destinatari {{ arrow('count') }}</button>
-          <button type="button" class="sort" (click)="sortBy('date')">Dată {{ arrow('date') }}</button>
+          <button type="button" class="sort" (click)="sortBy('count')">
+            Destinatari @if (arrow('count'); as a) {<app-icon [icon]="a" [size]="13" />}
+          </button>
+          <button type="button" class="sort" (click)="sortBy('date')">
+            Dată @if (arrow('date'); as a) {<app-icon [icon]="a" [size]="13" />}
+          </button>
           <span>Stare</span>
         </div>
 
@@ -70,7 +78,7 @@ const COLS = 'minmax(180px, 2.2fr) 130px 100px 140px 100px';
       <div class="pager">
         <span>{{ rangeLabel() }}</span>
         <div class="pager-items">
-          <button type="button" class="pager-item" [disabled]="page() === 0" (click)="page.set(page() - 1)">‹</button>
+          <button type="button" class="pager-item" [disabled]="page() === 0" (click)="page.set(page() - 1)"><app-icon [icon]="I.ChevronLeft" [size]="16" /></button>
           @for (p of pages(); track $index) {
             @if (p === '…') {
               <span class="pager-item" style="cursor:default">…</span>
@@ -78,7 +86,7 @@ const COLS = 'minmax(180px, 2.2fr) 130px 100px 140px 100px';
               <button type="button" class="pager-item" [class.on]="p === page()" (click)="page.set(+p)">{{ +p + 1 }}</button>
             }
           }
-          <button type="button" class="pager-item" [disabled]="page() >= pageCount() - 1" (click)="page.set(page() + 1)">›</button>
+          <button type="button" class="pager-item" [disabled]="page() >= pageCount() - 1" (click)="page.set(page() + 1)"><app-icon [icon]="I.ChevronRight" [size]="16" /></button>
         </div>
       </div>
     </section>
@@ -88,6 +96,9 @@ const COLS = 'minmax(180px, 2.2fr) 130px 100px 140px 100px';
       .filter { flex: 0 1 auto; width: auto; min-width: 190px; height: 40px; font-size: 14px; }
       .tags { display: flex; gap: 4px; flex-wrap: wrap; }
       .sort {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
         border: none;
         background: none;
         padding: 0;
@@ -110,6 +121,8 @@ export class SentComponent {
   readonly label = statusLabel;
   readonly title = channelTitle;
   readonly date = dateLabel;
+
+  readonly I = { Search, ChevronLeft, ChevronRight };
 
   readonly q = signal('');
   readonly chFilter = signal<string>('');
@@ -181,8 +194,9 @@ export class SentComponent {
     this.page.set(0);
   }
 
-  arrow(key: 'subject' | 'count' | 'date'): string {
-    return this.sortKey() === key ? (this.sortDir() === 'asc' ? '↑' : '↓') : '';
+  arrow(key: 'subject' | 'count' | 'date') {
+    if (this.sortKey() !== key) return null;
+    return this.sortDir() === 'asc' ? ArrowUp : ArrowDown;
   }
 
   open(id: number): void {
