@@ -1,0 +1,191 @@
+// ===========================================================================
+// Notificari MUD - model de date (backend-only).
+// Frontendul este un proiect Angular separat: clientFramework no.
+// Generare:  jhipster jdl app.jdl
+// ===========================================================================
+
+application {
+  config {
+    baseName notificariMud
+    applicationType monolith
+    packageName md.mud.notificari
+    authenticationType jwt
+    databaseType sql
+    prodDatabaseType postgresql
+    devDatabaseType h2Disk
+    cacheProvider ehcache
+    buildTool maven
+    clientFramework no
+    enableTranslation false
+    serverPort 8080
+    testFrameworks []
+  }
+  entities *
+}
+
+// --------------------------------------------------------------------- enums
+
+enum Channel {
+  EMAIL, TELEGRAM, WHATSAPP
+}
+
+/** DRAFT = ciorna. PARTIAL/FAILED se calculeaza din MessageRecipient. */
+enum MessageStatus {
+  DRAFT, QUEUED, SENT, PARTIAL, FAILED
+}
+
+enum DeliveryStatus {
+  PENDING, SENT, DELIVERED, FAILED, SKIPPED
+}
+
+enum MemberRole {
+  OWNER, ADMIN, MEMBER
+}
+
+// ------------------------------------------------------------------ tenancy
+
+/** Spatiul de lucru. Toate datele apartin unei organizatii. */
+entity Organization {
+  name String required maxlength(100)
+  slug String required maxlength(60) unique
+  createdAt Instant required
+}
+
+entity Membership {
+  role MemberRole required
+}
+
+// -------------------------------------------------------------- destinatari
+
+/** Grupurile se creeaza dinamic la importul CSV. Unic pe organizatie. */
+entity RecipientGroup {
+  name String required maxlength(80)
+}
+
+/** fullName NU se stocheaza: este derivat din firstName + " " + lastName. */
+entity Recipient {
+  firstName String required maxlength(60)
+  lastName String required maxlength(60)
+  email String required maxlength(254) pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+  createdAt Instant
+}
+
+/** address = adresa email / telegram chat id / telefon E.164.
+ *  active = false inseamna canal neconfigurat pentru acest destinatar. */
+entity RecipientChannel {
+  channel Channel required
+  address String required maxlength(254)
+  verified Boolean
+  active Boolean required
+}
+
+// ----------------------------------------------------------------- continut
+
+/** Daca subject lipseste la salvare, se completeaza cu name. */
+entity MessageTemplate {
+  name String required maxlength(120)
+  description String maxlength(500)
+  subject String maxlength(200)
+  body TextBlob
+}
+
+/** Ciorna si trimitere in aceeasi entitate, diferentiate prin status.
+ *  bodyHtml contine chip-uri de variabile: {{nume}} {{prenume}} {{grup}} {{email}} */
+entity Message {
+  subject String maxlength(200)
+  bodyHtml TextBlob
+  status MessageStatus required
+  recipientCount Integer min(0)
+  createdAt Instant required
+  sentAt Instant
+}
+
+/** Canalele alese pentru mesaj. Tabela separata pentru ca JDL nu are
+ *  colectii de enum-uri, iar istoricul se filtreaza dupa canal in DB. */
+entity MessageChannel {
+  channel Channel required
+}
+
+/** O linie per (destinatar, canal) efectiv folosit la trimitere.
+ *  Aici se materializeaza si override-ul de canal per persoana din pasul 3. */
+entity MessageRecipient {
+  channel Channel required
+  status DeliveryStatus required
+  providerMessageId String maxlength(120)
+  errorMessage String maxlength(500)
+  sentAt Instant
+  deliveredAt Instant
+}
+
+entity MessageAttachment {
+  fileName String required maxlength(255)
+  contentType String maxlength(100)
+  file ImageBlob required
+}
+
+// ------------------------------------------------------------------ relatii
+
+relationship ManyToOne {
+  Membership{user(login) required} to User with builtInEntity
+  Membership{organization(name) required} to Organization
+
+  RecipientGroup{organization(name) required} to Organization
+  Recipient{organization(name) required} to Organization
+  Recipient{recipientGroup(name) required} to RecipientGroup
+
+  MessageTemplate{organization(name) required} to Organization
+
+  Message{organization(name) required} to Organization
+  Message{template(name)} to MessageTemplate
+  Message{createdBy(login)} to User with builtInEntity
+
+  MessageRecipient{recipient(email) required} to Recipient
+}
+
+relationship OneToMany {
+  Recipient{channels} to RecipientChannel{recipient(email) required}
+  Message{channels} to MessageChannel{message(subject) required}
+  Message{deliveries} to MessageRecipient{message(subject) required}
+  Message{attachments} to MessageAttachment{message(subject) required}
+}
+
+// ------------------------------------------------------------------ optiuni
+
+paginate Recipient, Message, MessageRecipient, MessageTemplate with pagination
+service all with serviceClass
+dto all with mapstruct
+filter Recipient, Message
+
+// ===========================================================================
+// NU intra in JDL - de scris manual in service layer:
+//
+//  1. Unicitate email destinatar: per organizatie, case-insensitive.
+//     Verificata si fata de randurile aflate in staging la import.
+//  2. Unicitate RecipientGroup.name si MessageTemplate.name: per organizatie,
+//     case-insensitive.
+//  3. Import CSV destinatari: separatori , ; TAB, ghilimele escapate "",
+//     BOM strip, aliasuri de antet (nume|surname, prenume|first name,
+//     email|e-mail, grup|departament|group). Randuri incomplete sau cu email
+//     invalid -> respinse; email duplicat (existent sau in acelasi fisier)
+//     -> sarit; rezultatul intra intr-un staging editabil, comis explicit.
+//     Grupurile noi din CSV se creeaza automat.
+//  4. Import CSV sabloane: doar "nume" obligatoriu, subject implicit = name,
+//     \n literal -> newline real, duplicat dupa nume -> sarit.
+//  5. Export CSV: BOM UTF-8, antet nume,prenume,email,grup respectiv
+//     nume,descriere,subiect,continut.
+//  6. Conflict de canal la trimitere: pentru fiecare destinatar selectat,
+//     missing = canale alese fara RecipientChannel activ corespunzator.
+//     unreachable = missing == toate canalele alese. Trimiterea e blocata
+//     pana la una din rezolvari: exclude conflictualii / fallback pe canalele
+//     disponibile (unreachable exclusi automat) / override manual per persoana.
+//  7. Substitutia variabilelor {{nume}} {{prenume}} {{grup}} {{email}} se face
+//     per destinatar, la trimitere.
+//  8. Specific canal: Telegram si WhatsApp nu au subiect - acesta devine prima
+//     linie a mesajului; la WhatsApp imaginile pleaca separat.
+//  9. Agregare status Message din MessageRecipient: toate DELIVERED -> SENT,
+//     unele FAILED -> PARTIAL, toate FAILED -> FAILED.
+// 10. Trimiterea se face asincron, cu retry si rate limiting per provider.
+// 11. KPI panou: acoperire medie = sum(recipientCount)/nr. trimiteri,
+//     livrate integral = trimiteri cu status SENT.
+// 12. CORS pentru originea frontendului Angular (jhipster.cors in yml).
+// ===========================================================================

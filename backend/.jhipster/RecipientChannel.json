@@ -1,0 +1,45 @@
+{
+  "annotations": {
+    "changelogDate": "20260910062942"
+  },
+  "applications": ["notificariMud"],
+  "documentation": "address = adresa email / telegram chat id / telefon E.164.\\nactive = false inseamna canal neconfigurat pentru acest destinatar.",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "channel",
+      "fieldType": "Channel",
+      "fieldValidateRules": ["required"],
+      "fieldValues": "EMAIL,TELEGRAM,WHATSAPP"
+    },
+    {
+      "fieldName": "address",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "maxlength"],
+      "fieldValidateRulesMaxlength": "254"
+    },
+    {
+      "fieldName": "verified",
+      "fieldType": "Boolean"
+    },
+    {
+      "fieldName": "active",
+      "fieldType": "Boolean",
+      "fieldValidateRules": ["required"]
+    }
+  ],
+  "name": "RecipientChannel",
+  "relationships": [
+    {
+      "otherEntityField": "email",
+      "otherEntityName": "recipient",
+      "otherEntityRelationshipName": "channels",
+      "relationshipName": "recipient",
+      "relationshipSide": "right",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

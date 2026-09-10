@@ -1,0 +1,29 @@
+{
+  "annotations": {
+    "changelogDate": "20260910062742"
+  },
+  "applications": ["notificariMud"],
+  "documentation": "Grupurile se creeaza dinamic la importul CSV. Unic pe organizatie.",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "name",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "maxlength"],
+      "fieldValidateRulesMaxlength": "80"
+    }
+  ],
+  "name": "RecipientGroup",
+  "relationships": [
+    {
+      "otherEntityField": "name",
+      "otherEntityName": "organization",
+      "relationshipName": "organization",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

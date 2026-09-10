@@ -1,0 +1,65 @@
+{
+  "annotations": {
+    "changelogDate": "20260910063342"
+  },
+  "applications": ["notificariMud"],
+  "documentation": "O linie per (destinatar, canal) efectiv folosit la trimitere.\\nAici se materializeaza si override-ul de canal per persoana din pasul 3.",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "channel",
+      "fieldType": "Channel",
+      "fieldValidateRules": ["required"],
+      "fieldValues": "EMAIL,TELEGRAM,WHATSAPP"
+    },
+    {
+      "fieldName": "status",
+      "fieldType": "DeliveryStatus",
+      "fieldValidateRules": ["required"],
+      "fieldValues": "PENDING,SENT,DELIVERED,FAILED,SKIPPED"
+    },
+    {
+      "fieldName": "providerMessageId",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "120"
+    },
+    {
+      "fieldName": "errorMessage",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "500"
+    },
+    {
+      "fieldName": "sentAt",
+      "fieldType": "Instant"
+    },
+    {
+      "fieldName": "deliveredAt",
+      "fieldType": "Instant"
+    }
+  ],
+  "name": "MessageRecipient",
+  "pagination": "pagination",
+  "relationships": [
+    {
+      "otherEntityField": "email",
+      "otherEntityName": "recipient",
+      "relationshipName": "recipient",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    },
+    {
+      "otherEntityField": "subject",
+      "otherEntityName": "message",
+      "otherEntityRelationshipName": "deliveries",
+      "relationshipName": "message",
+      "relationshipSide": "right",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

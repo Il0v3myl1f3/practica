@@ -1,0 +1,37 @@
+{
+  "annotations": {
+    "changelogDate": "20260910062642"
+  },
+  "applications": ["notificariMud"],
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "role",
+      "fieldType": "MemberRole",
+      "fieldValidateRules": ["required"],
+      "fieldValues": "OWNER,ADMIN,MEMBER"
+    }
+  ],
+  "name": "Membership",
+  "relationships": [
+    {
+      "otherEntityField": "login",
+      "otherEntityName": "user",
+      "relationshipName": "user",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required",
+      "relationshipWithBuiltInEntity": true
+    },
+    {
+      "otherEntityField": "name",
+      "otherEntityName": "organization",
+      "relationshipName": "organization",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

@@ -1,0 +1,2454 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #f7f7f7; }
+  a { color: #0058d2; text-decoration: none; }
+  a:hover { color: #0046a8; text-decoration: underline; }
+  * { box-sizing: border-box; }
+  textarea, input, button { font-family: inherit; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #d9d9d9; border-radius: 9999px; border: 3px solid #f7f7f7; }
+  @keyframes mudIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+<div style="font-family: Onest, Helvetica, sans-serif; color: #121212;">
+
+  <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+    <div style="min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);">
+      <div style="background: #121212; color: #ffffff; padding: 48px 56px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #0058d2; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">M</div>
+          <div style="font-size: 16px; font-weight: 600;">Notificări MUD</div>
+        </div>
+        <div>
+          <div style="font-size: 32px; line-height: 40px; font-weight: 600; max-width: 460px; text-wrap: pretty;">Trimite anunțuri interne pe email, Telegram și WhatsApp, dintr-un singur loc.</div>
+          <div style="font-size: 16px; line-height: 24px; color: #b2b2b2; margin-top: 16px; max-width: 420px; text-wrap: pretty;">Șabloane reutilizabile, selecție manuală a destinatarilor și istoric complet al trimiterilor.</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: center; padding: 48px 32px; background: #f7f7f7; min-width: 0;">
+        <div style="width: 100%; max-width: 400px; background: #ffffff; border: 1px solid #d9d9d9; border-radius: 12px; padding: 32px;">
+          <div style="font-size: 24px; line-height: 32px; font-weight: 600; margin-bottom: 6px;">Intră în cont</div>
+          <div style="font-size: 14px; line-height: 20px; color: #757575; margin-bottom: 24px;">Destinatarii, șabloanele și istoricul sunt legate de contul tău.</div>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <label style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Email de serviciu</span>
+              <input type="email" value="{{ email }}" onChange="{{ onEmail }}" placeholder="nume@exemplu.md" autoComplete="off" style="height: 48px; padding: 0 12px; font-size: 16px; color: #121212; background: #ffffff; border: 1px solid #b2b2b2; border-radius: 6px; outline: none;" style-focus="border-color: #0058d2; box-shadow: 0 0 0 4px #ccdef6;" />
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Parolă</span>
+              <input type="password" value="{{ password }}" onChange="{{ onPassword }}" placeholder="••••••••" autoComplete="off" style="height: 48px; padding: 0 12px; font-size: 16px; color: #121212; background: #ffffff; border: 1px solid #b2b2b2; border-radius: 6px; outline: none;" style-focus="border-color: #0058d2; box-shadow: 0 0 0 4px #ccdef6;" />
+            </label>
+            <sc-if value="{{ loginError }}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 12px; background: #feefee; border: 1px solid #d92d20; border-radius: 6px; font-size: 14px; line-height: 20px; color: #b32318;">{{ loginError }}</div>
+            </sc-if>
+            <button onClick="{{ doLogin }}" style="height: 48px; margin-top: 8px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background 150ms ease-out;" style-hover="background: #0046a8;" style-active="background: #00357e;">Intră în cont</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+    <div style="height: 100vh; display: flex; overflow: hidden; background: #f7f7f7;">
+
+      <div style="{{ railStyle }}">
+        <div style="{{ railBrandStyle }}">
+          <div style="width: 28px; height: 28px; border-radius: 8px; background: #0058d2; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex: none;">M</div>
+          <div style="{{ railTextStyle }}">
+            <div style="font-size: 14px; line-height: 20px; font-weight: 600; white-space: nowrap;">Notificări MUD</div>
+            <div style="font-size: 12px; line-height: 16px; color: #757575; white-space: nowrap;">Spațiu de lucru</div>
+          </div>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding: 16px 0;">
+          <div style="{{ railHeadingStyle }}">Comunicare</div>
+          <div onClick="{{ nav.overview.go }}" style="{{ nav.overview.item }}" style-hover="background: #e8f0fb;" title="Panou">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="flex: none;"><rect x="2.25" y="2.25" width="6" height="6" rx="1"></rect><rect x="9.75" y="2.25" width="6" height="6" rx="1"></rect><rect x="2.25" y="9.75" width="6" height="6" rx="1"></rect><rect x="9.75" y="9.75" width="6" height="6" rx="1"></rect></svg>
+            <span style="{{ nav.overview.label }}">Panou</span>
+          </div>
+          <div onClick="{{ nav.compose.go }}" style="{{ nav.compose.item }}" style-hover="background: #e8f0fb;" title="Mesaj nou">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="flex: none;"><path d="M9 3.75v10.5M3.75 9h10.5"></path></svg>
+            <span style="{{ nav.compose.label }}">Mesaj nou</span>
+          </div>
+          <div onClick="{{ nav.sent.go }}" style="{{ nav.sent.item }}" style-hover="background: #e8f0fb;" title="Mesaje trimise">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="flex: none;"><path d="M15.75 3 8.25 10.5M15.75 3l-5.25 12-2.25-4.5L3.75 8.25 15.75 3Z"></path></svg>
+            <span style="{{ nav.sent.label }}">Mesaje trimise</span>
+            <span style="{{ nav.sent.badge }}">{{ nav.sent.count }}</span>
+          </div>
+          <div onClick="{{ nav.drafts.go }}" style="{{ nav.drafts.item }}" style-hover="background: #e8f0fb;" title="Ciorne">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="flex: none;"><path d="M10.5 2.25H4.5v13.5h9V5.25l-3-3Z"></path><path d="M10.5 2.25v3h3"></path></svg>
+            <span style="{{ nav.drafts.label }}">Ciorne</span>
+            <span style="{{ nav.drafts.badge }}">{{ nav.drafts.count }}</span>
+          </div>
+
+          <div style="{{ railHeadingStyle }}">Administrare</div>
+          <div onClick="{{ nav.people.go }}" style="{{ nav.people.item }}" style-hover="background: #e8f0fb;" title="Destinatari">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="flex: none;"><circle cx="7" cy="6.25" r="2.5"></circle><path d="M2.75 15c0-2.35 1.9-4.25 4.25-4.25S11.25 12.65 11.25 15"></path><path d="M12 4.1a2.5 2.5 0 0 1 0 4.3M13.5 10.9c1.1.55 1.75 1.6 1.75 3.1"></path></svg>
+            <span style="{{ nav.people.label }}">Destinatari</span>
+            <span style="{{ nav.people.badge }}">{{ nav.people.count }}</span>
+          </div>
+          <div onClick="{{ nav.templates.go }}" style="{{ nav.templates.item }}" style-hover="background: #e8f0fb;" title="Șabloane">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="flex: none;"><rect x="2.5" y="2.75" width="13" height="12.5" rx="1.5"></rect><path d="M2.5 6.75h13M7 6.75v8.5"></path></svg>
+            <span style="{{ nav.templates.label }}">Șabloane</span>
+            <span style="{{ nav.templates.badge }}">{{ nav.templates.count }}</span>
+          </div>
+        </div>
+
+        <div style="{{ railFootStyle }}">
+          <div style="width: 32px; height: 32px; border-radius: 9999px; background: #e8f0fb; color: #0058d2; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex: none;">{{ userInitials }}</div>
+          <div style="{{ railTextStyle }}">
+            <div style="font-size: 13px; line-height: 18px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">{{ email }}</div>
+            <div onClick="{{ logout }}" style="font-size: 12px; line-height: 16px; color: #0058d2; cursor: pointer;">Ieși din cont</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden;">
+
+        <div style="height: 56px; flex: none; background: #ffffff; border-bottom: 1px solid #d9d9d9; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 24px;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+            <button onClick="{{ toggleRail }}" title="Restrânge meniul" style="width: 32px; height: 32px; flex: none; display: flex; align-items: center; justify-content: center; background: #ffffff; color: #616161; border: 1px solid #d9d9d9; border-radius: 6px; cursor: pointer;" style-hover="background: #f5f5f5; color: #121212;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"></path></svg>
+            </button>
+            <div style="display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; line-height: 20px;">
+              <sc-for list="{{ crumbs }}" as="cr" hint-placeholder-count="2">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <sc-if value="{{ cr.hasSep }}" hint-placeholder-val="{{ false }}">
+                    <span style="color: #b2b2b2;">/</span>
+                  </sc-if>
+                  <sc-if value="{{ cr.clickable }}" hint-placeholder-val="{{ false }}">
+                    <span onClick="{{ cr.go }}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #757575; cursor: pointer;" style-hover="color: #0058d2;">{{ cr.title }}</span>
+                  </sc-if>
+                  <sc-if value="{{ cr.current }}" hint-placeholder-val="{{ true }}">
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; color: #121212;">{{ cr.title }}</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button onClick="{{ nav.compose.go }}" style="height: 32px; padding: 0 14px; background: #0058d2; color: #ffffff; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 150ms ease-out;" style-hover="background: #0046a8;">Mesaj nou</button>
+          </div>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto;">
+
+          <sc-if value="{{ isFlow }}" hint-placeholder-val="{{ false }}">
+            <div style="background: #ffffff; border-bottom: 1px solid #d9d9d9; padding: 14px 24px;">
+              <div style="max-width: 1180px; display: flex; align-items: center;">
+                <sc-for list="{{ steps }}" as="step" hint-placeholder-count="3">
+                  <div style="{{ step.wrap }}">
+                    <div onClick="{{ step.go }}" style="{{ step.item }}">
+                      <div style="{{ step.circle }}">{{ step.mark }}</div>
+                      <div style="{{ step.label }}">{{ step.title }}</div>
+                    </div>
+                    <sc-if value="{{ step.hasLine }}" hint-placeholder-val="{{ true }}">
+                      <div style="{{ step.line }}"></div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="padding: 24px; max-width: 1180px;">
+
+            <sc-if value="{{ tabOverview }}" hint-placeholder-val="{{ false }}">
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); min-width: 560px; gap: 1px; background: #f1f1f1; border: 1px solid #d9d9d9; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+                <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="5">
+                  <div style="{{ k.cellStyle }}">
+                    <div style="font-size: 13px; line-height: 18px; color: #757575; text-transform: uppercase; letter-spacing: .04em;">{{ k.label }}</div>
+                    <div style="{{ k.valueStyle }}">{{ k.value }}</div>
+                    <div style="{{ k.subStyle }}">{{ k.sub }}</div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; align-items: start;">
+                <div style="background: #ffffff; border: 1px solid #d9d9d9; border-radius: 12px; overflow: hidden; min-width: 0;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 8px 24px; border-bottom: 1px solid #d9d9d9;">
+                    <div style="font-size: 14px; line-height: 20px; font-weight: 500;">Ultimele trimiteri</div>
+                    <div onClick="{{ nav.sent.go }}" style="font-size: 13px; line-height: 18px; color: #0058d2; cursor: pointer;">Vezi toate</div>
+                  </div>
+                  <sc-for list="{{ recentRows }}" as="row" hint-placeholder-count="4">
+                    <div onClick="{{ row.open }}" title="Vezi mesajul trimis" style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; min-height: 48px; padding: 10px 24px; border-bottom: 1px solid #f1f1f1; cursor: pointer;" style-hover="background: #f7f7f7;">
+                      <div style="min-width: 0;">
+                        <div style="font-size: 14px; line-height: 20px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.subject }}</div>
+                        <div style="font-size: 13px; line-height: 18px; color: #757575;">{{ row.meta }}</div>
+                      </div>
+                      <span style="{{ row.statusStyle }}">{{ row.status }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <div style="background: #ffffff; border: 1px solid #d9d9d9; border-radius: 12px; overflow: hidden; min-width: 0;">
+                  <div style="min-height: 48px; padding: 14px 24px; border-bottom: 1px solid #d9d9d9; font-size: 14px; line-height: 20px; font-weight: 500;">Destinatari pe grupuri</div>
+                  <div style="padding: 16px 24px 20px; display: flex; flex-direction: column; gap: 16px;">
+                    <sc-for list="{{ groupDist }}" as="g" hint-placeholder-count="4">
+                      <div>
+                        <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px; line-height: 18px; margin-bottom: 6px;">
+                          <span style="color: #383838;">{{ g.name }}</span>
+                          <span style="color: #757575;">{{ g.count }}</span>
+                        </div>
+                        <div style="height: 6px; border-radius: 9999px; background: #f1f1f1; overflow: hidden;">
+                          <div style="{{ g.bar }}"></div>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ tabSent }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ shellStyle }}">
+                <div role="search" style="{{ toolbarStyle }}">
+                  <div style="{{ searchWrapStyle }}">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="flex: none;"><circle cx="9" cy="9" r="5.5"></circle><path d="M13.5 13.5 17 17"></path></svg>
+                    <input value="{{ sentSearch }}" onChange="{{ onSentSearch }}" placeholder="Caută în tabel" autoComplete="off" style="flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 14px; line-height: 20px; color: #121212;" />
+                  </div>
+                  <div data-mud-select="channel" style="{{ channelSelect.wrapStyle }}">
+                    <button onClick="{{ channelSelect.toggle }}" style="{{ channelSelect.triggerStyle }}">
+                      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ channelSelect.value }}</span>
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="{{ channelSelect.chevronStyle }}"><path d="m5.5 8 4.5 4.5L14.5 8"></path></svg>
+                    </button>
+                    <sc-if value="{{ channelSelect.open }}" hint-placeholder-val="{{ false }}">
+                      <div role="listbox" style="{{ channelSelect.listStyle }}">
+                        <sc-for list="{{ channelSelect.options }}" as="o" hint-placeholder-count="4">
+                          <button onClick="{{ o.pick }}" style="{{ o.style }}" style-hover="background: #f5f5f5;">
+                            <span>{{ o.title }}</span>
+                            <span style="font-weight: 400; color: #757575;">{{ o.count }}</span>
+                          </button>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                  <div data-mud-select="status" style="{{ statusSelect.wrapStyle }}">
+                    <button onClick="{{ statusSelect.toggle }}" style="{{ statusSelect.triggerStyle }}">
+                      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ statusSelect.value }}</span>
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="{{ statusSelect.chevronStyle }}"><path d="m5.5 8 4.5 4.5L14.5 8"></path></svg>
+                    </button>
+                    <sc-if value="{{ statusSelect.open }}" hint-placeholder-val="{{ false }}">
+                      <div role="listbox" style="{{ statusSelect.listStyle }}">
+                        <sc-for list="{{ statusSelect.options }}" as="o" hint-placeholder-count="3">
+                          <button onClick="{{ o.pick }}" style="{{ o.style }}" style-hover="background: #f5f5f5;">
+                            <span>{{ o.title }}</span>
+                            <span style="font-weight: 400; color: #757575;">{{ o.count }}</span>
+                          </button>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ sentFiltersActive }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ resetSentFilters }}" title="Resetează filtrele" aria-label="Resetează filtrele" style="margin-inline-start: auto; width: 40px; height: 40px; flex: none; display: flex; align-items: center; justify-content: center; background: #ffffff; color: #444444; border: 1px solid #d9d9d9; border-radius: 8px; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out;" style-hover="background: #f5f5f5; color: #121212;">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 8.5A5.75 5.75 0 1 0 10 15.75"></path><path d="M15.75 3.75v4.75H11"></path></svg>
+                    </button>
+                  </sc-if>
+                </div>
+
+                <div style="{{ bodyStyle }}">
+                  <div style="{{ sentHeadStyle }}">
+                    <div onClick="{{ sortSubject.pick }}" style="{{ sortSubject.style }}">
+                      <span>{{ sortSubject.title }}</span>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke-linecap="round" stroke-linejoin="round" style="{{ sortSubject.iconStyle }}"><path d="M4.5 6 8 2.5 11.5 6" style="{{ sortSubject.upStyle }}"></path><path d="M4.5 10 8 13.5 11.5 10" style="{{ sortSubject.downStyle }}"></path></svg>
+                    </div>
+                    <div>Canal</div>
+                    <div onClick="{{ sortCount.pick }}" style="{{ sortCount.style }}">
+                      <span>{{ sortCount.title }}</span>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke-linecap="round" stroke-linejoin="round" style="{{ sortCount.iconStyle }}"><path d="M4.5 6 8 2.5 11.5 6" style="{{ sortCount.upStyle }}"></path><path d="M4.5 10 8 13.5 11.5 10" style="{{ sortCount.downStyle }}"></path></svg>
+                    </div>
+                    <div onClick="{{ sortDate.pick }}" style="{{ sortDate.style }}">
+                      <span>{{ sortDate.title }}</span>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke-linecap="round" stroke-linejoin="round" style="{{ sortDate.iconStyle }}"><path d="M4.5 6 8 2.5 11.5 6" style="{{ sortDate.upStyle }}"></path><path d="M4.5 10 8 13.5 11.5 10" style="{{ sortDate.downStyle }}"></path></svg>
+                    </div>
+                    <div>Stare</div>
+                  </div>
+
+                  <sc-for list="{{ sentRows }}" as="row" hint-placeholder-count="6">
+                    <div onClick="{{ row.open }}" title="Vezi mesajul trimis" style="{{ row.rowStyle }}" style-hover="background: #f5f5f5;">
+                      <div style="font-weight: 500; color: #121212; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.subject }}</div>
+                      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <sc-for list="{{ row.tags }}" as="tg" hint-placeholder-count="1">
+                          <span style="{{ tg.style }}">{{ tg.title }}</span>
+                        </sc-for>
+                      </div>
+                      <div>{{ row.count }}</div>
+                      <div style="color: #757575; white-space: nowrap;">{{ row.date }}</div>
+                      <div><span style="{{ row.statusStyle }}">{{ row.status }}</span></div>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <sc-if value="{{ sentEmpty }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 48px 24px; text-align: center; font-size: 14px; color: #757575;">Nicio trimitere nu corespunde filtrelor.</div>
+                </sc-if>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px clamp(16px, 3.75cqi, 24px); flex-wrap: wrap;">
+                  <div aria-live="polite" style="font-size: 13px; line-height: 18px; color: #757575;">{{ sentRangeLabel }}</div>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <button onClick="{{ sentPrev.go }}" style="{{ sentPrevStyle }}" style-hover="background: #f1f1f1;">‹</button>
+                    <sc-for list="{{ sentPagerItems }}" as="pg" hint-placeholder-count="3">
+                      <button onClick="{{ pg.go }}" style="{{ pg.style }}" style-hover="filter: brightness(0.97);">{{ pg.label }}</button>
+                    </sc-for>
+                    <button onClick="{{ sentNext.go }}" style="{{ sentNextStyle }}" style-hover="background: #f1f1f1;">›</button>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ tabDrafts }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ shellStyle }}">
+                <div role="search" style="{{ toolbarStyle }}">
+                  <div style="{{ searchWrapStyle }}">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="flex: none;"><circle cx="9" cy="9" r="5.5"></circle><path d="M13.5 13.5 17 17"></path></svg>
+                    <input value="{{ draftSearch }}" onChange="{{ onDraftSearch }}" placeholder="Caută ciornă după subiect" autoComplete="off" style="flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 14px; line-height: 20px; color: #121212;" />
+                  </div>
+                  <div style="margin-inline-start: auto; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button onClick="{{ newDraft }}" style="height: 40px; padding: 0 16px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #0046a8;">Ciornă nouă</button>
+                  </div>
+                </div>
+                <div style="{{ bodyStyle }}">
+                <div style="{{ draftsHeadStyle }}">
+                  <div>Subiect</div>
+                  <div>Canal</div>
+                  <div>Acțiuni</div>
+                </div>
+                <sc-for list="{{ draftRows }}" as="d" hint-placeholder-count="1">
+                  <div style="{{ d.rowStyle }}" style-hover="background: #f5f5f5;">
+                    <div style="min-width: 0;">
+                      <div style="font-size: 14px; line-height: 20px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ d.subject }}</div>
+                      <div style="font-size: 13px; line-height: 18px; color: #757575;">{{ d.meta }}</div>
+                    </div>
+                    <div style="font-size: 14px; line-height: 20px; color: #383838;">{{ d.channel }}</div>
+                    <div style="display: flex; gap: 4px;">
+                      <button onClick="{{ d.resume }}" title="Continuă editarea" aria-label="Continuă editarea" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; color: #444444; border: none; border-radius: 6px; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out;" style-hover="background: #e8f0fb; color: #0046a8;">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.4 2.85a1.2 1.2 0 0 1 1.7 0l1.05 1.05a1.2 1.2 0 0 1 0 1.7L6.6 14.15l-3.35.9.9-3.35 8.25-8.85Z"></path><path d="M11.25 4 14 6.75"></path></svg>
+                      </button>
+                      <button onClick="{{ d.remove }}" title="Șterge ciorna" aria-label="Șterge ciorna" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; color: #444444; border: none; border-radius: 6px; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out;" style-hover="background: #feefee; color: #b32318;">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.25h12"></path><path d="M7.5 2.75h3M6 5.25v8.5a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-8.5"></path><path d="M7.75 7.75v4.25M10.25 7.75v4.25"></path></svg>
+                      </button>
+                    </div>
+                  </div>
+                </sc-for>
+                </div>
+                <sc-if value="{{ draftsEmpty }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 48px 24px; text-align: center; font-size: 14px; color: #757575;">{{ draftsEmptyLabel }}</div>
+                </sc-if>
+                <div aria-live="polite" style="padding: 12px clamp(16px, 3.75cqi, 24px); font-size: 13px; line-height: 18px; color: #757575;">{{ draftsRangeLabel }}</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ tabPeople }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ shellStyle }}">
+                <div role="search" style="{{ toolbarStyle }}">
+                  <div style="{{ searchWrapStyle }}">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="flex: none;"><circle cx="9" cy="9" r="5.5"></circle><path d="M13.5 13.5 17 17"></path></svg>
+                    <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="Caută nume, email sau grup" autoComplete="off" style="flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 14px; line-height: 20px; color: #121212;" />
+                  </div>
+                  <div data-mud-select="group" style="{{ groupSelect.wrapStyle }}">
+                    <button onClick="{{ groupSelect.toggle }}" style="{{ groupSelect.triggerStyle }}">
+                      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ groupSelect.value }}</span>
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="{{ groupSelect.chevronStyle }}"><path d="m5.5 8 4.5 4.5L14.5 8"></path></svg>
+                    </button>
+                    <sc-if value="{{ groupSelect.open }}" hint-placeholder-val="{{ false }}">
+                      <div role="listbox" style="{{ groupSelect.listStyle }}">
+                        <sc-for list="{{ groupSelect.options }}" as="o" hint-placeholder-count="5">
+                          <button onClick="{{ o.pick }}" style="{{ o.style }}" style-hover="background: #f5f5f5;">
+                            <span>{{ o.title }}</span>
+                            <span style="font-weight: 400; color: #757575;">{{ o.count }}</span>
+                          </button>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                  <div style="margin-inline-start: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <sc-if value="{{ peopleFiltersActive }}" hint-placeholder-val="{{ false }}">
+                      <button onClick="{{ resetPeopleFilters }}" title="Resetează filtrele" aria-label="Resetează filtrele" style="width: 40px; height: 40px; flex: none; display: flex; align-items: center; justify-content: center; background: #ffffff; color: #444444; border: 1px solid #d9d9d9; border-radius: 8px; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out;" style-hover="background: #f5f5f5; color: #121212;">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 8.5A5.75 5.75 0 1 0 10 15.75"></path><path d="M15.75 3.75v4.75H11"></path></svg>
+                      </button>
+                    </sc-if>
+                    <button onClick="{{ openImport }}" style="height: 40px; padding: 0 16px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Importă CSV</button>
+                    <button onClick="{{ exportCsv }}" style="height: 40px; padding: 0 16px; background: #e8f0fb; color: #0046a8; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #ccdef6;">Exportă CSV</button>
+                    <input type="file" accept=".csv,text/csv" ref="{{ csvRef }}" onChange="{{ onCsvPicked }}" style="display: none;" />
+                  </div>
+                </div>
+
+                <div style="{{ bodyStyle }}">
+                  <div style="{{ peopleHeadStyle }}">
+                    <div>Nume și prenume</div>
+                    <div>Email</div>
+                    <div>Grup</div>
+                    <div>Acțiuni</div>
+                  </div>
+                  <sc-for list="{{ peopleRows }}" as="p" hint-placeholder-count="8">
+                    <div style="{{ p.rowStyle }}" style-hover="background: #f5f5f5;">
+                      <div style="font-weight: 500; color: #121212; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.name }}</div>
+                      <div style="color: #757575; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.email }}</div>
+                      <div><span style="font-size: 12px; line-height: 16px; color: #444444; background: #f1f1f1; border-radius: 9999px; padding: 4px 10px; white-space: nowrap;">{{ p.group }}</span></div>
+                      <div style="display: flex; gap: 4px;">
+                        <button onClick="{{ p.edit }}" title="Editează destinatarul" aria-label="Editează destinatarul" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; color: #444444; border: none; border-radius: 6px; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out;" style-hover="background: #e8f0fb; color: #0046a8;">
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.4 2.85a1.2 1.2 0 0 1 1.7 0l1.05 1.05a1.2 1.2 0 0 1 0 1.7L6.6 14.15l-3.35.9.9-3.35 8.25-8.85Z"></path><path d="M11.25 4 14 6.75"></path></svg>
+                        </button>
+                        <button onClick="{{ p.remove }}" title="Șterge destinatarul" aria-label="Șterge destinatarul" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; color: #444444; border: none; border-radius: 6px; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out;" style-hover="background: #feefee; color: #b32318;">
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.25h12"></path><path d="M7.5 2.75h3M6 5.25v8.5a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-8.5"></path><path d="M7.75 7.75v4.25M10.25 7.75v4.25"></path></svg>
+                        </button>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 48px 24px; text-align: center; font-size: 14px; color: #757575;">Nicio persoană nu corespunde căutării.</div>
+                </sc-if>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px clamp(16px, 3.75cqi, 24px); flex-wrap: wrap;">
+                  <div aria-live="polite" style="font-size: 13px; line-height: 18px; color: #757575;">{{ peopleRangeLabel }}</div>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <button onClick="{{ peoplePrev.go }}" style="{{ peoplePrevStyle }}" style-hover="background: #f1f1f1;">‹</button>
+                    <sc-for list="{{ peoplePagerItems }}" as="pg" hint-placeholder-count="4">
+                      <button onClick="{{ pg.go }}" style="{{ pg.style }}" style-hover="filter: brightness(0.97);">{{ pg.label }}</button>
+                    </sc-for>
+                    <button onClick="{{ peopleNext.go }}" style="{{ peopleNextStyle }}" style-hover="background: #f1f1f1;">›</button>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ tabTemplates }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ shellStyle }}">
+                <div role="search" style="{{ toolbarStyle }}">
+                  <div style="{{ searchWrapStyle }}">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="flex: none;"><circle cx="9" cy="9" r="5.5"></circle><path d="M13.5 13.5 17 17"></path></svg>
+                    <input value="{{ tplSearch }}" onChange="{{ onTplSearch }}" placeholder="Caută șablon" autoComplete="off" style="flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 14px; line-height: 20px; color: #121212;" />
+                  </div>
+                  <div style="margin-inline-start: auto; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button onClick="{{ openTemplateImport }}" style="height: 40px; padding: 0 16px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Importă CSV</button>
+                    <button onClick="{{ exportTemplates }}" style="height: 40px; padding: 0 16px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Exportă CSV</button>
+                    <button onClick="{{ goNewTemplate }}" style="height: 40px; padding: 0 16px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #0046a8;">Adaugă șablon</button>
+                    <input type="file" accept=".csv,text/csv" ref="{{ tplCsvRef }}" onChange="{{ onTemplateCsvPicked }}" style="display: none;" />
+                  </div>
+                </div>
+
+                <div style="{{ bodyStyle }}">
+                  <div style="{{ templatesHeadStyle }}">
+                    <div>Șablon</div>
+                    <div>Acțiuni</div>
+                  </div>
+                  <sc-for list="{{ templateRows }}" as="t" hint-placeholder-count="4">
+                    <div style="{{ t.rowStyle }}" style-hover="background: #f5f5f5;">
+                      <div style="min-width: 0;">
+                        <div style="font-weight: 500; color: #121212;">{{ t.name }}</div>
+                        <div style="font-size: 13px; line-height: 18px; color: #757575; text-wrap: pretty;">{{ t.desc }}</div>
+                      </div>
+                      <div style="display: flex; gap: 4px;">
+                        <button onClick="{{ t.use }}" title="Folosește șablonul" aria-label="Folosește șablonul" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; color: #444444; border: none; border-radius: 6px; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out;" style-hover="background: #e8f0fb; color: #0046a8;">
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 2.25 8.25 9.75"></path><path d="M15.75 2.25l-5.25 13.5-2.25-6-6-2.25 13.5-5.25Z"></path></svg>
+                        </button>
+                        <button onClick="{{ t.remove }}" title="Șterge șablonul" aria-label="Șterge șablonul" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; color: #444444; border: none; border-radius: 6px; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out;" style-hover="background: #feefee; color: #b32318;">
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.25h12"></path><path d="M7.5 2.75h3M6 5.25v8.5a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-8.5"></path><path d="M7.75 7.75v4.25M10.25 7.75v4.25"></path></svg>
+                        </button>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ templatesEmpty }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 48px 24px; text-align: center; font-size: 14px; color: #757575;">Niciun șablon nu corespunde căutării.</div>
+                </sc-if>
+                <div aria-live="polite" style="padding: 12px clamp(16px, 3.75cqi, 24px); font-size: 13px; line-height: 18px; color: #757575;">{{ templatesRangeLabel }}</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isImportReview }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <div style="font-size: 22px; line-height: 30px; font-weight: 600;">Verifică importul</div>
+                <div style="font-size: 14px; line-height: 20px; color: #757575; margin: 2px 0 16px; text-wrap: pretty;">Nimic nu este adăugat până apeși „Termină importul”. Poți corecta sau șterge orice linie.</div>
+
+                <sc-for list="{{ stagedNotes }}" as="nt" hint-placeholder-count="0">
+                  <div style="{{ nt.style }}">{{ nt.text }}</div>
+                </sc-for>
+
+                <div style="{{ shellStyle }}; margin-top: 16px;">
+                  <div style="{{ bodyStyle }}">
+                    <div style="{{ stagedHeadStyle }}">
+                      <div>Nume și prenume</div>
+                      <div>Email</div>
+                      <div>Grup</div>
+                      <div>Acțiuni</div>
+                    </div>
+                    <sc-for list="{{ stagedRows }}" as="p" hint-placeholder-count="4">
+                      <div style="{{ p.rowStyle }}" style-hover="background: #f5f5f5;">
+                        <div style="font-weight: 500; color: #121212; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.name }}</div>
+                        <div style="color: #757575; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.email }}</div>
+                        <div><span style="font-size: 12px; line-height: 16px; color: #444444; background: #f1f1f1; border-radius: 9999px; padding: 4px 10px; white-space: nowrap;">{{ p.group }}</span></div>
+                        <div style="display: flex; gap: 4px;">
+                          <button onClick="{{ p.edit }}" title="Editează linia" aria-label="Editează linia" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; color: #444444; border: none; border-radius: 6px; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out;" style-hover="background: #e8f0fb; color: #0046a8;">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.4 2.85a1.2 1.2 0 0 1 1.7 0l1.05 1.05a1.2 1.2 0 0 1 0 1.7L6.6 14.15l-3.35.9.9-3.35 8.25-8.85Z"></path><path d="M11.25 4 14 6.75"></path></svg>
+                          </button>
+                          <button onClick="{{ p.remove }}" title="Scoate din import" aria-label="Scoate din import" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; color: #444444; border: none; border-radius: 6px; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out;" style-hover="background: #feefee; color: #b32318;">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.25h12"></path><path d="M7.5 2.75h3M6 5.25v8.5a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-8.5"></path><path d="M7.75 7.75v4.25M10.25 7.75v4.25"></path></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ stagedEmpty }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding: 48px 24px; text-align: center; font-size: 14px; color: #757575;">Ai scos toate liniile din import.</div>
+                  </sc-if>
+                  <div aria-live="polite" style="padding: 12px clamp(16px, 3.75cqi, 24px); font-size: 13px; line-height: 18px; color: #757575;">{{ stagedCountLabel }}</div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+                  <button onClick="{{ finishImport }}" style="height: 44px; padding: 0 20px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #0046a8;">Termină importul</button>
+                  <button onClick="{{ cancelImportReview }}" style="height: 44px; padding: 0 20px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Renunță la import</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isNewTemplate }}" hint-placeholder-val="{{ false }}">
+              <div style="max-width: 720px;">
+                <div style="font-size: 22px; line-height: 30px; font-weight: 600;">Șablon nou</div>
+                <div style="font-size: 14px; line-height: 20px; color: #757575; margin: 2px 0 24px; text-wrap: pretty;">Definește un punct de plecare reutilizabil. Subiectul și conținutul rămân editabile la fiecare trimitere.</div>
+
+                <div style="background: #ffffff; border: 1px solid #d9d9d9; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+                  <label style="display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Nume șablon</span>
+                    <input value="{{ newTplName }}" onChange="{{ onNewTplName }}" placeholder="ex. Invitație eveniment" autoComplete="off" style="height: 44px; padding: 0 12px; font-size: 15px; border: 1px solid #b2b2b2; border-radius: 8px; outline: none;" style-focus="border-color: #0058d2; box-shadow: 0 0 0 4px #ccdef6;" />
+                  </label>
+                  <label style="display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Descriere</span>
+                    <input value="{{ newTplDesc }}" onChange="{{ onNewTplDesc }}" placeholder="Când se folosește acest șablon" autoComplete="off" style="height: 44px; padding: 0 12px; font-size: 15px; border: 1px solid #b2b2b2; border-radius: 8px; outline: none;" style-focus="border-color: #0058d2; box-shadow: 0 0 0 4px #ccdef6;" />
+                  </label>
+                  <label style="display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Subiect implicit</span>
+                    <input value="{{ newTplSubject }}" onChange="{{ onNewTplSubject }}" placeholder="Se pre-completează la compunere" autoComplete="off" style="height: 44px; padding: 0 12px; font-size: 15px; border: 1px solid #b2b2b2; border-radius: 8px; outline: none;" style-focus="border-color: #0058d2; box-shadow: 0 0 0 4px #ccdef6;" />
+                  </label>
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Conținut implicit</span>
+                    <div style="border: 1px solid #b2b2b2; border-radius: 6px;">
+                      <div style="display: flex; align-items: center; gap: 2px; flex-wrap: wrap; padding: 6px 8px; background: #ffffff; border-bottom: 1px solid #d9d9d9; border-radius: 5px 5px 0 0;">
+                        <div data-fmt-menu="size" style="position: relative;">
+                          <button onMouseDown="{{ sizeMenu.toggle }}" title="Mărime text" style="{{ sizeMenu.triggerStyle }}" style-hover="background: #f1f1f1;">
+                            <span>{{ sizeMenu.label }}</span>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"></path></svg>
+                          </button>
+                          <sc-if value="{{ sizeMenu.open }}" hint-placeholder-val="{{ false }}">
+                            <div role="listbox" style="{{ menuListStyle }}">
+                              <sc-for list="{{ sizeMenu.options }}" as="z" hint-placeholder-count="4">
+                                <button onMouseDown="{{ z.apply }}" style="{{ z.style }}" style-hover="background: #f5f5f5;">
+                                  <span>{{ z.title }}</span>
+                                  <span style="font-size: 12px; color: #757575;">{{ z.sample }}</span>
+                                </button>
+                              </sc-for>
+                            </div>
+                          </sc-if>
+                        </div>
+                        <div style="width: 1px; height: 20px; background: #e0e0e0; margin: 0 6px;"></div>
+                        <button onMouseDown="{{ fmtBold }}" title="Îngroșat (Ctrl+B)" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;">
+                          <span style="font-size: 15px; font-weight: 700; line-height: 1;">B</span>
+                        </button>
+                        <button onMouseDown="{{ fmtItalic }}" title="Cursiv (Ctrl+I)" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;">
+                          <span style="font-size: 15px; font-style: italic; line-height: 1; font-family: Georgia, serif;">I</span>
+                        </button>
+                        <button onMouseDown="{{ fmtUnderline }}" title="Subliniat (Ctrl+U)" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;">
+                          <span style="font-size: 15px; text-decoration: underline; line-height: 1;">U</span>
+                        </button>
+                        <div data-fmt-menu="color" style="position: relative;">
+                          <button onMouseDown="{{ colorMenu.toggle }}" title="Culoare text" style="{{ colorMenu.triggerStyle }}" style-hover="background: #f1f1f1;">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5 9 3.5l4.5 9"></path><path d="M6.2 9.6h5.6"></path></svg>
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"></path></svg>
+                          </button>
+                          <sc-if value="{{ colorMenu.open }}" hint-placeholder-val="{{ false }}">
+                            <div role="listbox" style="{{ menuListStyle }}">
+                              <sc-for list="{{ colorMenu.options }}" as="c" hint-placeholder-count="5">
+                                <button onMouseDown="{{ c.apply }}" style="{{ c.style }}" style-hover="background: #f5f5f5;">
+                                  <span style="{{ c.dotStyle }}"></span>
+                                  <span>{{ c.title }}</span>
+                                </button>
+                              </sc-for>
+                            </div>
+                          </sc-if>
+                        </div>
+                        <div style="width: 1px; height: 20px; background: #e0e0e0; margin: 0 6px;"></div>
+                        <button onMouseDown="{{ fmtBullets }}" title="Listă cu buline" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;">
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.5 4.75h8M6.5 9h8M6.5 13.25h8"></path><circle cx="3.4" cy="4.75" r="1"></circle><circle cx="3.4" cy="9" r="1"></circle><circle cx="3.4" cy="13.25" r="1"></circle></svg>
+                        </button>
+                        <button onMouseDown="{{ fmtNumbers }}" title="Listă numerotată" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;">
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4.75h8M6.5 9h8M6.5 13.25h8"></path><path d="M2.6 3.4h.9v2.7M2.4 8.2h1.4L2.4 10h1.5M2.4 12.2h1.4v1.1H2.6v1.1h1.2"></path></svg>
+                        </button>
+                        <div style="width: 1px; height: 20px; background: #e0e0e0; margin: 0 6px;"></div>
+                        <div data-var-menu="1" style="position: relative;">
+                          <button onMouseDown="{{ toggleVarMenu }}" title="Inserează variabilă" style="{{ varBtnStyle }}" style-hover="background: #f1f1f1;">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5C4.5 2.5 4.5 6 3 8c1.5 2 1.5 5.5 3 5.5"></path><path d="M10 2.5c1.5 0 1.5 3.5 3 5.5-1.5 2-1.5 5.5-3 5.5"></path></svg>
+                            <span>Inserează variabilă</span>
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"></path></svg>
+                          </button>
+                          <sc-if value="{{ varMenuOpen }}" hint-placeholder-val="{{ false }}">
+                            <div role="listbox" style="{{ varListStyle }}">
+                              <sc-for list="{{ varItems }}" as="v" hint-placeholder-count="4">
+                                <button onMouseDown="{{ v.insert }}" style="{{ v.style }}" style-hover="background: #f5f5f5;">
+                                  <span style="display: flex; flex-direction: column; gap: 2px;">
+                                    <span style="font-weight: 500; color: #121212;">{{ v.label }}</span>
+                                    <span style="font-size: 12px; line-height: 16px; color: #757575;">{{ v.sample }}</span>
+                                  </span>
+                                  <span style="{{ v.tokenStyle }}">{{ v.token }}</span>
+                                </button>
+                              </sc-for>
+                            </div>
+                          </sc-if>
+                        </div>
+                        <button onMouseDown="{{ fmtClear }}" title="Elimină formatarea" aria-label="Elimină formatarea" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;" style-focus="background: #f1f1f1;">
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.25h6.5"></path><path d="m6.75 11.5 3.5-8h1.4"></path><path d="M3.25 3.75 14.75 14.5"></path></svg>
+                        </button>
+                      </div>
+                      <div contentEditable="{{ true }}" ref="{{ tplBodyRef }}" onInput="{{ onTplBodyInput }}" onKeyUp="{{ saveRange }}" onMouseUp="{{ saveRange }}" onBlur="{{ saveRange }}" style="min-height: 200px; padding: 12px; font-size: 15px; line-height: 24px; color: #121212; background: #ffffff; outline: none;" style-focus="box-shadow: inset 0 0 0 2px #ccdef6;"></div>
+                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 12px; background: #fafafa; border-top: 1px solid #f1f1f1; border-radius: 0 0 5px 5px; font-size: 12px; line-height: 16px; color: #757575;">
+                        <span>{{ editorStats }}</span>
+                        <span>Variabilele se completează per destinatar</span>
+                      </div>
+                    </div>
+                    <span style="font-size: 12px; line-height: 16px; color: #757575;">Folosește „Inserează variabilă” pentru câmpuri precum nume, prenume sau grup — se completează automat pentru fiecare destinatar. Formatarea se păstrează la fiecare folosire a șablonului.</span>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+                  <button onClick="{{ addTemplate }}" style="height: 44px; padding: 0 20px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #0046a8;">Salvează șablonul</button>
+                  <button onClick="{{ cancelNewTemplate }}" style="height: 44px; padding: 0 20px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Anulează</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isPickTemplate }}" hint-placeholder-val="{{ false }}">
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 16px;">
+                <sc-for list="{{ templateCards }}" as="tpl" hint-placeholder-count="4">
+                  <div onClick="{{ tpl.pick }}" style="background: #ffffff; border: 1px solid #d9d9d9; border-radius: 12px; padding: 20px; cursor: pointer; transition: border-color 150ms ease-out, box-shadow 150ms ease-out;" style-hover="border-color: #0058d2; box-shadow: 0 2px 8px #4444441a;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                      <div style="width: 28px; height: 28px; border-radius: 6px; background: #e8f0fb; color: #0058d2; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex: none;">{{ tpl.initial }}</div>
+                      <div style="font-size: 15px; line-height: 22px; font-weight: 600;">{{ tpl.name }}</div>
+                    </div>
+                    <div style="font-size: 14px; line-height: 20px; color: #757575; text-wrap: pretty;">{{ tpl.desc }}</div>
+                  </div>
+                </sc-for>
+                <div onClick="{{ pickBlank }}" style="background: #ffffff; border: 1.5px dashed #b2b2b2; border-radius: 12px; padding: 20px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; transition: border-color 150ms ease-out, background 150ms ease-out;" style-hover="border-color: #0058d2; background: #e8f0fb;">
+                  <div style="font-size: 15px; line-height: 22px; font-weight: 600; margin-bottom: 6px;">Mesaj gol</div>
+                  <div style="font-size: 14px; line-height: 20px; color: #757575;">Scrie de la zero, fără text pre-completat.</div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isCompose }}" hint-placeholder-val="{{ false }}">
+              <div style="display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start;">
+                <div style="background: #ffffff; border: 1px solid #d9d9d9; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+                  <label style="display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Subiect</span>
+                    <input value="{{ subject }}" onChange="{{ onSubject }}" placeholder="Subiectul mesajului" autoComplete="off" style="height: 44px; padding: 0 12px; font-size: 15px; border: 1px solid #b2b2b2; border-radius: 6px; outline: none;" style-focus="border-color: #0058d2; box-shadow: 0 0 0 4px #ccdef6;" />
+                  </label>
+
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Conținut</span>
+                    <div style="border: 1px solid #b2b2b2; border-radius: 6px;">
+                      <div style="display: flex; align-items: center; gap: 2px; flex-wrap: wrap; padding: 6px 8px; background: #ffffff; border-bottom: 1px solid #d9d9d9; border-radius: 5px 5px 0 0;">
+                        <div data-fmt-menu="size" style="position: relative;">
+                          <button onMouseDown="{{ sizeMenu.toggle }}" title="Mărime text" style="{{ sizeMenu.triggerStyle }}" style-hover="background: #f1f1f1;">
+                            <span>{{ sizeMenu.label }}</span>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"></path></svg>
+                          </button>
+                          <sc-if value="{{ sizeMenu.open }}" hint-placeholder-val="{{ false }}">
+                            <div role="listbox" style="{{ menuListStyle }}">
+                              <sc-for list="{{ sizeMenu.options }}" as="z" hint-placeholder-count="4">
+                                <button onMouseDown="{{ z.apply }}" style="{{ z.style }}" style-hover="background: #f5f5f5;">
+                                  <span>{{ z.title }}</span>
+                                  <span style="font-size: 12px; color: #757575;">{{ z.sample }}</span>
+                                </button>
+                              </sc-for>
+                            </div>
+                          </sc-if>
+                        </div>
+                        <div style="width: 1px; height: 20px; background: #e0e0e0; margin: 0 6px;"></div>
+                        <button onMouseDown="{{ fmtBold }}" title="Îngroșat (Ctrl+B)" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;">
+                          <span style="font-size: 15px; font-weight: 700; line-height: 1;">B</span>
+                        </button>
+                        <button onMouseDown="{{ fmtItalic }}" title="Cursiv (Ctrl+I)" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;">
+                          <span style="font-size: 15px; font-style: italic; line-height: 1; font-family: Georgia, serif;">I</span>
+                        </button>
+                        <button onMouseDown="{{ fmtUnderline }}" title="Subliniat (Ctrl+U)" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;">
+                          <span style="font-size: 15px; text-decoration: underline; line-height: 1;">U</span>
+                        </button>
+                        <div data-fmt-menu="color" style="position: relative;">
+                          <button onMouseDown="{{ colorMenu.toggle }}" title="Culoare text" style="{{ colorMenu.triggerStyle }}" style-hover="background: #f1f1f1;">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5 9 3.5l4.5 9"></path><path d="M6.2 9.6h5.6"></path></svg>
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"></path></svg>
+                          </button>
+                          <sc-if value="{{ colorMenu.open }}" hint-placeholder-val="{{ false }}">
+                            <div role="listbox" style="{{ menuListStyle }}">
+                              <sc-for list="{{ colorMenu.options }}" as="c" hint-placeholder-count="5">
+                                <button onMouseDown="{{ c.apply }}" style="{{ c.style }}" style-hover="background: #f5f5f5;">
+                                  <span style="{{ c.dotStyle }}"></span>
+                                  <span>{{ c.title }}</span>
+                                </button>
+                              </sc-for>
+                            </div>
+                          </sc-if>
+                        </div>
+                        <div style="width: 1px; height: 20px; background: #e0e0e0; margin: 0 6px;"></div>
+                        <button onMouseDown="{{ fmtBullets }}" title="Listă cu buline" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;">
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.5 4.75h8M6.5 9h8M6.5 13.25h8"></path><circle cx="3.4" cy="4.75" r="1"></circle><circle cx="3.4" cy="9" r="1"></circle><circle cx="3.4" cy="13.25" r="1"></circle></svg>
+                        </button>
+                        <button onMouseDown="{{ fmtNumbers }}" title="Listă numerotată" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;">
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4.75h8M6.5 9h8M6.5 13.25h8"></path><path d="M2.6 3.4h.9v2.7M2.4 8.2h1.4L2.4 10h1.5M2.4 12.2h1.4v1.1H2.6v1.1h1.2"></path></svg>
+                        </button>
+                        <div style="width: 1px; height: 20px; background: #e0e0e0; margin: 0 6px;"></div>
+                        <div data-var-menu="1" style="position: relative;">
+                          <button onMouseDown="{{ toggleVarMenu }}" title="Inserează variabilă" style="{{ varBtnStyle }}" style-hover="background: #f1f1f1;">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5C4.5 2.5 4.5 6 3 8c1.5 2 1.5 5.5 3 5.5"></path><path d="M10 2.5c1.5 0 1.5 3.5 3 5.5-1.5 2-1.5 5.5-3 5.5"></path></svg>
+                            <span>Inserează variabilă</span>
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"></path></svg>
+                          </button>
+                          <sc-if value="{{ varMenuOpen }}" hint-placeholder-val="{{ false }}">
+                            <div role="listbox" style="{{ varListStyle }}">
+                              <sc-for list="{{ varItems }}" as="v" hint-placeholder-count="4">
+                                <button onMouseDown="{{ v.insert }}" style="{{ v.style }}" style-hover="background: #f5f5f5;">
+                                  <span style="display: flex; flex-direction: column; gap: 2px;">
+                                    <span style="font-weight: 500; color: #121212;">{{ v.label }}</span>
+                                    <span style="font-size: 12px; line-height: 16px; color: #757575;">{{ v.sample }}</span>
+                                  </span>
+                                  <span style="{{ v.tokenStyle }}">{{ v.token }}</span>
+                                </button>
+                              </sc-for>
+                            </div>
+                          </sc-if>
+                        </div>
+                        <button onMouseDown="{{ fmtClear }}" title="Elimină formatarea" aria-label="Elimină formatarea" style="{{ iconBtnStyle }}" style-hover="background: #f1f1f1; color: #121212;" style-focus="background: #f1f1f1;">
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.25h6.5"></path><path d="m6.75 11.5 3.5-8h1.4"></path><path d="M3.25 3.75 14.75 14.5"></path></svg>
+                        </button>
+                      </div>
+                      <div contentEditable="{{ true }}" ref="{{ bodyRef }}" onInput="{{ onBodyInput }}" onKeyUp="{{ saveRange }}" onMouseUp="{{ saveRange }}" onBlur="{{ saveRange }}" style="min-height: 240px; padding: 12px; font-size: 15px; line-height: 24px; color: #121212; background: #ffffff; outline: none;" style-focus="box-shadow: inset 0 0 0 2px #ccdef6;"></div>
+                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 12px; background: #fafafa; border-top: 1px solid #f1f1f1; border-radius: 0 0 5px 5px; font-size: 12px; line-height: 16px; color: #757575;">
+                        <span>{{ editorStats }}</span>
+                        <span>Variabilele se completează per destinatar</span>
+                      </div>
+                    </div>
+                    <div style="font-size: 12px; line-height: 16px; color: #757575;">Variabilele inserate se înlocuiesc cu datele fiecărui destinatar la trimitere. Formatarea se aplică la livrarea prin email; pe Telegram și WhatsApp textul pleacă simplu.</div>
+                  </div>
+
+                  <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Imagini</span>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                      <sc-for list="{{ images }}" as="img" hint-placeholder-count="0">
+                        <div style="position: relative; width: 96px; height: 96px; border-radius: 8px; border: 1px solid #d9d9d9; overflow: hidden; background: #f1f1f1;">
+                          <img src="{{ img.url }}" alt="{{ img.name }}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+                          <button onClick="{{ img.remove }}" title="Șterge imaginea" style="position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border: none; border-radius: 9999px; background: #121212cc; color: #ffffff; font-size: 13px; line-height: 1; cursor: pointer;" style-hover="background: #d92d20;">×</button>
+                        </div>
+                      </sc-for>
+                      <button onClick="{{ openFiles }}" style="width: 96px; height: 96px; border: 1.5px dashed #b2b2b2; border-radius: 8px; background: #ffffff; color: #0058d2; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;" style-hover="border-color: #0058d2; background: #e8f0fb;">
+                        <span style="font-size: 20px; line-height: 1;">+</span>
+                        <span>Adaugă</span>
+                      </button>
+                      <input type="file" accept="image/*" multiple="{{ true }}" ref="{{ fileRef }}" onChange="{{ onFiles }}" style="display: none;" />
+                    </div>
+                    <div style="font-size: 12px; line-height: 16px; color: #757575;">{{ imagesHint }}</div>
+                  </div>
+                </div>
+
+                <div style="background: #ffffff; border: 1px solid #d9d9d9; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+                  <div>
+                    <div style="font-size: 14px; line-height: 20px; font-weight: 500; margin-bottom: 10px;">Canal de livrare</div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                      <sc-for list="{{ channels }}" as="ch" hint-placeholder-count="3">
+                        <button onClick="{{ ch.pick }}" style="{{ ch.style }}">
+                          <span>{{ ch.title }}</span>
+                          <span style="{{ ch.markStyle }}">✓</span>
+                        </button>
+                      </sc-for>
+                    </div>
+                    <div style="font-size: 12px; line-height: 16px; color: #757575; margin-top: 10px;">{{ channelHint }}</div>
+                  </div>
+                  <div style="border-top: 1px solid #f1f1f1; padding-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px; line-height: 18px;">
+                      <span style="color: #757575;">Șablon</span>
+                      <span style="font-weight: 500;">{{ templateLabel }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px; line-height: 18px;">
+                      <span style="color: #757575;">Imagini</span>
+                      <span style="font-weight: 500;">{{ imageCount }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px; line-height: 18px;">
+                      <span style="color: #757575;">Destinatari</span>
+                      <span style="font-weight: 500;">{{ selectedLabel }}</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button onClick="{{ goRecipients }}" style="height: 44px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 150ms ease-out;" style-hover="background: #0046a8;">Continuă la destinatari</button>
+                    <button onClick="{{ saveDraft }}" style="height: 44px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer;" style-hover="background: #f5f5f5;">Salvează ciornă</button>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isSentDetail }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 16px; max-width: 860px;">
+                <div style="font-size: 22px; line-height: 30px; font-weight: 600; min-width: 0; text-wrap: pretty;">{{ vsSubject }}</div>
+
+                <div style="background: #ffffff; border: 1px solid #d9d9d9; border-radius: 12px; overflow: hidden;">
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: #f1f1f1;">
+                    <sc-for list="{{ vsMeta }}" as="m" hint-placeholder-count="5">
+                      <div style="background: #ffffff; padding: 14px 20px;">
+                        <div style="font-size: 12px; line-height: 16px; color: #757575; text-transform: uppercase; letter-spacing: .04em;">{{ m.label }}</div>
+                        <div style="font-size: 15px; line-height: 22px; font-weight: 500; margin-top: 4px;">{{ m.value }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div style="background: #ffffff; border: 1px solid #d9d9d9; border-radius: 12px; overflow: hidden;">
+                  <div style="padding: 20px;">{{ vsBody }}</div>
+                </div>
+
+                <sc-if value="{{ vsRecipients }}" hint-placeholder-val="{{ false }}">
+                  <div style="background: #ffffff; border: 1px solid #d9d9d9; border-radius: 12px; padding: 16px 20px;">
+                    <div style="font-size: 12px; line-height: 16px; color: #757575; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px;">Destinatari</div>
+                    <div style="font-size: 14px; line-height: 22px; color: #383838; text-wrap: pretty;">{{ vsRecipients }}</div>
+                  </div>
+                </sc-if>
+
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                  <button onClick="{{ vsResend }}" style="height: 44px; padding: 0 20px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #0046a8;">Retrimite mesajul</button>
+                  <button onClick="{{ vsClose }}" style="height: 44px; padding: 0 18px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Înapoi la listă</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isRecipients }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ shellStyle }}">
+                <div role="search" style="{{ toolbarStyle }}">
+                  <div style="{{ searchWrapStyle }}">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="flex: none;"><circle cx="9" cy="9" r="5.5"></circle><path d="M13.5 13.5 17 17"></path></svg>
+                    <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="Caută nume sau grup" autoComplete="off" style="flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 14px; line-height: 20px; color: #121212;" />
+                  </div>
+                  <div data-mud-select="group" style="{{ groupSelect.wrapStyle }}">
+                    <button onClick="{{ groupSelect.toggle }}" style="{{ groupSelect.triggerStyle }}">
+                      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ groupSelect.value }}</span>
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="{{ groupSelect.chevronStyle }}"><path d="m5.5 8 4.5 4.5L14.5 8"></path></svg>
+                    </button>
+                    <sc-if value="{{ groupSelect.open }}" hint-placeholder-val="{{ false }}">
+                      <div role="listbox" style="{{ groupSelect.listStyle }}">
+                        <sc-for list="{{ groupSelect.options }}" as="o" hint-placeholder-count="5">
+                          <button onClick="{{ o.pick }}" style="{{ o.style }}" style-hover="background: #f5f5f5;">
+                            <span>{{ o.title }}</span>
+                            <span style="font-weight: 400; color: #757575;">{{ o.count }}</span>
+                          </button>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                  <div style="margin-inline-start: auto; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button onClick="{{ selectAll }}" style="height: 40px; padding: 0 16px; background: #e8f0fb; color: #0046a8; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #ccdef6;">Selectează toți ({{ visibleCount }})</button>
+                    <button onClick="{{ deselectAll }}" style="height: 40px; padding: 0 16px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Deselectează</button>
+                  </div>
+                </div>
+
+                <sc-if value="{{ conflictOpen }}" hint-placeholder-val="{{ false }}">
+                  <div role="alert" style="display: flex; align-items: flex-start; gap: 12px; padding: 14px clamp(16px, 3.75cqi, 24px); background: #fdf3e2; border-bottom: 1px solid #f0dfc0; flex-wrap: wrap;">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#8a5a08" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 1px;"><path d="M10 2.75 18 16.5H2L10 2.75Z"></path><path d="M10 8v3.5M10 14h.01"></path></svg>
+                    <div style="flex: 1 1 280px; min-width: 0;">
+                      <div style="font-size: 14px; line-height: 20px; font-weight: 600; color: #663f00;">{{ conflictTitle }}</div>
+                      <div style="font-size: 13px; line-height: 18px; color: #8a5a08; margin-top: 2px; text-wrap: pretty;">{{ conflictDetail }}</div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                      <button onClick="{{ fallbackConflicts }}" style="height: 36px; padding: 0 14px; background: #8a5a08; color: #ffffff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #663f00;">Trimite pe canalele disponibile</button>
+                      <button onClick="{{ excludeConflicts }}" style="height: 36px; padding: 0 14px; background: #ffffff; color: #663f00; border: 1px solid #e0c690; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #fbeed2;">Exclude destinatarii</button>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ conflictFixed }}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 12px clamp(16px, 3.75cqi, 24px); background: #e6f5ee; border-bottom: 1px solid #c6e6d7; flex-wrap: wrap;">
+                    <div style="flex: 1 1 280px; min-width: 0; font-size: 13px; line-height: 18px; color: #05603a; text-wrap: pretty;">{{ conflictFixedLabel }}</div>
+                    <button onClick="{{ undoFallback }}" style="height: 32px; padding: 0 12px; background: transparent; color: #05603a; border: 1px solid #a9dcc4; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #d6efe3;">Schimbă</button>
+                  </div>
+                </sc-if>
+                <div aria-live="polite" style="padding: 8px clamp(16px, 3.75cqi, 24px); font-size: 13px; line-height: 18px; color: #757575; border-bottom: 1px solid #f1f1f1;">{{ counter }}</div>
+
+                <div style="{{ bodyStyleBottom }}">
+                <div style="{{ recipientsHeadStyle }}">
+                  <div>Nume și prenume</div>
+                  <div>Email</div>
+                  <div>Grup</div>
+                  <div></div>
+                </div>
+
+                <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px clamp(16px, 3.75cqi, 24px); background: #f5f5f5; border-bottom: 1px solid #f1f1f1;">
+                      <div onClick="{{ g.toggleOpen }}" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="{{ g.chevronStyle }}"><path d="m5 7.25 4 4 4-4"></path></svg>
+                        <div style="font-size: 13px; line-height: 18px; font-weight: 500; color: #616161; text-transform: uppercase; letter-spacing: .04em;">{{ g.title }}</div>
+                      </div>
+                      <div onClick="{{ g.toggle }}" title="{{ g.action }}" aria-label="{{ g.action }}" style="{{ g.boxStyle }}">{{ g.mark }}</div>
+                    </div>
+                    <sc-for list="{{ g.people }}" as="p" hint-placeholder-count="3">
+                      <div onClick="{{ p.toggle }}" style="{{ p.rowStyle }}" style-hover="background: #f5f5f5;">
+                        <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                          <span style="font-weight: 500; color: #121212; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.name }}</span>
+                          <sc-if value="{{ p.hasGap }}" hint-placeholder-val="{{ false }}">
+                            <button onClick="{{ p.openConflict }}" title="Alege canalele pentru acest destinatar" style="{{ p.gapStyle }}" style-hover="filter: brightness(0.96);">{{ p.gapLabel }}</button>
+                          </sc-if>
+                          <sc-if value="{{ p.hasFix }}" hint-placeholder-val="{{ false }}">
+                            <button onClick="{{ p.openConflict }}" title="Schimbă canalele pentru acest destinatar" style="{{ p.fixStyle }}" style-hover="filter: brightness(0.96);">{{ p.fixLabel }}</button>
+                          </sc-if>
+                        </div>
+                        <div style="color: #757575; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.email }}</div>
+                        <div><span style="font-size: 12px; line-height: 16px; color: #444444; background: #f1f1f1; border-radius: 9999px; padding: 4px 10px; white-space: nowrap;">{{ p.group }}</span></div>
+                        <div style="display: flex; justify-content: flex-end;">
+                          <sc-if value="{{ p.checked }}" hint-placeholder-val="{{ false }}">
+                            <div style="width: 24px; height: 24px; border-radius: 4px; background: #0058d2; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;">✓</div>
+                          </sc-if>
+                          <sc-if value="{{ p.unchecked }}" hint-placeholder-val="{{ true }}">
+                            <div style="width: 24px; height: 24px; border-radius: 4px; background: #ffffff; border: 1.5px solid #b2b2b2;"></div>
+                          </sc-if>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-for>
+                </div>
+
+                <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 48px 24px; text-align: center; font-size: 14px; color: #757575;">Nicio persoană nu corespunde căutării.</div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+          </div>
+        </div>
+
+        <sc-if value="{{ isRecipients }}" hint-placeholder-val="{{ false }}">
+          <div style="flex: none; background: #ffffff; border-top: 1px solid #d9d9d9; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <button onClick="{{ goCompose }}" style="height: 40px; padding: 0 16px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Înapoi la mesaj</button>
+              <div style="font-size: 14px; line-height: 20px; font-weight: 500;">{{ counter }}</div>
+            </div>
+            <button onClick="{{ askSend }}" style="{{ sendStyle }}">{{ sendLabel }}</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isSent }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; background: #12121266; display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 55;">
+      <div style="width: 100%; max-width: 480px; background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 12px 32px #12121233;">
+        <div style="width: 44px; height: 44px; border-radius: 9999px; background: #e6f5ee; color: #027948; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; margin-bottom: 16px;">✓</div>
+        <div style="font-size: 20px; line-height: 28px; font-weight: 600; margin-bottom: 6px;">Mesaj trimis</div>
+        <div style="font-size: 14px; line-height: 20px; color: #757575; margin-bottom: 20px;">{{ sentSummary }}</div>
+        <div style="border: 1px solid #f1f1f1; border-radius: 8px; overflow: hidden; margin-bottom: 24px;">
+          <div style="display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; padding: 10px 16px; border-bottom: 1px solid #f1f1f1; font-size: 13px; line-height: 18px;">
+            <span style="color: #757575;">Subiect</span>
+            <span style="font-weight: 500;">{{ subject }}</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; padding: 10px 16px; font-size: 13px; line-height: 18px;">
+            <span style="color: #757575;">Canal</span>
+            <span style="font-weight: 500;">{{ channelTitle }}</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
+          <button onClick="{{ nav.compose.go }}" style="height: 44px; padding: 0 18px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Mesaj nou</button>
+          <button onClick="{{ nav.sent.go }}" style="height: 44px; padding: 0 20px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #0046a8;">Vezi mesajele trimise</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ cpOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; background: #12121266; display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 60;">
+      <div style="width: 100%; max-width: 440px; background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 12px 32px #12121233;">
+        <div style="font-size: 18px; line-height: 26px; font-weight: 600;">{{ cpName }}</div>
+        <div style="font-size: 13px; line-height: 18px; color: #757575; margin-bottom: 16px;">{{ cpEmail }}</div>
+        <div style="font-size: 13px; line-height: 18px; color: #383838; margin-bottom: 10px;">Alege canalele pe care pleacă mesajul către acest destinatar:</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <sc-for list="{{ cpChannels }}" as="c" hint-placeholder-count="2">
+            <button onClick="{{ c.toggle }}" style="{{ c.rowStyle }}">
+              <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left;">
+                <span style="{{ c.titleStyle }}">{{ c.title }}</span>
+                <span style="{{ c.noteStyle }}">{{ c.note }}</span>
+              </span>
+              <span style="{{ c.boxStyle }}">{{ c.mark }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ cpNone }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top: 10px; font-size: 13px; line-height: 18px; color: #b32318;">Niciun canal selectat — salvarea nu e posibilă, poți exclude destinatarul.</div>
+        </sc-if>
+        <div style="display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; margin-top: 24px;">
+          <button onClick="{{ cpExclude }}" style="height: 44px; padding: 0 16px; background: #ffffff; color: #b32318; border: 1px solid #f0c6c1; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #feefee;">Exclude destinatarul</button>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button onClick="{{ cpCancel }}" style="height: 44px; padding: 0 18px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Anulează</button>
+            <button onClick="{{ cpSave }}" style="height: 44px; padding: 0 20px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #0046a8;">Salvează</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ editOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; background: #12121266; display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 50;">
+      <div style="width: 100%; max-width: 480px; background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 12px 32px #12121233;">
+        <div style="font-size: 20px; line-height: 28px; font-weight: 600; margin-bottom: 20px;">Editează destinatarul</div>
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <label style="flex: 1 1 160px; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Prenume</span>
+              <input value="{{ editFirst }}" onChange="{{ onEditFirst }}" autoComplete="off" style="height: 44px; padding: 0 12px; font-size: 15px; border: 1px solid #b2b2b2; border-radius: 8px; outline: none;" style-focus="border-color: #0058d2; box-shadow: 0 0 0 4px #ccdef6;" />
+            </label>
+            <label style="flex: 1 1 160px; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Nume</span>
+              <input value="{{ editLast }}" onChange="{{ onEditLast }}" autoComplete="off" style="height: 44px; padding: 0 12px; font-size: 15px; border: 1px solid #b2b2b2; border-radius: 8px; outline: none;" style-focus="border-color: #0058d2; box-shadow: 0 0 0 4px #ccdef6;" />
+            </label>
+          </div>
+          <label style="display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Email</span>
+            <input type="email" value="{{ editEmail }}" onChange="{{ onEditEmail }}" autoComplete="off" style="height: 44px; padding: 0 12px; font-size: 15px; border: 1px solid #b2b2b2; border-radius: 8px; outline: none;" style-focus="border-color: #0058d2; box-shadow: 0 0 0 4px #ccdef6;" />
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-size: 14px; line-height: 20px; font-weight: 500;">Grup</span>
+            <select value="{{ editGroup }}" onChange="{{ onEditGroup }}" style="height: 44px; padding: 0 12px; font-size: 15px; background: #ffffff; color: #121212; border: 1px solid #b2b2b2; border-radius: 8px; outline: none; cursor: pointer;" style-focus="border-color: #0058d2; box-shadow: 0 0 0 4px #ccdef6;">
+              <sc-for list="{{ groupOptions }}" as="g" hint-placeholder-count="4">
+                <option value="{{ g }}">{{ g }}</option>
+              </sc-for>
+            </select>
+          </label>
+          <sc-if value="{{ editError }}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 12px; background: #feefee; border: 1px solid #d92d20; border-radius: 6px; font-size: 14px; line-height: 20px; color: #b32318;">{{ editError }}</div>
+          </sc-if>
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; margin-top: 24px;">
+          <button onClick="{{ cancelEdit }}" style="height: 44px; padding: 0 18px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Anulează</button>
+          <button onClick="{{ saveEdit }}" style="height: 44px; padding: 0 20px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #0046a8;">Salvează</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ deleteOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; background: #12121266; display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 50;">
+      <div style="width: 100%; max-width: 440px; background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 12px 32px #12121233;">
+        <div style="font-size: 20px; line-height: 28px; font-weight: 600; margin-bottom: 8px;">Ștergi acest destinatar?</div>
+        <div style="font-size: 15px; line-height: 22px; color: #444444; margin-bottom: 8px;">{{ deleteName }}</div>
+        <div style="font-size: 14px; line-height: 20px; color: #757575; margin-bottom: 24px;">{{ deleteEmail }} — {{ deleteNote }}</div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;">
+          <button onClick="{{ cancelDelete }}" style="height: 44px; padding: 0 18px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #f5f5f5;">Anulează</button>
+          <button onClick="{{ confirmDelete }}" style="height: 44px; padding: 0 20px; background: #d92d20; color: #ffffff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: #b32318;">Șterge destinatarul</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ importOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; background: #12121266; display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 50;">
+      <div style="width: 100%; max-width: 480px; background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 12px 32px #12121233;">
+        <sc-if value="{{ importOk }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="font-size: 20px; line-height: 28px; font-weight: 600; margin-bottom: 8px;">Import finalizat</div>
+            <div style="font-size: 15px; line-height: 22px; color: #027948; font-weight: 500; margin-bottom: 8px;">{{ importAddedLabel }}</div>
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px;">
+              <sc-for list="{{ importLines }}" as="l" hint-placeholder-count="0">
+                <div style="{{ l.style }}">{{ l.text }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ importError }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <div style="font-size: 20px; line-height: 28px; font-weight: 600; margin-bottom: 8px;">Importul nu a reușit</div>
+            <div style="font-size: 15px; line-height: 22px; color: #b32318; margin-bottom: 16px; text-wrap: pretty;">{{ importError }}</div>
+            <div style="font-size: 13px; line-height: 20px; color: #757575; background: #f7f7f7; border: 1px solid #f1f1f1; border-radius: 6px; padding: 12px; margin-bottom: 24px;">Destinatari: nume,prenume,email,grup — toate obligatorii. Șabloane: nume,descriere,subiect,continut — doar numele e obligatoriu. Prima linie este antetul.</div>
+          </div>
+        </sc-if>
+        <div style="display: flex; justify-content: flex-end;">
+          <button onClick="{{ closeImport }}" style="height: 44px; padding: 0 20px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer;" style-hover="background: #0046a8;">Am înțeles</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; background: #12121266; display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 50;">
+      <div style="width: 100%; max-width: 440px; background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 12px 32px #12121233;">
+        <div style="font-size: 20px; line-height: 28px; font-weight: 600; margin-bottom: 8px;">Confirmi trimiterea?</div>
+        <div style="font-size: 15px; line-height: 22px; color: #444444; margin-bottom: 24px;">{{ confirmText }}</div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;">
+          <button onClick="{{ cancelSend }}" style="height: 44px; padding: 0 18px; background: #ffffff; color: #383838; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer;" style-hover="background: #f5f5f5;">Anulează</button>
+          <button onClick="{{ confirmSend }}" style="height: 44px; padding: 0 20px; background: #0058d2; color: #ffffff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer;" style-hover="background: #0046a8;">{{ sendLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #1e1e1e; color: #ffffff; padding: 12px 18px; border-radius: 8px; font-size: 14px; line-height: 20px; box-shadow: 0 8px 24px #12121233; z-index: 60;">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;dashboard&quot;,&quot;pick&quot;,&quot;compose&quot;,&quot;recipients&quot;],&quot;default&quot;:&quot;dashboard&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;defaultChannel&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;email&quot;,&quot;telegram&quot;,&quot;whatsapp&quot;],&quot;default&quot;:&quot;email&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;requireConfirm&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const PEOPLE = [
+  ["Ana Rusu", "ana.rusu", "Marketing"], ["Victor Ciobanu", "victor.ciobanu", "Marketing"],
+  ["Elena Postică", "elena.postica", "Marketing"], ["Dan Ursu", "dan.ursu", "Marketing"],
+  ["Irina Bejan", "irina.bejan", "Marketing"], ["Mihai Cazacu", "mihai.cazacu", "Marketing"],
+  ["Corina Lungu", "corina.lungu", "Marketing"], ["Radu Gîscă", "radu.gisca", "Marketing"],
+  ["Natalia Coroban", "natalia.coroban", "Vânzări"], ["Sergiu Balan", "sergiu.balan", "Vânzări"],
+  ["Olga Damian", "olga.damian", "Vânzări"], ["Andrei Munteanu", "andrei.munteanu", "Vânzări"],
+  ["Lilia Sîrbu", "lilia.sirbu", "Vânzări"], ["Pavel Grosu", "pavel.grosu", "Vânzări"],
+  ["Diana Croitoru", "diana.croitoru", "Vânzări"], ["Ion Zaharia", "ion.zaharia", "Vânzări"],
+  ["Marina Chirilov", "marina.chirilov", "Vânzări"], ["Vasile Rotaru", "vasile.rotaru", "Vânzări"],
+  ["Cristina Guțu", "cristina.gutu", "Suport"], ["Alexandru Vrabie", "alexandru.vrabie", "Suport"],
+  ["Tatiana Melnic", "tatiana.melnic", "Suport"], ["Nicolae Bordei", "nicolae.bordei", "Suport"],
+  ["Aliona Frunze", "aliona.frunze", "Suport"], ["Ghenadie Popa", "ghenadie.popa", "Suport"],
+  ["Svetlana Doncilă", "svetlana.doncila", "Suport"], ["Eugen Barbu", "eugen.barbu", "Suport"],
+  ["Veronica Stratan", "veronica.stratan", "Suport"], ["Adrian Cojocaru", "adrian.cojocaru", "Suport"],
+  ["Ludmila Verdeș", "ludmila.verdes", "Administrație"], ["Grigore Onea", "grigore.onea", "Administrație"],
+  ["Rodica Șendrea", "rodica.sendrea", "Administrație"], ["Petru Andronic", "petru.andronic", "Administrație"],
+  ["Silvia Bulat", "silvia.bulat", "Administrație"], ["Valeriu Hîncu", "valeriu.hincu", "Administrație"]
+].map((p, i) => {
+  const parts = p[0].split(" ");
+  const channels = ["email"].concat(i % 3 === 2 ? [] : ["telegram"]).concat(i % 4 === 1 ? [] : ["whatsapp"]);
+  return { id: i + 1, first: parts[0], last: parts.slice(1).join(" "), name: p[0], email: p[1] + "@exemplu.md", group: p[2], channels: channels };
+});
+
+const BASE_GROUPS = ["Marketing", "Vânzări", "Suport", "Administrație"];
+
+const CSV_HEADER = ["nume", "prenume", "email", "grup"];
+
+const TPL_CSV_HEADER = ["nume", "descriere", "subiect", "continut"];
+
+function csvCell(v) {
+  const s = String(v == null ? "" : v);
+  return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [], cell = "", quoted = false;
+  const src = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (quoted) {
+      if (c === '"' && src[i + 1] === '"') { cell += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else cell += c;
+    } else if (c === '"') quoted = true;
+    else if (c === "," || c === ";" || c === "\t") { row.push(cell); cell = ""; }
+    else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  row.push(cell);
+  rows.push(row);
+  return rows.filter(r => r.some(x => x.trim() !== ""));
+}
+
+const TEMPLATES = [
+  { id: "t1", name: "Felicitare", desc: "Mesaj de felicitare pentru aniversări, promovări sau realizări de echipă.",
+    subject: "Felicitări!", body: "Bună [nume],\n\nÎți transmitem felicitări din partea întregii echipe. Îți mulțumim pentru contribuția ta și îți dorim mult succes în continuare!\n\nCu drag,\nEchipa" },
+  { id: "t2", name: "Anunț general", desc: "Informare internă despre schimbări, decizii sau noutăți operaționale.",
+    subject: "Anunț important", body: "Bună tuturor,\n\nVă informăm că [detaliile anunțului]. Modificarea intră în vigoare începând cu [dată].\n\nPentru întrebări, răspundeți la acest mesaj.\n\nMulțumim,\nEchipa" },
+  { id: "t3", name: "Invitație eveniment", desc: "Invitație cu dată, oră și loc pentru un eveniment intern sau public.",
+    subject: "Invitație: [numele evenimentului]", body: "Bună [nume],\n\nTe invităm la [numele evenimentului], care va avea loc pe [dată], ora [oră], la [locație].\n\nTe rugăm să confirmi participarea până pe [dată limită].\n\nTe așteptăm!" },
+  { id: "t4", name: "Reamintire", desc: "Reamintire scurtă despre un termen limită sau o acțiune necesară.",
+    subject: "Reamintire: [subiect]", body: "Bună [nume],\n\nÎți reamintim că termenul limită pentru [acțiune] este [dată].\n\nMulțumim,\nEchipa" }
+];
+
+const CHANNELS = [
+  { id: "email", title: "Email", hint: "Mesajul va fi livrat ca email, cu subiect și imagini atașate." },
+  { id: "telegram", title: "Telegram", hint: "Mesajul va fi livrat ca mesaj Telegram simplu; subiectul devine prima linie." },
+  { id: "whatsapp", title: "WhatsApp", hint: "Mesajul va fi livrat ca mesaj WhatsApp; subiectul devine prima linie, imaginile se trimit separat." }
+];
+
+const VARS = [
+  { key: "nume", label: "Nume de familie", sample: "Popescu" },
+  { key: "prenume", label: "Prenume", sample: "Ana" },
+  { key: "grup", label: "Grup", sample: "Marketing" },
+  { key: "email", label: "Adresă email", sample: "ana@exemplu.ro" }
+];
+const VAR_CHIP = key =>
+  '<span data-var="' + key + '" contenteditable="false" style="display:inline-block;padding:0 8px;margin:0 1px;' +
+  'border-radius:9999px;background:#e8f0fb;color:#0058d2;font-size:13px;line-height:20px;font-weight:600;' +
+  'white-space:nowrap;user-select:all;">{{' + key + '}}</span>';
+
+const tplHtml = body => body.split("\n").join("<br>").replace(/\[(nume|prenume|grup|email)\]/g, (_, k) => VAR_CHIP(k));
+
+const SENT_SEED = [
+  { id: "s1", subject: "Anunț: program de sărbători", ch: ["email"], count: 34, date: "2 sept 2026, 10:12", status: "Livrat", images: 0, body: "Bună " + VAR_CHIP("prenume") + ",<br><br>Programul de sărbători este publicat: 25–26 decembrie și 1–2 ianuarie sunt zile libere.<br><br>Echipa HR" },
+  { id: "s2", subject: "Invitație: All-hands Q3", ch: ["email", "telegram"], count: 28, date: "28 aug 2026, 16:40", status: "Livrat", images: 0, body: "Bună " + VAR_CHIP("prenume") + ",<br><br>Te invităm la All-hands Q3, joi la ora 15:00, sala mare.<br><br>Echipa" },
+  { id: "s3", subject: "Reamintire: raport săptămânal", ch: ["telegram"], count: 18, date: "25 aug 2026, 09:05", status: "Livrat", images: 0, body: "Bună " + VAR_CHIP("prenume") + ",<br><br>Îți reamintim că raportul săptămânal se trimite până vineri la 17:00.<br><br>Mulțumim" },
+  { id: "s4", subject: "Felicitări, echipa Vânzări!", ch: ["email", "whatsapp"], count: 10, date: "21 aug 2026, 14:20", status: "Parțial", images: 0, body: "Felicitări, " + VAR_CHIP("prenume") + "!<br><br>Echipa Vânzări a depășit ținta trimestrială cu 12%." },
+  { id: "s5", subject: "Mentenanță planificată", ch: ["email"], count: 34, date: "18 aug 2026, 08:00", status: "Livrat", images: 0, body: "Bună " + VAR_CHIP("prenume") + ",<br><br>Mentenanța planificată are loc sâmbătă, între 08:00 și 12:00." },
+  { id: "s6", subject: "Politica de acces revizuită", ch: ["email"], count: 34, date: "14 aug 2026, 12:30", status: "Livrat", images: 0, body: "Bună " + VAR_CHIP("prenume") + ",<br><br>Politica de acces a fost revizuită. Găsești versiunea nouă în portalul intern." },
+  { id: "s7", subject: "Instruire: securitatea datelor", ch: ["email", "telegram"], count: 22, date: "11 aug 2026, 15:10", status: "Livrat", images: 0, body: "Bună " + VAR_CHIP("prenume") + ",<br><br>Instruirea „Securitatea datelor” are loc marți, ora 11:00." },
+  { id: "s8", subject: "Ședință extraordinară Suport", ch: ["whatsapp"], count: 10, date: "7 aug 2026, 08:45", status: "Parțial", images: 0, body: "Bună " + VAR_CHIP("prenume") + ",<br><br>Ședință extraordinară Suport azi la 17:30." },
+  { id: "s9", subject: "Rezultate sondaj intern", ch: ["email"], count: 34, date: "3 aug 2026, 17:00", status: "Livrat", images: 0, body: "Bună " + VAR_CHIP("prenume") + ",<br><br>Rezultatele sondajului intern sunt disponibile în raportul atașat." }
+];
+
+const DRAFT_SEED = [
+  { id: "d1", subject: "Sondaj intern: instrumente de lucru", bodyHtml: "Bună " + VAR_CHIP("prenume") + ",<br><br>Te rugăm să completezi sondajul până vineri.", channel: ["email"], images: 0, date: "5 sept 2026, 11:30" }
+];
+
+const STATUS_STYLES = {
+  "Livrat": "background:#e6f5ee;color:#027948;",
+  "Parțial": "background:#fff4e5;color:#b54708;",
+  "Eșuat": "background:#feefee;color:#b32318;"
+};
+
+const PAGE_SENT = 6;
+const PAGE_PEOPLE = 10;
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const ch = CHANNELS.some(c => c.id === props.defaultChannel) ? props.defaultChannel : "email";
+    this.state = {
+      screen: props.startScreen || "login",
+      email: "", password: "", loginError: "",
+      templates: TEMPLATES, newTplName: "", newTplDesc: "", newTplSubject: "", newTplBody: "", usedTemplate: "",
+      subject: "", bodyHtml: "", bodyVersion: 0, tplBodyVersion: 0, images: [], channel: [ch],
+      search: "", filter: "Toate", selected: [], confirmOpen: false, toast: "", sentCount: 0,
+      tab: "overview", sentLog: SENT_SEED, drafts: DRAFT_SEED,
+      sortKey: "date", sortDir: "desc", chFilter: "Toate",
+      sentSearch: "", statusFilter: "Toate", openMenu: null, tplSearch: "",
+      sentPage: 0, peoplePage: 0, railOpen: true,
+      people: PEOPLE, importReport: null,
+      editPerson: null, editScope: "people", editFirst: "", editLast: "", editEmail: "", editGroup: "", editError: "",
+      deletePerson: null, deleteScope: "people",
+      staged: null, stagedInvalid: [], stagedDuplicates: [], collapsedGroups: [], sentOpen: false,
+      varMenu: false, fmtMenu: null, viewSent: null, draftSearch: "", conflictMode: "block", chOverride: {}, conflictPerson: null, cpPick: []
+    };
+    this.fileRef = React.createRef();
+    this.csvRef = React.createRef();
+    this.tplCsvRef = React.createRef();
+    this.bodyRef = React.createRef();
+    this.tplBodyRef = React.createRef();
+    this.editorRef = () => this.state.screen === "newTemplate" ? this.tplBodyRef : this.bodyRef;
+    this.pickChannel = (id, shift) => {
+      const cur = this.state.channel;
+      if (!shift) return this.setState({ channel: [id], conflictMode: "block", chOverride: {} });
+      const next = cur.includes(id) ? cur.filter(x => x !== id) : cur.concat(id);
+      this.setState({ channel: next.length ? next : cur, conflictMode: "block", chOverride: {} });
+    };
+    this.exec = (cmd, val) => {
+      const el = this.editorRef().current;
+      if (el) el.focus();
+      try { document.execCommand("styleWithCSS", false, true); } catch (e) {}
+      document.execCommand(cmd, false, val);
+      this.syncBody();
+    };
+    this.syncBody = () => {
+      const el = this.editorRef().current;
+      if (!el) return;
+      if (this.state.screen === "newTemplate") this.setState({ newTplBody: el.innerHTML });
+      else this.setState({ bodyHtml: el.innerHTML });
+    };
+    this.saveRange = () => {
+      const el = this.editorRef().current;
+      const sel = window.getSelection();
+      if (!el || !sel || !sel.rangeCount) return;
+      if (el.contains(sel.anchorNode)) this._range = sel.getRangeAt(0).cloneRange();
+    };
+    // Variabilele se inserează ca „chip” contenteditable=false: se șterg dintr-o singură
+    // apăsare de Backspace și nu pot fi editate parțial din greșeală.
+    this.insertVar = key => {
+      const el = this.editorRef().current;
+      if (!el) return;
+      el.focus();
+      const sel = window.getSelection();
+      const r = (this._range && el.contains(this._range.commonAncestorContainer)) ? this._range : (() => {
+        const rr = document.createRange(); rr.selectNodeContents(el); rr.collapse(false); return rr;
+      })();
+      sel.removeAllRanges(); sel.addRange(r);
+      document.execCommand("insertHTML", false, VAR_CHIP(key) + "&#8203;");
+      this._range = null;
+      this.saveRange();
+      this.syncBody();
+      this.setState({ varMenu: false });
+    };
+    // Text tastat manual „{{nume}}” devine automat chip, la fel ca inserarea din toolbar.
+    this.autoChip = () => {
+      const el = this.editorRef().current;
+      if (!el) return;
+      const rx = /\{\{\s*(nume|prenume|grup|email)\s*\}\}/;
+      for (let guard = 0; guard < 20; guard++) {
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        let node, hit = null;
+        while ((node = walker.nextNode())) {
+          if (node.parentElement && node.parentElement.closest("[data-var]")) continue;
+          const m = rx.exec(node.nodeValue || "");
+          if (m) { hit = { node: node, m: m }; break; }
+        }
+        if (!hit) return;
+        const tail = hit.node.splitText(hit.m.index);
+        tail.nodeValue = tail.nodeValue.slice(hit.m[0].length);
+        const holder = document.createElement("span");
+        holder.innerHTML = VAR_CHIP(hit.m[1]);
+        const chip = holder.firstChild;
+        const zw = document.createTextNode("\u200b");
+        tail.parentNode.insertBefore(chip, tail);
+        tail.parentNode.insertBefore(zw, tail);
+        const sel = window.getSelection();
+        const r = document.createRange();
+        r.setStart(zw, 1); r.collapse(true);
+        sel.removeAllRanges(); sel.addRange(r);
+        this.saveRange();
+      }
+    };
+    this.setBody = html => this.setState(st => ({ bodyHtml: html, bodyVersion: st.bodyVersion + 1 }));
+    this.setTplBody = html => this.setState(st => ({ newTplBody: html, tplBodyVersion: st.tplBodyVersion + 1 }));
+  }
+
+  set(patch) { this.setState(patch); }
+
+  showToast(msg) {
+    this.setState({ toast: msg });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ toast: "" }), 2600);
+  }
+
+  componentDidMount() {
+    this.syncEditor();
+    this._onDocDown = e => {
+      const t = e.target;
+      if (this.state.varMenu && !(t.closest && t.closest("[data-var-menu]"))) this.setState({ varMenu: false });
+      if (this.state.fmtMenu && !(t.closest && t.closest("[data-fmt-menu]"))) this.setState({ fmtMenu: null });
+      if (!this.state.openMenu) return;
+      if (t.closest && t.closest("[data-mud-select]")) return;
+      this.setState({ openMenu: null });
+    };
+    document.addEventListener("mousedown", this._onDocDown, true);
+  }
+  componentDidUpdate() { this.syncEditor(); }
+  componentWillUnmount() {
+    clearTimeout(this._t);
+    document.removeEventListener("mousedown", this._onDocDown, true);
+  }
+
+  // MUD select-input md: trigger 40px / padding 12 / radius 8, listbox radius 16,
+  // padding 8, gap 4, shadow dropShadow.300, opțiune min 40px, padding 12/16, radius 8.
+  selectFilter(id, label, options, current, onPick) {
+    const open = this.state.openMenu === id;
+    const active = options.findIndex(o => o.id === current) > 0;
+    const cur = options.find(o => o.id === current) || options[0];
+    return {
+      label: label,
+      value: cur.title + (cur.count == null ? "" : " · " + cur.count),
+      open: open,
+      wrapStyle: "position:relative;flex:0 1 auto;min-width:0;",
+      triggerStyle: "display:flex;align-items:center;justify-content:space-between;gap:8px;height:40px;min-width:180px;padding:0 12px;" +
+        "background:#ffffff;border-radius:8px;font-family:inherit;font-size:14px;line-height:20px;cursor:pointer;text-align:left;" +
+        "transition:border-color 150ms ease-out;color:#121212;border:" +
+        (open || active ? "2px solid #0058d2;padding:0 11px;" : "1px solid #b2b2b2;"),
+      chevronStyle: "flex:none;color:#444444;transition:transform 150ms ease-out;transform:rotate(" + (open ? "180deg" : "0deg") + ");",
+      toggle: () => this.setState(st => ({ openMenu: st.openMenu === id ? null : id })),
+      listStyle: "position:absolute;z-index:20;top:calc(100% + 4px);left:0;min-width:100%;max-height:320px;overflow-y:auto;" +
+        "display:flex;flex-direction:column;gap:4px;padding:8px;background:#ffffff;border-radius:16px;" +
+        "box-shadow:0px 8px 12px 4px rgba(40, 46, 55, 0.06), 0px 2px 4px 0px rgba(40, 46, 55, 0.06);",
+      options: options.map(o => {
+        const on = o.id === current;
+        return {
+          title: o.title, count: o.count == null ? "" : String(o.count), selected: on,
+          style: "display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px;padding:12px 16px;" +
+            "border:none;border-radius:8px;font-family:inherit;font-size:14px;line-height:20px;font-weight:500;cursor:pointer;text-align:left;" +
+            "transition:background 150ms ease-out;background:" + (on ? "#f5f5f5" : "#ffffff") + ";color:" + (on ? "#0058d2" : "#383838") + ";",
+          pick: () => { onPick(o.id); this.setState({ openMenu: null }); }
+        };
+      })
+    };
+  }
+
+  // Push HTML into the editor only when it changed from outside (template pick / draft),
+  // never on every keystroke — that would move the caret.
+  syncEditor() {
+    const el = this.bodyRef.current;
+    if (el && el.dataset.v !== String(this.state.bodyVersion)) {
+      el.innerHTML = this.state.bodyHtml;
+      el.dataset.v = String(this.state.bodyVersion);
+    }
+    const tpl = this.tplBodyRef.current;
+    if (tpl && tpl.dataset.v !== String(this.state.tplBodyVersion)) {
+      tpl.innerHTML = this.state.newTplBody;
+      tpl.dataset.v = String(this.state.tplBodyVersion);
+    }
+  }
+
+  // execCommand('fontSize') only takes 1-7; rewrite the spans it made to a real px size.
+  applySize(px) {
+    const el = this.editorRef().current;
+    if (!el) return;
+    el.querySelectorAll('font[size="7"], span[style*="xxx-large"]').forEach(node => {
+      if (node.tagName === "FONT") {
+        const span = document.createElement("span");
+        span.style.fontSize = px;
+        span.innerHTML = node.innerHTML;
+        node.replaceWith(span);
+      } else {
+        node.style.fontSize = px;
+      }
+    });
+    this.syncBody();
+  }
+
+  bodyText() {
+    const d = document.createElement("div");
+    d.innerHTML = this.state.bodyHtml;
+    return (d.textContent || "").trim();
+  }
+
+  groupList() {
+    const extra = this.state.people.map(p => p.group).filter(g => g && BASE_GROUPS.indexOf(g) < 0);
+    return BASE_GROUPS.concat(Array.from(new Set(extra)));
+  }
+
+  exportCsv() {
+    this.downloadCsv(
+      [CSV_HEADER].concat(this.state.people.map(p => [p.last, p.first, p.email, p.group])),
+      "destinatari");
+    this.showToast(this.state.people.length + " destinatari exportați în CSV.");
+  }
+
+  downloadCsv(rows, basename) {
+    const csv = rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = basename + "-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  exportTemplatesCsv() {
+    this.downloadCsv(
+      [TPL_CSV_HEADER].concat(this.state.templates.map(t => [t.name, t.desc, t.subject, t.body])),
+      "sabloane");
+    this.showToast(this.state.templates.length + " șabloane exportate în CSV.");
+  }
+
+  importTemplatesCsv(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rows = parseCsv(String(reader.result || ""));
+      if (rows.length < 2) return this.setState({ importReport: { error: "Fișierul este gol sau are doar antetul." } });
+
+      const head = rows[0].map(h => h.trim().toLowerCase().replace(/^"|"$/g, ""));
+      const idx = {
+        name: head.findIndex(h => /^(nume|nume ?șablon|nume ?sablon|name|title|titlu)$/.test(h)),
+        desc: head.findIndex(h => /^(descriere|scop|description)$/.test(h)),
+        subject: head.findIndex(h => /^(subiect|subject)$/.test(h)),
+        body: head.findIndex(h => /^(conținut|continut|content|body|mesaj|text)$/.test(h))
+      };
+      if (idx.name < 0) {
+        return this.setState({ importReport: { error: "Lipsește coloana obligatorie: nume. Antetul așteptat este nume, descriere, subiect, continut." } });
+      }
+
+      const existing = new Set(this.state.templates.map(t => t.name.trim().toLowerCase()));
+      const added = [], invalid = [], duplicates = [];
+
+      rows.slice(1).forEach((r, i) => {
+        const get = k => (idx[k] >= 0 ? (r[idx[k]] || "").trim() : "");
+        const name = get("name");
+        const line = i + 2;
+        if (!name) return invalid.push("Linia " + line + ": nume lipsă");
+        const key = name.toLowerCase();
+        if (existing.has(key)) return duplicates.push(name);
+        existing.add(key);
+        added.push({
+          id: "t" + Date.now() + "-" + i, name: name,
+          desc: get("desc") || "Șablon importat.",
+          subject: get("subject") || name,
+          body: get("body").replace(/\\n/g, "\n")
+        });
+      });
+
+      this.setState({
+        templates: this.state.templates.concat(added),
+        importReport: { added: added.length, invalid, duplicates, groups: [], kind: "șabloane" }
+      });
+    };
+    reader.onerror = () => this.setState({ importReport: { error: "Fișierul nu a putut fi citit." } });
+    reader.readAsText(file, "utf-8");
+  }
+
+  importCsv(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rows = parseCsv(String(reader.result || ""));
+      if (rows.length < 2) return this.setState({ importReport: { error: "Fișierul este gol sau are doar antetul." } });
+
+      const head = rows[0].map(h => h.trim().toLowerCase().replace(/^"|"$/g, ""));
+      const idx = {
+        last: head.findIndex(h => /^(nume|nume de familie|last.?name|surname)$/.test(h)),
+        first: head.findIndex(h => /^(prenume|first.?name|given.?name)$/.test(h)),
+        email: head.findIndex(h => /^(e-?mail|adresa e-?mail)$/.test(h)),
+        group: head.findIndex(h => /^(grup|grupa|group|departament|department)$/.test(h))
+      };
+      const missing = CSV_HEADER.filter((_, i) => idx[["last", "first", "email", "group"][i]] < 0);
+      if (missing.length) {
+        return this.setState({ importReport: { error: "Lipsesc coloanele obligatorii: " + missing.join(", ") + ". Antetul trebuie să conțină nume, prenume, email, grup." } });
+      }
+
+      const existing = new Set(this.state.people.map(p => p.email.toLowerCase()));
+      const seen = new Set();
+      const added = [], invalid = [], duplicates = [];
+      let nextId = this.state.people.reduce((m, p) => Math.max(m, p.id), 0);
+
+      rows.slice(1).forEach((r, i) => {
+        const get = k => (r[idx[k]] || "").trim();
+        const last = get("last"), first = get("first"), email = get("email"), group = get("group");
+        const line = i + 2;
+        if (!last || !first || !email || !group) return invalid.push("Linia " + line + ": câmpuri lipsă");
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return invalid.push("Linia " + line + ": email invalid (" + email + ")");
+        const key = email.toLowerCase();
+        if (existing.has(key) || seen.has(key)) return duplicates.push(email);
+        seen.add(key);
+        added.push({ id: ++nextId, first, last, name: first + " " + last, email, group, channels: ["email"] });
+      });
+
+      if (!added.length) {
+        return this.setState({ importReport: { error: "Nicio linie validă de importat. " + (duplicates.length ? duplicates.length + " duplicate. " : "") + (invalid.length ? invalid.length + " linii respinse." : "") } });
+      }
+      this.setState({
+        screen: "importReview", staged: added,
+        stagedInvalid: invalid, stagedDuplicates: duplicates, importReport: null
+      });
+    };
+    reader.onerror = () => this.setState({ importReport: { error: "Fișierul nu a putut fi citit." } });
+    reader.readAsText(file, "utf-8");
+  }
+
+  visiblePeople() {
+    const q = this.state.search.trim().toLowerCase();
+    return this.state.people.filter(p => {
+      if (this.state.filter !== "Toate" && p.group !== this.state.filter) return false;
+      if (!q) return true;
+      return (p.name + " " + p.email + " " + p.group).toLowerCase().includes(q);
+    });
+  }
+
+  toggleOne(id) {
+    const sel = this.state.selected;
+    this.setState({ selected: sel.includes(id) ? sel.filter(x => x !== id) : sel.concat(id) });
+  }
+
+  setMany(ids, on) {
+    const sel = new Set(this.state.selected);
+    ids.forEach(id => on ? sel.add(id) : sel.delete(id));
+    this.setState({ selected: Array.from(sel) });
+  }
+
+  nowLabel() {
+    const MONTHS = ["ian", "feb", "mar", "apr", "mai", "iun", "iul", "aug", "sept", "oct", "noi", "dec"];
+    const d = new Date();
+    const pad = x => String(x).padStart(2, "0");
+    return d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear() + ", " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+
+  // MUD chip.filter md: 36px, radius full, padding 16 (12 cu contor), gap 8,
+  // nesel. #f1f1f1 / hover #d9d9d9, sel. #1e1e1e / hover #383838.
+  chipStyle(active, withCount) {
+    return "display:inline-flex;align-items:center;gap:8px;height:36px;min-width:60px;justify-content:center;padding:0 " +
+      (withCount ? "12px" : "16px") + ";border:none;border-radius:9999px;font-family:inherit;font-size:14px;line-height:20px;font-weight:500;" +
+      "cursor:pointer;white-space:nowrap;transition:background 150ms ease-out;" +
+      (active ? "background:#1e1e1e;color:#ffffff;" : "background:#f1f1f1;color:#121212;");
+  }
+
+  chipCountStyle(active) {
+    return "min-width:18px;height:18px;padding:0 4px;border-radius:9999px;font-size:12px;line-height:18px;text-align:center;" +
+      (active ? "background:#ffffff33;color:#ffffff;" : "background:#ffffff;color:#383838;");
+  }
+
+  // §7: bara de filtre — min 64px, padding block 12, inline aliniat cu celulele (24 → 16 sub 640px).
+  toolbarStyle() {
+    return "display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;min-height:64px;padding-block:12px;" +
+      "padding-inline:clamp(16px, 3.75cqi, 24px);background:#ffffff;border-bottom:1px solid #d9d9d9;border-radius:11px 11px 0 0;";
+  }
+
+  // Container query pe shell: celulele strâng padding-ul 24 → 16 sub 640px, ca la mud-table.
+  shellStyle() {
+    return "container-type:inline-size;background:#ffffff;border:1px solid #d9d9d9;border-radius:12px;";
+  }
+
+  // Shell-ul nu poate tăia (dropdown-ul trebuie să iasă din card), deci clipul de rază
+  // stă pe corpul tabelului, cu razele doar pe colțurile care ating marginea cardului.
+  bodyStyle(top, bottom) {
+    return "overflow-x:auto;overflow-y:hidden;border-radius:" +
+      (top ? "11px 11px " : "0 0 ") + (bottom ? "11px 11px" : "0 0") + ";";
+  }
+
+  rowStyle(cols, opts) {
+    const o = opts || {};
+    return (o.minWidth ? "min-width:" + o.minWidth + ";" : "") +
+      "display:grid;grid-template-columns:" + cols + ";gap:16px;align-items:center;min-height:48px;" +
+      "padding-block:8px;padding-inline:clamp(16px, 3.75cqi, 24px);" +
+      (o.header
+        ? "background:#f1f1f1;border-bottom:1px solid #d9d9d9;font-size:14px;line-height:20px;font-weight:500;color:#121212;"
+        : "border-bottom:1px solid #d9d9d9;font-size:14px;line-height:20px;color:#383838;transition:background 120ms ease-out;" +
+          (o.selected ? "background:#e8f0fb;" : "background:#ffffff;")) +
+      (o.clickable ? "cursor:pointer;" : "");
+  }
+
+  searchWrapStyle() {
+    return "flex:1 1 280px;min-width:0;display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;" +
+      "background:#ffffff;border:1px solid #b2b2b2;border-radius:8px;color:#444444;";
+  }
+
+  // MUD pagination: item 32px, radius 4, selectat #0058d2, nesel. transparent / hover #f1f1f1.
+  pagerItems(page, pages, onPick) {
+    const nums = [];
+    for (let i = 0; i < pages; i++) {
+      if (i === 0 || i === pages - 1 || Math.abs(i - page) <= 1) nums.push(i);
+      else if (nums[nums.length - 1] !== "…") nums.push("…");
+    }
+    return nums.map((v, k) => {
+      const isGap = v === "…";
+      const on = v === page;
+      return {
+        key: k, label: isGap ? "…" : String(v + 1), isGap: isGap, isPage: !isGap,
+        style: "min-width:32px;height:32px;padding:0 6px;border:none;border-radius:4px;font-family:inherit;font-size:14px;line-height:20px;font-weight:500;" +
+          (isGap
+            ? "background:transparent;color:#757575;cursor:default;"
+            : "cursor:pointer;transition:background 150ms ease-out;" +
+              (on ? "background:#0058d2;color:#ffffff;" : "background:transparent;color:#121212;")),
+        go: isGap ? () => {} : () => onPick(v)
+      };
+    });
+  }
+
+  navBtnStyle(disabled) {
+    return "min-width:32px;height:32px;padding:0 10px;border:none;border-radius:4px;font-family:inherit;font-size:14px;font-weight:500;background:transparent;" +
+      (disabled ? "color:#b2b2b2;cursor:not-allowed;" : "color:#121212;cursor:pointer;");
+  }
+
+  sortCellStyle(key) {
+    const on = this.state.sortKey === key;
+    return "display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;font-weight:500;color:" +
+      (on ? "#121212" : "#616161") + ";";
+  }
+
+  // MUD sidebar: item min 48px, padding 24/16, active = 3px brand border + brand-secondary fill.
+  navItem(active) {
+    return {
+      item: "display:flex;align-items:center;gap:12px;min-height:48px;cursor:pointer;transition:background 150ms ease-out;" +
+        (this.state.railOpen ? "padding:12px 16px 12px 17px;" : "padding:12px 0;justify-content:center;") +
+        "border-left:3px solid " +
+        (active ? "#0058d2" : "transparent") + ";background:" + (active ? "#e8f0fb" : "#ffffff") +
+        ";color:" + (active ? "#0058d2" : "#616161") + ";",
+      label: (this.state.railOpen ? "" : "display:none;") + "flex:1;min-width:0;font-size:15px;line-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:" +
+        (active ? "500" : "400") + ";color:" + (active ? "#0058d2" : "#383838") + ";",
+      badge: (this.state.railOpen ? "" : "display:none;") + "flex:none;min-width:24px;padding:0 8px;border-radius:9999px;font-size:12px;line-height:20px;font-weight:500;text-align:center;background:" +
+        (active ? "#ffffff" : "#f1f1f1") + ";color:#383838;"
+    };
+  }
+
+  pagerStyle(disabled) {
+    return "height:32px;padding:0 12px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid #d9d9d9;background:#ffffff;" +
+      (disabled ? "color:#b2b2b2;cursor:not-allowed;" : "color:#383838;cursor:pointer;");
+  }
+
+  sortCell(key, title) {
+    const on = this.state.sortKey === key;
+    const asc = this.state.sortDir === "asc";
+    return {
+      title: title,
+      style: this.sortCellStyle(key),
+      iconStyle: "flex:none;color:" + (on ? "#121212" : "#757575") + ";",
+      upStyle: "stroke:" + (on ? (asc ? "#121212" : "#b2b2b2") : "#757575") + ";stroke-width:" + (on && asc ? "2.25" : "1.5") + ";",
+      downStyle: "stroke:" + (on ? (asc ? "#b2b2b2" : "#121212") : "#757575") + ";stroke-width:" + (on && !asc ? "2.25" : "1.5") + ";",
+      pick: () => this.setState(st => ({
+        sortKey: key,
+        sortDir: st.sortKey === key && st.sortDir === "desc" ? "asc" : "desc",
+        sentPage: 0
+      }))
+    };
+  }
+
+  stepStyles(idx, current) {
+    const done = idx < current, active = idx === current;
+    const base = "width:24px;height:24px;border-radius:9999px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex:none;border:1.5px solid ";
+    return {
+      circle: done ? base + "#0058d2;background:#0058d2;color:#ffffff;"
+        : active ? base + "#0058d2;background:#ffffff;color:#0058d2;"
+          : base + "#b2b2b2;background:#ffffff;color:#b2b2b2;",
+      label: "font-size:13px;line-height:18px;white-space:nowrap;font-weight:" + (active ? "500" : "400") +
+        ";color:" + (done ? "#0058d2" : active ? "#121212" : "#757575") + ";",
+      item: "display:flex;align-items:center;gap:8px;padding:4px 10px;border-radius:9999px;flex:none;background:" +
+        (active ? "#e8f0fb" : "transparent") + ";cursor:" + (idx <= current ? "pointer" : "default") + ";",
+      wrap: "display:flex;align-items:center;gap:12px;min-width:0;" + (idx === 2 ? "flex:none;" : "flex:1 1 0;"),
+      line: "flex:1 1 auto;min-width:24px;height:2px;border-radius:2px;background:" + (done ? "#0058d2" : "#d9d9d9") + ";"
+    };
+  }
+
+  openConflict(p) {
+    const ov = this.state.chOverride || {};
+    const avail = this.state.channel.filter(c => (p.channels || ["email"]).indexOf(c) >= 0);
+    this.setState({ conflictPerson: p.id, cpPick: ov[p.id] ? ov[p.id].slice() : avail });
+  }
+
+  startNewMessage() {
+    this.setState({ screen: "pick", sentOpen: false, subject: "", usedTemplate: "", images: [], selected: [], conflictMode: "block", chOverride: {} });
+    this.setBody("");
+  }
+
+  goTab(tab) { this.setState({ screen: "dashboard", tab, sentOpen: false, sentPage: 0, peoplePage: 0, search: "", filter: "Toate" }); }
+
+  doSend() {
+    const s = this.state;
+    const n = s.selected.length;
+    this.setState({
+      confirmOpen: false, sentOpen: true, sentCount: n,
+      sentLog: [{
+        id: "s" + Date.now(), subject: s.subject.trim() || "Fără subiect",
+        ch: s.channel.slice(), count: n, date: this.nowLabel(), status: "Livrat",
+        images: s.images.length, body: s.bodyHtml,
+        to: s.people.filter(p => s.selected.indexOf(p.id) >= 0).map(p => p.name)
+      }].concat(s.sentLog)
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const flowOrder = ["pick", "compose", "recipients"];
+    const step = flowOrder.indexOf(s.screen);
+    const isFlow = step >= 0;
+    const visible = this.visiblePeople();
+    const selSet = new Set(s.selected);
+    const n = s.selected.length;
+
+    const chosen = CHANNELS.filter(c => s.channel.includes(c.id));
+    const chList = chosen.length ? chosen : [CHANNELS[0]];
+    const chTitle = chList.map(c => c.title).join(" + ");
+    const chPhrase = chList.map(c => c.title).join(", ").replace(/,([^,]*)$/, " și$1");
+    const chHint = chList.length > 1
+      ? "Mesajul va fi livrat prin " + chPhrase + ", în paralel."
+      : chList[0].hint;
+
+    const tagStyle = "font-size:12px;line-height:16px;font-weight:500;border-radius:9999px;padding:2px 8px;white-space:nowrap;background:#e8f0fb;color:#0046a8;";
+    const statusStyle = st => "font-size:12px;line-height:16px;font-weight:500;border-radius:9999px;padding:2px 8px;white-space:nowrap;" + (STATUS_STYLES[st] || STATUS_STYLES["Livrat"]);
+
+    const qSent = s.sentSearch.trim().toLowerCase();
+    const filteredSent = s.sentLog.filter(r =>
+      (s.chFilter === "Toate" || r.ch.includes(s.chFilter)) &&
+      (s.statusFilter === "Toate" || r.status === s.statusFilter) &&
+      (!qSent || r.subject.toLowerCase().includes(qSent)));
+    const sortedSent = filteredSent.slice().sort((a, b) => {
+      const dir = s.sortDir === "asc" ? 1 : -1;
+      if (s.sortKey === "count") return (a.count - b.count) * dir;
+      if (s.sortKey === "subject") return a.subject.localeCompare(b.subject, "ro") * dir;
+      return (s.sentLog.indexOf(a) - s.sentLog.indexOf(b)) * -dir;
+    });
+    const qDraft = (s.draftSearch || "").trim().toLowerCase();
+    const draftList = s.drafts.filter(d => !qDraft || (d.subject || "").toLowerCase().includes(qDraft));
+    const sentPages = Math.max(1, Math.ceil(sortedSent.length / PAGE_SENT));
+    const sentPage = Math.min(s.sentPage, sentPages - 1);
+    const sentSlice = sortedSent.slice(sentPage * PAGE_SENT, sentPage * PAGE_SENT + PAGE_SENT);
+
+    const peoplePages = Math.max(1, Math.ceil(visible.length / PAGE_PEOPLE));
+    const peoplePage = Math.min(s.peoplePage, peoplePages - 1);
+    const peopleSlice = visible.slice(peoplePage * PAGE_PEOPLE, peoplePage * PAGE_PEOPLE + PAGE_PEOPLE);
+
+    const delivered = s.sentLog.filter(x => x.status === "Livrat").length;
+    const reach = s.sentLog.length ? Math.round(s.sentLog.reduce((a, b) => a + b.count, 0) / s.sentLog.length) : 0;
+
+    const TITLES = {
+      overview: ["Panou", "Starea trimiterilor din contul tău, pe scurt."],
+      sent: ["Mesaje trimise", "Istoricul complet al trimiterilor, cu canal, destinatari și stare."],
+      drafts: ["Ciorne", "Mesaje salvate pentru mai târziu — text, imagini și canal, exact ca la salvare."],
+      people: ["Destinatari", "Toate persoanele din contul tău, cu grupul din care fac parte."],
+      templates: ["Șabloane", "Adaugă, șterge sau folosește direct un șablon ca punct de plecare."]
+    };
+    const PAGE = {
+      pick: ["Mesaj nou", "Alege un șablon ca punct de plecare — tot textul rămâne editabil."],
+      compose: ["Compune mesajul", "Editează liber textul, adaugă imagini și alege canalul de livrare."],
+      recipients: ["Selectează destinatarii", "Selecția este manuală și reversibilă până la apăsarea butonului de trimitere."],
+      sent: ["Trimitere finalizată", "Mesajul a intrat în istoricul trimiterilor."]
+    };
+    PAGE.newTemplate = ["Șablon nou", "Definește un punct de plecare reutilizabil pentru mesajele viitoare."];
+    PAGE.sentDetail = [(s.sentLog.find(x => x.id === s.viewSent) || {}).subject || "Mesaj trimis", "Conținutul livrat, canalele folosite și destinatarii trimiterii."];
+    PAGE.importReview = ["Verifică importul", "Corectează sau șterge liniile citite din fișier, apoi finalizează importul."];
+    const head = s.screen === "dashboard" ? (TITLES[s.tab] || TITLES.overview) : (PAGE[s.screen] || PAGE.pick);
+
+    const navFor = (active, count) => {
+      const st = this.navItem(active);
+      return { item: st.item, label: st.label, badge: st.badge, count: count };
+    };
+
+    const groupNames = this.groupList();
+    const total = s.people.length;
+
+    // Conflict de canal: destinatarul nu are configurat unul dintre canalele alese la pasul 2.
+    const chOf = p => p.channels || ["email"];
+    const ov = s.chOverride || {};
+    const missingFor = p => s.channel.filter(c => chOf(p).indexOf(c) < 0);
+    const titleOf = c => (CHANNELS.find(x => x.id === c) || {}).title;
+    const selectedPeople = s.people.filter(p => selSet.has(p.id));
+    const conflictPeople = selectedPeople.filter(p => missingFor(p).length > 0 && !ov[p.id]);
+    const unreachable = conflictPeople.filter(p => missingFor(p).length === s.channel.length);
+    const conflictBreak = s.channel.map(c => ({
+      id: c, title: titleOf(c),
+      count: conflictPeople.filter(p => chOf(p).indexOf(c) < 0).length
+    })).filter(x => x.count > 0);
+    const conflictOpen = conflictPeople.length > 0 && s.conflictMode === "block";
+    const conflictFixed = conflictPeople.length > 0 && s.conflictMode === "fallback";
+    const groups = groupNames.map(name => {
+      const people = visible.filter(p => p.group === name);
+      const allOn = people.length > 0 && people.every(p => selSet.has(p.id));
+      const someOn = !allOn && people.some(p => selSet.has(p.id));
+      const open = s.collapsedGroups.indexOf(name) < 0;
+      return {
+        hasMembers: people.length > 0,
+        title: name + " · " + people.filter(p => selSet.has(p.id)).length + "/" + people.length,
+        action: allOn ? "Debifează grupul" : "Bifează grupul",
+        mark: allOn ? "✓" : (someOn ? "–" : ""),
+        boxStyle: "flex:none;width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;" +
+          "font-size:13px;font-weight:700;cursor:pointer;transition:background 150ms ease-out,border-color 150ms ease-out;" +
+          (allOn || someOn
+            ? "background:#0058d2;color:#ffffff;border:1.5px solid #0058d2;"
+            : "background:#ffffff;color:transparent;border:1.5px solid #b2b2b2;"),
+        toggle: e => { if (e) e.stopPropagation(); this.setMany(people.map(p => p.id), !allOn); },
+        chevronStyle: "flex:none;color:#616161;transition:transform 150ms ease-out;transform:rotate(" + (open ? "0deg" : "-90deg") + ");",
+        toggleOpen: () => this.setState(st => ({
+          collapsedGroups: open ? st.collapsedGroups.concat(name) : st.collapsedGroups.filter(x => x !== name)
+        })),
+        people: (open ? people : []).map(p => ({
+          name: p.name, email: p.email, group: p.group,
+          checked: selSet.has(p.id), unchecked: !selSet.has(p.id),
+          hasGap: selSet.has(p.id) && missingFor(p).length > 0 && !ov[p.id],
+          gapLabel: "fără " + missingFor(p).map(titleOf).join(" și ") + " · rezolvă",
+          gapStyle: "font-size:12px;line-height:16px;font-weight:500;white-space:nowrap;padding:2px 8px;border-radius:9999px;cursor:pointer;border:none;font-family:inherit;" +
+            (missingFor(p).length === s.channel.length
+              ? "background:#feefee;color:#b32318;"
+              : "background:#fdf3e2;color:#8a5a08;"),
+          openConflict: e => { if (e) e.stopPropagation(); this.openConflict(p); },
+          hasFix: selSet.has(p.id) && !!ov[p.id],
+          fixLabel: ov[p.id] ? "doar " + ov[p.id].map(titleOf).join(" + ") : "",
+          fixStyle: "font-size:12px;line-height:16px;font-weight:500;white-space:nowrap;padding:2px 8px;border-radius:9999px;cursor:pointer;border:none;font-family:inherit;background:#e6f5ee;color:#05603a;",
+          rowStyle: this.rowStyle("minmax(140px,2fr) minmax(0,1.4fr) 150px 56px", { minWidth: "620px", clickable: true, selected: selSet.has(p.id) }),
+          toggle: () => this.toggleOne(p.id)
+        }))
+      };
+    }).filter(g => g.hasMembers);
+
+    return {
+      isLogin: s.screen === "login",
+      isApp: s.screen !== "login",
+      isDashboard: s.screen === "dashboard",
+      isFlow: isFlow,
+      isPickTemplate: s.screen === "pick",
+      isCompose: s.screen === "compose",
+      isRecipients: s.screen === "recipients",
+      isSent: !!s.sentOpen,
+
+      email: s.email, password: s.password, loginError: s.loginError,
+      userInitials: (s.email || "u").slice(0, 2).toUpperCase(),
+      onEmail: e => this.set({ email: e.target.value, loginError: "" }),
+      onPassword: e => this.set({ password: e.target.value, loginError: "" }),
+      doLogin: () => {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email)) return this.set({ loginError: "Introdu o adresă de email validă." });
+        if (s.password.length < 4) return this.set({ loginError: "Parola trebuie să aibă cel puțin 4 caractere." });
+        this.set({ screen: "dashboard", tab: "overview", loginError: "" });
+      },
+      logout: () => this.set({ screen: "login", password: "" }),
+
+      railStyle: "flex:none;width:" + (s.railOpen ? "264px" : "68px") +
+        ";background:#ffffff;border-right:1px solid #d9d9d9;display:flex;flex-direction:column;overflow:hidden;transition:width 150ms ease-out;",
+      railTextStyle: s.railOpen ? "min-width:0;" : "display:none;",
+      railBrandStyle: "height:56px;flex:none;display:flex;align-items:center;gap:12px;border-bottom:1px solid #f1f1f1;" +
+        (s.railOpen ? "padding:0 20px;" : "padding:0;justify-content:center;"),
+      railFootStyle: "flex:none;border-top:1px solid #f1f1f1;display:flex;align-items:center;gap:12px;" +
+        (s.railOpen ? "padding:12px 20px;" : "padding:12px 0;justify-content:center;"),
+      railHeadingStyle: (s.railOpen ? "" : "visibility:hidden;") + "padding:12px 20px 6px;font-size:12px;line-height:16px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:#757575;",
+      toggleRail: () => this.set({ railOpen: !s.railOpen }),
+
+      nav: {
+        overview: Object.assign(navFor(s.screen === "dashboard" && s.tab === "overview", ""), { go: () => this.goTab("overview") }),
+        compose: Object.assign(navFor(isFlow, ""), { go: () => this.startNewMessage() }),
+        sent: Object.assign(navFor(s.screen === "sentDetail" || (s.screen === "dashboard" && s.tab === "sent"), s.sentLog.length), { go: () => this.goTab("sent") }),
+        drafts: Object.assign(navFor(s.screen === "dashboard" && s.tab === "drafts", s.drafts.length), { go: () => this.goTab("drafts") }),
+        people: Object.assign(navFor(s.screen === "importReview" || (s.screen === "dashboard" && s.tab === "people"), total), { go: () => this.goTab("people") }),
+        templates: Object.assign(navFor(s.screen === "newTemplate" || (s.screen === "dashboard" && s.tab === "templates"), s.templates.length), { go: () => this.goTab("templates") })
+      },
+
+      crumbs: (() => {
+        const trail = [{ title: "Panou", go: () => this.goTab("overview") }];
+        if (s.screen === "dashboard" && s.tab !== "overview") trail.push({ title: head[0] });
+        if (s.screen === "newTemplate") {
+          trail.push({ title: "Șabloane", go: () => this.goTab("templates") });
+          trail.push({ title: "Șablon nou" });
+        }
+        if (s.screen === "sentDetail") {
+          trail.push({ title: "Mesaje trimise", go: () => this.goTab("sent") });
+          trail.push({ title: head[0] });
+        }
+        if (s.screen === "importReview") {
+          trail.push({ title: "Destinatari", go: () => this.goTab("people") });
+          trail.push({ title: "Verifică importul" });
+        }
+        if (isFlow) {
+          trail.push({ title: "Mesaj nou", go: () => this.set({ screen: "pick" }) });
+
+          if (s.screen !== "pick") trail.push({ title: head[0] });
+        }
+        return trail.map((c, i) => {
+          const last = i === trail.length - 1;
+          const clickable = !last && !!c.go;
+          return {
+            title: c.title, hasSep: i > 0,
+            clickable: clickable, current: !clickable,
+            go: clickable ? c.go : () => {}
+          };
+        });
+      })(),
+      pageTitle: head[0],
+      pageSubtitle: head[1],
+
+      steps: [
+        { title: "Șablon", key: "pick" },
+        { title: "Mesaj", key: "compose" },
+        { title: "Destinatari", key: "recipients" }
+      ].map((st, i) => {
+        const styles = this.stepStyles(i, step);
+        return {
+          mark: i < step ? "✓" : String(i + 1), title: st.title,
+          circle: styles.circle, label: styles.label, item: styles.item,
+          wrap: styles.wrap, line: styles.line, hasLine: i < 2,
+          go: () => { if (i <= step) this.set({ screen: st.key }); }
+        };
+      }),
+
+      tabOverview: s.screen === "dashboard" && s.tab === "overview",
+      tabSent: s.screen === "dashboard" && s.tab === "sent",
+      tabDrafts: s.screen === "dashboard" && s.tab === "drafts",
+      tabPeople: s.screen === "dashboard" && s.tab === "people",
+      tabTemplates: s.screen === "dashboard" && s.tab === "templates",
+
+      kpis: [
+        { label: "Trimiteri", value: s.sentLog.length, sub: "în total", brand: false, wide: true },
+        { label: "Destinatari", value: total, sub: groupNames.length + " grupuri", brand: false },
+        { label: "Ciorne", value: s.drafts.length, sub: s.drafts.length ? "așteaptă finalizare" : "nimic în așteptare", brand: s.drafts.length > 0 },
+        { label: "Acoperire medie", value: reach, sub: "destinatari / trimitere", brand: false },
+        { label: "Livrate integral", value: delivered, sub: "fără eșecuri parțiale", brand: false }
+      ].map(k => ({
+        label: k.label, value: k.value, sub: k.sub,
+        cellStyle: "padding:20px 24px;background:#ffffff;" + (k.wide ? "grid-column:span 2;" : ""),
+        valueStyle: "font-weight:600;margin:6px 0 4px;font-size:" + (k.wide ? "36px" : "28px") + ";line-height:" + (k.wide ? "44px" : "36px") + ";",
+        subStyle: "font-size:13px;line-height:18px;color:" + (k.brand ? "#0058d2" : "#757575") + ";"
+      })),
+      recentRows: s.sentLog.slice(0, 5).map(r => ({
+        subject: r.subject,
+        open: () => this.set({ screen: "sentDetail", viewSent: r.id }),
+        meta: r.date + " · " + r.count + " destinatari · " + r.ch.map(id => (CHANNELS.find(c => c.id === id) || {}).title).join(" + "),
+        status: r.status, statusStyle: statusStyle(r.status)
+      })),
+      groupDist: groupNames.map(g => {
+        const c = s.people.filter(p => p.group === g).length;
+        return {
+          name: g, count: c,
+          bar: "height:100%;border-radius:9999px;background:#0058d2;width:" + (total ? Math.round(c / total * 100) : 0) + "%;"
+        };
+      }),
+
+      shellStyle: this.shellStyle(),
+      bodyStyle: this.bodyStyle(false, false),
+      bodyStyleRound: this.bodyStyle(true, true),
+      bodyStyleBottom: this.bodyStyle(false, true),
+      toolbarStyle: this.toolbarStyle(),
+      searchWrapStyle: this.searchWrapStyle(),
+      sentHeadStyle: this.rowStyle("minmax(180px, 2.2fr) 130px 100px 140px 100px", { header: true, minWidth: "720px" }),
+      channelSelect: this.selectFilter("sentCh", "Canal",
+        [{ id: "Toate", title: "Toate canalele", count: s.sentLog.length }].concat(
+          CHANNELS.map(c => ({ id: c.id, title: c.title, count: s.sentLog.filter(r => r.ch.includes(c.id)).length }))),
+        s.chFilter, v => this.set({ chFilter: v, sentPage: 0 })),
+      statusSelect: this.selectFilter("sentStatus", "Stare",
+        [{ id: "Toate", title: "Orice stare", count: s.sentLog.length }].concat(
+          ["Livrat", "Parțial"].map(st => ({ id: st, title: st, count: s.sentLog.filter(r => r.status === st).length }))),
+        s.statusFilter, v => this.set({ statusFilter: v, sentPage: 0 })),
+      sentSearch: s.sentSearch,
+      onSentSearch: e => this.set({ sentSearch: e.target.value, sentPage: 0 }),
+      sentFiltersActive: s.chFilter !== "Toate" || s.statusFilter !== "Toate" || !!qSent,
+      resetSentFilters: () => this.set({ chFilter: "Toate", statusFilter: "Toate", sentSearch: "", sentPage: 0 }),
+      sentPagerItems: this.pagerItems(sentPage, sentPages, v => this.set({ sentPage: v })),
+      sentPrevStyle: this.navBtnStyle(sentPage === 0),
+      sentNextStyle: this.navBtnStyle(sentPage >= sentPages - 1),
+      sortSubject: this.sortCell("subject", "Subiect"),
+      sortCount: this.sortCell("count", "Destinatari"),
+      sortDate: this.sortCell("date", "Dată"),
+      sentRows: sentSlice.map(r => ({
+        subject: r.subject, date: r.date,
+        count: r.count, status: r.status, statusStyle: statusStyle(r.status),
+        rowStyle: this.rowStyle("minmax(180px, 2.2fr) 130px 100px 140px 100px", { minWidth: "720px", clickable: true }),
+        open: () => this.set({ screen: "sentDetail", viewSent: r.id }),
+        tags: r.ch.map(id => ({ title: (CHANNELS.find(c => c.id === id) || {}).title, style: tagStyle }))
+      })),
+      sentEmpty: sortedSent.length === 0,
+      sentRangeLabel: sortedSent.length === 0 ? "Nicio trimitere"
+        : (sentPage * PAGE_SENT + 1) + "–" + Math.min(sortedSent.length, sentPage * PAGE_SENT + PAGE_SENT) + " din " + sortedSent.length + " trimiteri",
+      sentPrev: { style: this.pagerStyle(sentPage === 0), go: () => { if (sentPage > 0) this.set({ sentPage: sentPage - 1 }); } },
+      sentNext: { style: this.pagerStyle(sentPage >= sentPages - 1), go: () => { if (sentPage < sentPages - 1) this.set({ sentPage: sentPage + 1 }); } },
+
+      draftsHeadStyle: this.rowStyle("minmax(160px, 2fr) 130px 88px", { header: true, minWidth: "560px" }),
+      draftSearch: s.draftSearch,
+      onDraftSearch: e => this.set({ draftSearch: e.target.value }),
+      newDraft: () => { this.set({ screen: "compose", subject: "", usedTemplate: "", images: [] }); this.setBody(""); },
+      draftRows: draftList.map(d => ({
+        subject: d.subject || "Fără subiect",
+        rowStyle: this.rowStyle("minmax(160px, 2fr) 130px 88px", { minWidth: "560px" }),
+        meta: d.date + " · " + (d.images ? d.images + " imagini" : "fără imagini"),
+        channel: CHANNELS.filter(c => d.channel.includes(c.id)).map(c => c.title).join(" + "),
+        resume: () => {
+          this.set({ screen: "compose", subject: d.subject, channel: d.channel, usedTemplate: "" });
+          this.setBody(d.bodyHtml);
+        },
+        remove: () => { this.set({ drafts: s.drafts.filter(x => x.id !== d.id) }); this.showToast("Ciornă ștearsă."); }
+      })),
+      draftsEmpty: draftList.length === 0,
+      draftsEmptyLabel: s.drafts.length === 0
+        ? "Nicio ciornă salvată. Apasă „Salvează ciornă” în pasul de compunere."
+        : "Nicio ciornă nu corespunde căutării.",
+      draftsRangeLabel: draftList.length === 0 ? "Nicio ciornă"
+        : draftList.length + (draftList.length === 1 ? " ciornă" : " ciorne"),
+
+      search: s.search,
+      onSearch: e => this.set({ search: e.target.value, peoplePage: 0 }),
+      groupSelect: this.selectFilter("group", "Grup",
+        [{ id: "Toate", title: "Toate grupurile", count: total }].concat(
+          groupNames.map(g => ({ id: g, title: g, count: s.people.filter(p => p.group === g).length }))),
+        s.filter, v => this.set({ filter: v, peoplePage: 0 })),
+      peopleFiltersActive: s.filter !== "Toate" || !!s.search.trim(),
+      resetPeopleFilters: () => this.set({ filter: "Toate", search: "", peoplePage: 0 }),
+      peopleHeadStyle: this.rowStyle("minmax(160px, 2fr) minmax(0, 1.4fr) 150px 88px", { header: true, minWidth: "640px" }),
+      peoplePagerItems: this.pagerItems(peoplePage, peoplePages, v => this.set({ peoplePage: v })),
+      peoplePrevStyle: this.navBtnStyle(peoplePage === 0),
+      peopleNextStyle: this.navBtnStyle(peoplePage >= peoplePages - 1),
+      peopleRows: peopleSlice.map(p => ({
+        name: p.name, email: p.email, group: p.group,
+        rowStyle: this.rowStyle("minmax(160px, 2fr) minmax(0, 1.4fr) 150px 88px", { minWidth: "640px" }),
+        edit: () => this.set({
+          editPerson: p.id, editScope: "people", editFirst: p.first || "", editLast: p.last || "",
+          editEmail: p.email, editGroup: p.group, editError: ""
+        }),
+        remove: () => this.set({ deletePerson: p.id, deleteScope: "people" })
+      })),
+
+      isImportReview: s.screen === "importReview",
+      stagedHeadStyle: this.rowStyle("minmax(160px, 2fr) minmax(0, 1.4fr) 150px 88px", { header: true, minWidth: "640px" }),
+      stagedRows: (s.staged || []).map(p => ({
+        name: p.name, email: p.email, group: p.group,
+        rowStyle: this.rowStyle("minmax(160px, 2fr) minmax(0, 1.4fr) 150px 88px", { minWidth: "640px" }),
+        edit: () => this.set({
+          editPerson: p.id, editScope: "staged", editFirst: p.first || "", editLast: p.last || "",
+          editEmail: p.email, editGroup: p.group, editError: ""
+        }),
+        remove: () => this.set({ deletePerson: p.id, deleteScope: "staged" })
+      })),
+      stagedCountLabel: (s.staged || []).length + ((s.staged || []).length === 1 ? " destinatar nou" : " destinatari noi"),
+      stagedEmpty: !(s.staged || []).length,
+      stagedNotes: [
+        s.stagedDuplicates.length ? { text: s.stagedDuplicates.length + " linii sărite — emailul există deja în listă.", tone: "#b54708" } : null,
+        s.stagedInvalid.length ? { text: s.stagedInvalid.length + " linii respinse: " + s.stagedInvalid.slice(0, 3).join("; ") + (s.stagedInvalid.length > 3 ? " …" : ""), tone: "#b32318" } : null
+      ].filter(Boolean).map(x => ({ text: x.text, style: "font-size:13px;line-height:20px;color:" + x.tone + ";" })),
+      finishImport: () => {
+        const added = s.staged || [];
+        if (!added.length) return this.showToast("Nu a rămas nimic de importat.");
+        this.set({ people: s.people.concat(added), staged: null, peoplePage: 0 });
+        this.goTab("people");
+        this.showToast(added.length + (added.length === 1 ? " destinatar importat." : " destinatari importați."));
+      },
+      cancelImportReview: () => { this.set({ staged: null }); this.goTab("people"); },
+
+      editOpen: s.editPerson != null,
+      editFirst: s.editFirst, editLast: s.editLast, editEmail: s.editEmail, editGroup: s.editGroup,
+      editError: s.editError,
+      onEditFirst: e => this.set({ editFirst: e.target.value, editError: "" }),
+      onEditLast: e => this.set({ editLast: e.target.value, editError: "" }),
+      onEditEmail: e => this.set({ editEmail: e.target.value, editError: "" }),
+      onEditGroup: e => this.set({ editGroup: e.target.value, editError: "" }),
+      groupOptions: groupNames,
+      cancelEdit: () => this.set({ editPerson: null, editError: "" }),
+      saveEdit: () => {
+        const first = s.editFirst.trim(), last = s.editLast.trim(), email = s.editEmail.trim(), group = s.editGroup.trim();
+        if (!first || !last) return this.set({ editError: "Numele și prenumele sunt obligatorii." });
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return this.set({ editError: "Adresa de email nu este validă." });
+        if (!group) return this.set({ editError: "Alege un grup." });
+        const others = s.people.concat(s.staged || []).filter(p => p.id !== s.editPerson);
+        if (others.some(p => p.email.toLowerCase() === email.toLowerCase())) {
+          return this.set({ editError: "Un alt destinatar are deja acest email." });
+        }
+        const apply = list => (list || []).map(p => p.id === s.editPerson
+          ? Object.assign({}, p, { first, last, name: first + " " + last, email, group })
+          : p);
+        this.set(s.editScope === "staged"
+          ? { staged: apply(s.staged), editPerson: null, editError: "" }
+          : { people: apply(s.people), editPerson: null, editError: "" });
+        this.showToast("Destinatar actualizat.");
+      },
+
+      deleteOpen: s.deletePerson != null,
+      deleteName: (s.people.concat(s.staged || []).find(p => p.id === s.deletePerson) || {}).name || "",
+      deleteEmail: (s.people.concat(s.staged || []).find(p => p.id === s.deletePerson) || {}).email || "",
+      deleteNote: s.deleteScope === "staged"
+        ? "Linia va fi scoasă din import. Restul liniilor rămân neatinse."
+        : "Va fi scos și din selecția curentă. Acțiunea nu poate fi anulată.",
+      cancelDelete: () => this.set({ deletePerson: null }),
+      confirmDelete: () => {
+        if (s.deleteScope === "staged") {
+          this.set({ staged: (s.staged || []).filter(p => p.id !== s.deletePerson), deletePerson: null });
+        } else {
+          this.set({
+            people: s.people.filter(p => p.id !== s.deletePerson),
+            selected: s.selected.filter(id => id !== s.deletePerson),
+            deletePerson: null, peoplePage: 0
+          });
+        }
+        this.showToast("Destinatar șters.");
+      },
+      csvRef: this.csvRef,
+      exportCsv: () => this.exportCsv(),
+      openImport: () => this.csvRef.current && this.csvRef.current.click(),
+      onCsvPicked: e => {
+        const f = (e.target.files || [])[0];
+        e.target.value = "";
+        if (f) this.importCsv(f);
+      },
+      importOpen: !!s.importReport,
+      importError: s.importReport && s.importReport.error ? s.importReport.error : "",
+      importOk: !!(s.importReport && !s.importReport.error),
+      importAddedLabel: s.importReport && !s.importReport.error
+        ? (s.importReport.kind === "șabloane"
+          ? s.importReport.added + (s.importReport.added === 1 ? " șablon adăugat" : " șabloane adăugate")
+          : s.importReport.added + (s.importReport.added === 1 ? " destinatar adăugat" : " destinatari adăugați"))
+        : "",
+      importLines: s.importReport && !s.importReport.error
+        ? [
+          s.importReport.duplicates.length ? { text: s.importReport.duplicates.length + (s.importReport.kind === "șabloane" ? " sărite (nume deja existent)" : " sărite (email deja existent)"), tone: "#b54708" } : null,
+          s.importReport.invalid.length ? { text: s.importReport.invalid.length + " linii respinse: " + s.importReport.invalid.slice(0, 3).join("; ") + (s.importReport.invalid.length > 3 ? " …" : ""), tone: "#b32318" } : null,
+          s.importReport.groups.length ? { text: "Grupuri: " + s.importReport.groups.join(", "), tone: "#757575" } : null
+        ].filter(Boolean).map(l => ({ text: l.text, style: "font-size:13px;line-height:20px;color:" + l.tone + ";" }))
+        : [],
+      closeImport: () => this.set({ importReport: null }),
+      peopleRangeLabel: visible.length === 0 ? "Nicio persoană"
+        : (peoplePage * PAGE_PEOPLE + 1) + "–" + Math.min(visible.length, peoplePage * PAGE_PEOPLE + PAGE_PEOPLE) + " din " + visible.length + " persoane",
+      peoplePrev: { style: this.pagerStyle(peoplePage === 0), go: () => { if (peoplePage > 0) this.set({ peoplePage: peoplePage - 1 }); } },
+      peopleNext: { style: this.pagerStyle(peoplePage >= peoplePages - 1), go: () => { if (peoplePage < peoplePages - 1) this.set({ peoplePage: peoplePage + 1 }); } },
+      noResults: visible.length === 0,
+      visibleCount: visible.length,
+
+      isNewTemplate: s.screen === "newTemplate",
+      newTplName: s.newTplName, newTplDesc: s.newTplDesc,
+      newTplSubject: s.newTplSubject, newTplBody: s.newTplBody,
+      onNewTplName: e => this.set({ newTplName: e.target.value }),
+      onNewTplDesc: e => this.set({ newTplDesc: e.target.value }),
+      onNewTplSubject: e => this.set({ newTplSubject: e.target.value }),
+      tplBodyRef: this.tplBodyRef,
+      onTplBodyInput: () => { this.autoChip(); this.syncBody(); },
+      goNewTemplate: () => {
+        this.set({ screen: "newTemplate", newTplName: "", newTplDesc: "", newTplSubject: "" });
+        this.setTplBody("");
+      },
+      cancelNewTemplate: () => this.goTab("templates"),
+      addTemplate: () => {
+        const name = s.newTplName.trim();
+        if (!name) return this.showToast("Dă un nume șablonului.");
+        this.set({
+          templates: s.templates.concat({
+            id: "t" + Date.now(), name: name,
+            desc: s.newTplDesc.trim() || "Șablon creat de tine.",
+            subject: s.newTplSubject.trim() || name,
+            body: s.newTplBody
+          }),
+          newTplName: "", newTplDesc: "", newTplSubject: "", newTplBody: ""
+        });
+        this.goTab("templates");
+        this.showToast("Șablon adăugat.");
+      },
+      tplCsvRef: this.tplCsvRef,
+      exportTemplates: () => this.exportTemplatesCsv(),
+      openTemplateImport: () => this.tplCsvRef.current && this.tplCsvRef.current.click(),
+      onTemplateCsvPicked: e => {
+        const f = (e.target.files || [])[0];
+        e.target.value = "";
+        if (f) this.importTemplatesCsv(f);
+      },
+      tplSearch: s.tplSearch,
+      onTplSearch: e => this.set({ tplSearch: e.target.value }),
+      templatesHeadStyle: this.rowStyle("minmax(200px, 1fr) 88px", { header: true, minWidth: "480px" }),
+      templatesRangeLabel: (() => {
+        const shown = s.templates.filter(t => !s.tplSearch.trim() || (t.name + " " + t.desc).toLowerCase().includes(s.tplSearch.trim().toLowerCase())).length;
+        return shown === s.templates.length
+          ? s.templates.length + (s.templates.length === 1 ? " șablon" : " șabloane")
+          : shown + " din " + s.templates.length + " șabloane";
+      })(),
+      templatesEmpty: s.templates.filter(t => !s.tplSearch.trim() || (t.name + " " + t.desc).toLowerCase().includes(s.tplSearch.trim().toLowerCase())).length === 0,
+      templateRows: s.templates.filter(t => !s.tplSearch.trim() || (t.name + " " + t.desc).toLowerCase().includes(s.tplSearch.trim().toLowerCase())).map(t => ({
+        rowStyle: this.rowStyle("minmax(200px, 1fr) 88px", { minWidth: "480px" }),
+        name: t.name, desc: t.desc,
+        use: () => { this.set({ screen: "compose", subject: t.subject, usedTemplate: t.name }); this.setBody(tplHtml(t.body)); },
+        remove: () => { this.set({ templates: s.templates.filter(x => x.id !== t.id) }); this.showToast("Șablon șters."); }
+      })),
+      templateCards: s.templates.map(t => ({
+        name: t.name, desc: t.desc, initial: t.name.slice(0, 1).toUpperCase(),
+        pick: () => { this.set({ screen: "compose", subject: t.subject, usedTemplate: t.name }); this.setBody(tplHtml(t.body)); }
+      })),
+      pickBlank: () => { this.set({ screen: "compose", subject: "", usedTemplate: "" }); this.setBody(""); },
+
+      subject: s.subject,
+      onSubject: e => this.set({ subject: e.target.value }),
+      bodyRef: this.bodyRef,
+      onBodyInput: () => { this.autoChip(); this.syncBody(); },
+      fmtBold: e => { e.preventDefault(); this.exec("bold"); },
+      fmtItalic: e => { e.preventDefault(); this.exec("italic"); },
+      fmtUnderline: e => { e.preventDefault(); this.exec("underline"); },
+      fmtClear: e => { e.preventDefault(); this.exec("removeFormat"); },
+      saveRange: this.saveRange,
+      varMenuOpen: s.varMenu,
+      toggleVarMenu: e => { e.preventDefault(); this.saveRange(); this.setState(st => ({ varMenu: !st.varMenu })); },
+      varBtnStyle: "display:flex;align-items:center;gap:6px;height:32px;padding:0 10px;border:none;border-radius:6px;cursor:pointer;" +
+        "font-family:inherit;font-size:13px;font-weight:500;transition:background 150ms ease-out;background:" +
+        (s.varMenu ? "#e8f0fb" : "transparent") + ";color:" + (s.varMenu ? "#0046a8" : "#383838") + ";",
+      varListStyle: "position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:240px;display:flex;flex-direction:column;gap:4px;" +
+        "padding:8px;background:#ffffff;border-radius:16px;" +
+        "box-shadow:0px 8px 12px 4px rgba(40, 46, 55, 0.06), 0px 2px 4px 0px rgba(40, 46, 55, 0.06);",
+      varItems: VARS.map(v => ({
+        token: "{{" + v.key + "}}",
+        label: v.label,
+        sample: "ex. " + v.sample,
+        style: "display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px;padding:8px 12px;border:none;border-radius:8px;" +
+          "background:#ffffff;font-family:inherit;font-size:14px;line-height:20px;cursor:pointer;text-align:left;color:#383838;transition:background 150ms ease-out;",
+        tokenStyle: "padding:0 8px;border-radius:9999px;background:#e8f0fb;color:#0058d2;font-size:13px;line-height:20px;font-weight:600;white-space:nowrap;",
+        insert: e => { e.preventDefault(); this.insertVar(v.key); }
+      })),
+      iconBtnStyle: "width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-radius:6px;" +
+        "background:transparent;color:#383838;cursor:pointer;font-family:inherit;transition:background 150ms ease-out,color 150ms ease-out;",
+      menuListStyle: "position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:200px;display:flex;flex-direction:column;gap:2px;" +
+        "padding:8px;background:#ffffff;border-radius:12px;box-shadow:0px 8px 12px 4px rgba(40, 46, 55, 0.06), 0px 2px 4px 0px rgba(40, 46, 55, 0.06);",
+      sizeMenu: {
+        open: s.fmtMenu === "size",
+        label: "Mărime text",
+        triggerStyle: "display:flex;align-items:center;gap:6px;height:32px;padding:0 8px 0 10px;border:none;border-radius:6px;cursor:pointer;" +
+          "font-family:inherit;font-size:13px;font-weight:500;color:#383838;background:" + (s.fmtMenu === "size" ? "#f1f1f1" : "transparent") + ";",
+        toggle: e => { e.preventDefault(); this.saveRange(); this.setState(st => ({ fmtMenu: st.fmtMenu === "size" ? null : "size", varMenu: false })); },
+        options: [
+          { title: "Text mic", size: "14px", fs: 13 },
+          { title: "Text normal", size: "16px", fs: 15 },
+          { title: "Text mare", size: "20px", fs: 18 },
+          { title: "Titlu", size: "24px", fs: 21 }
+        ].map(z => ({
+          title: z.title, sample: z.size,
+          style: "display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:36px;padding:6px 10px;border:none;border-radius:8px;" +
+            "background:#ffffff;color:#121212;cursor:pointer;font-family:inherit;text-align:left;line-height:1.3;font-size:" + z.fs + "px;",
+          apply: e => { e.preventDefault(); this.exec("fontSize", "7"); this.applySize(z.size); this.setState({ fmtMenu: null }); }
+        }))
+      },
+      colorMenu: {
+        open: s.fmtMenu === "color",
+        triggerStyle: "display:flex;align-items:center;gap:6px;height:32px;padding:0 8px;border:none;border-radius:6px;cursor:pointer;" +
+          "font-family:inherit;background:" + (s.fmtMenu === "color" ? "#f1f1f1" : "transparent") + ";color:#383838;",
+        toggle: e => { e.preventDefault(); this.saveRange(); this.setState(st => ({ fmtMenu: st.fmtMenu === "color" ? null : "color", varMenu: false })); },
+        options: [
+          { title: "Negru", hex: "#121212" },
+          { title: "Albastru brand", hex: "#0058d2" },
+          { title: "Roșu", hex: "#d92d20" },
+          { title: "Verde", hex: "#039855" },
+          { title: "Gri", hex: "#757575" }
+        ].map(c => ({
+          title: c.title,
+          style: "display:flex;align-items:center;gap:10px;min-height:36px;padding:6px 10px;border:none;border-radius:8px;background:#ffffff;" +
+            "color:#383838;cursor:pointer;font-family:inherit;font-size:14px;line-height:20px;text-align:left;",
+          dotStyle: "flex:none;width:16px;height:16px;border-radius:9999px;border:1px solid #d9d9d9;background:" + c.hex + ";",
+          apply: e => { e.preventDefault(); this.exec("foreColor", c.hex); this.setState({ fmtMenu: null }); }
+        }))
+      },
+      fmtBullets: e => { e.preventDefault(); this.exec("insertUnorderedList"); },
+      fmtNumbers: e => { e.preventDefault(); this.exec("insertOrderedList"); },
+      editorStats: (() => {
+        const html = s.screen === "newTemplate" ? s.newTplBody : s.bodyHtml;
+        const d = document.createElement("div");
+        d.innerHTML = html || "";
+        const vars = d.querySelectorAll("[data-var]").length;
+        d.querySelectorAll("[data-var]").forEach(x => x.remove());
+        const txt = (d.textContent || "").replace(/\u200b/g, "").trim();
+        const words = txt ? txt.split(/\s+/).length : 0;
+        return words + (words === 1 ? " cuvânt" : " cuvinte") + " · " + txt.length + " caractere · " +
+          vars + (vars === 1 ? " variabilă" : " variabile");
+      })(),
+      fileRef: this.fileRef,
+      openFiles: () => this.fileRef.current && this.fileRef.current.click(),
+      onFiles: e => {
+        const files = Array.from(e.target.files || []);
+        const added = files.map((f, i) => ({ id: Date.now() + "-" + i, name: f.name, url: URL.createObjectURL(f) }));
+        this.set({ images: s.images.concat(added) });
+        e.target.value = "";
+      },
+      images: s.images.map(im => ({
+        url: im.url, name: im.name,
+        remove: () => this.set({ images: s.images.filter(x => x.id !== im.id) })
+      })),
+      imagesHint: s.images.length === 0 ? "Nicio imagine adăugată. Poți încărca una sau mai multe." : s.images.length + (s.images.length === 1 ? " imagine adăugată." : " imagini adăugate. Apasă × pe o miniatură pentru a o șterge."),
+
+      channels: CHANNELS.map(c => {
+        const on = s.channel.includes(c.id);
+        return {
+          title: c.title,
+          style: "display:flex;align-items:center;justify-content:space-between;gap:8px;height:40px;padding:0 12px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;text-align:left;transition:background 150ms ease-out;border:1px solid " +
+            (on ? "#0058d2" : "#d9d9d9") + ";background:" + (on ? "#e8f0fb" : "#ffffff") + ";color:" + (on ? "#0046a8" : "#383838") + ";",
+          markStyle: on ? "font-size:12px;font-weight:700;color:#0058d2;" : "display:none;",
+          pick: e => this.pickChannel(c.id, !!(e && e.shiftKey))
+        };
+      }),
+      channelHint: chHint + " Ține apăsat Shift și dă clic pentru a livra pe mai multe canale.",
+      channelTitle: chTitle,
+      templateLabel: s.usedTemplate || "Mesaj gol",
+      imageCount: s.images.length,
+      selectedLabel: n + " din " + total,
+      saveDraft: () => {
+        this.set({
+          drafts: s.drafts.concat({
+            id: "d" + Date.now(), subject: s.subject, bodyHtml: s.bodyHtml,
+            channel: s.channel.slice(), images: s.images.length, date: this.nowLabel()
+          })
+        });
+        this.showToast("Ciornă salvată: text, " + s.images.length + " imagini, canal " + chTitle + ".");
+      },
+      goCompose: () => this.set({ screen: "compose" }),
+      goRecipients: () => {
+        if (!s.subject.trim() && !this.bodyText()) return this.showToast("Adaugă un subiect sau conținut înainte de a continua.");
+        this.set({ screen: "recipients", search: "", filter: "Toate" });
+      },
+
+      groups,
+      recipientsHeadStyle: this.rowStyle("minmax(140px,2fr) minmax(0,1.4fr) 150px 56px", { header: true, minWidth: "620px" }),
+      selectAll: () => this.setMany(visible.map(p => p.id), true),
+      deselectAll: () => this.setMany(visible.map(p => p.id), false),
+      counter: n + " din " + total + " persoane selectate",
+
+      conflictOpen: conflictOpen,
+      conflictFixed: conflictFixed,
+      conflictTitle: conflictPeople.length + (conflictPeople.length === 1 ? " destinatar selectat nu are toate canalele alese" : " destinatari selectați nu au toate canalele alese"),
+      conflictDetail: conflictBreak.map(b => b.count + " fără " + b.title).join(" · ") +
+        (unreachable.length ? " · " + unreachable.length + " nu pot fi contactați pe niciun canal ales" : ""),
+      conflictFixedLabel: "Mesajul pleacă doar pe canalele disponibile pentru fiecare destinatar" +
+        (unreachable.length ? " (" + unreachable.length + " fără niciun canal au fost excluși)" : "") + ".",
+      excludeConflicts: () => {
+        this.setMany(conflictPeople.map(p => p.id), false);
+        this.set({ conflictMode: "block" });
+        this.showToast(conflictPeople.length + " destinatari excluși.");
+      },
+      fallbackConflicts: () => {
+        if (unreachable.length) this.setMany(unreachable.map(p => p.id), false);
+        this.set({ conflictMode: "fallback" });
+        this.showToast("Se trimite pe canalele disponibile.");
+      },
+      undoFallback: () => this.set({ conflictMode: "block" }),
+
+      cpOpen: s.conflictPerson != null,
+      cpName: (s.people.find(p => p.id === s.conflictPerson) || {}).name,
+      cpEmail: (s.people.find(p => p.id === s.conflictPerson) || {}).email,
+      cpNone: s.cpPick.length === 0,
+      cpChannels: (() => {
+        const p = s.people.find(x => x.id === s.conflictPerson);
+        if (!p) return [];
+        return s.channel.map(c => {
+          const has = chOf(p).indexOf(c) >= 0;
+          const on = s.cpPick.indexOf(c) >= 0;
+          return {
+            title: titleOf(c),
+            note: has ? (on ? "Se trimite" : "Nu se trimite") : "Destinatarul nu are acest canal configurat",
+            rowStyle: "display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:52px;padding:8px 14px;text-align:left;" +
+              "border:1px solid " + (on ? "#0058d2" : "#d9d9d9") + ";border-radius:8px;font-family:inherit;background:" +
+              (has ? (on ? "#e8f0fb" : "#ffffff") : "#f7f7f7") + ";cursor:" + (has ? "pointer" : "not-allowed") + ";",
+            titleStyle: "font-size:14px;line-height:20px;font-weight:500;color:" + (has ? "#121212" : "#b2b2b2") + ";",
+            noteStyle: "font-size:12px;line-height:16px;color:" + (has ? (on ? "#0046a8" : "#757575") : "#b2b2b2") + ";",
+            boxStyle: "flex:none;width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;" +
+              (on ? "background:#0058d2;color:#ffffff;border:1.5px solid #0058d2;" : "background:#ffffff;color:transparent;border:1.5px solid " + (has ? "#b2b2b2" : "#e0e0e0") + ";"),
+            mark: on ? "✓" : "",
+            toggle: () => {
+              if (!has) return;
+              this.setState(st => ({ cpPick: st.cpPick.indexOf(c) >= 0 ? st.cpPick.filter(x => x !== c) : st.cpPick.concat(c) }));
+            }
+          };
+        });
+      })(),
+      cpSave: () => {
+        const id = s.conflictPerson;
+        if (!s.cpPick.length) return this.showToast("Alege cel puțin un canal sau exclude destinatarul.");
+        const next = Object.assign({}, ov); next[id] = s.cpPick.slice();
+        this.set({ chOverride: next, conflictPerson: null });
+        this.showToast("Canale setate pentru acest destinatar.");
+      },
+      cpExclude: () => {
+        const id = s.conflictPerson;
+        const next = Object.assign({}, ov); delete next[id];
+        this.setMany([id], false);
+        this.set({ chOverride: next, conflictPerson: null });
+        this.showToast("Destinatar exclus.");
+      },
+      cpCancel: () => this.set({ conflictPerson: null }),
+      sendLabel: n === 0 ? "Selectează destinatari" : "Trimite la " + n,
+      sendStyle: "height:40px;padding:0 20px;border:none;border-radius:8px;font-size:15px;font-weight:500;transition:background 150ms ease-out;" +
+        (n === 0 || conflictOpen ? "background:#f1f1f1;color:#b2b2b2;cursor:not-allowed;" : "background:#0058d2;color:#ffffff;cursor:pointer;"),
+      askSend: () => {
+        if (n === 0) return this.showToast("Bifează cel puțin o persoană.");
+        if (conflictOpen) return this.showToast("Rezolvă mai întâi conflictele de canal.");
+        if (this.props.requireConfirm === false) return this.doSend();
+        this.set({ confirmOpen: true });
+      },
+      confirmOpen: s.confirmOpen,
+      confirmText: "Mesajul „" + (s.subject.trim() || "fără subiect") + "” va fi trimis prin " + chPhrase + " către " + n + (n === 1 ? " destinatar" : " destinatari") + ". Acțiunea nu poate fi anulată.",
+      cancelSend: () => this.set({ confirmOpen: false }),
+      confirmSend: () => this.doSend(),
+      isSentDetail: s.screen === "sentDetail" && s.viewSent != null,
+      vsSubject: (s.sentLog.find(x => x.id === s.viewSent) || {}).subject,
+      vsMeta: (() => {
+        const r = s.sentLog.find(x => x.id === s.viewSent);
+        if (!r) return [];
+        return [
+          { label: "Trimis", value: r.date },
+          { label: "Canal", value: r.ch.map(titleOf).join(" + ") },
+          { label: "Destinatari", value: String(r.count) },
+          { label: "Stare", value: r.status },
+          { label: "Imagini", value: r.images ? String(r.images) : "fără" }
+        ];
+      })(),
+      vsRecipients: (() => {
+        const r = s.sentLog.find(x => x.id === s.viewSent);
+        if (!r || !r.to || !r.to.length) return "";
+        return r.to.slice(0, 6).join(", ") + (r.to.length > 6 ? " și încă " + (r.to.length - 6) : "");
+      })(),
+      vsBody: (() => {
+        const r = s.sentLog.find(x => x.id === s.viewSent);
+        if (!r) return null;
+        return React.createElement("div", {
+          style: { fontSize: "15px", lineHeight: "24px", color: "#121212" },
+          dangerouslySetInnerHTML: { __html: r.body || "<em style=\"color:#757575\">Mesaj fără conținut salvat.</em>" }
+        });
+      })(),
+      vsClose: () => { this.set({ viewSent: null }); this.goTab("sent"); },
+      vsResend: () => {
+        const r = s.sentLog.find(x => x.id === s.viewSent);
+        if (!r) return;
+        this.set({ screen: "compose", subject: r.subject, channel: r.ch.slice(), usedTemplate: "", images: [], viewSent: null, conflictMode: "block", chOverride: {} });
+        this.setBody(r.body || "");
+        this.showToast("Mesaj încărcat pentru retrimitere.");
+      },
+      sentSummary: s.sentCount + (s.sentCount === 1 ? " destinatar a primit mesajul." : " destinatari au primit mesajul."),
+      toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

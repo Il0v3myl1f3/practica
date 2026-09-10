@@ -1,0 +1,31 @@
+{
+  "annotations": {
+    "changelogDate": "20260910062542"
+  },
+  "applications": ["notificariMud"],
+  "documentation": "Spatiul de lucru. Toate datele apartin unei organizatii.",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "name",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "maxlength"],
+      "fieldValidateRulesMaxlength": "100"
+    },
+    {
+      "fieldName": "slug",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "maxlength", "unique"],
+      "fieldValidateRulesMaxlength": "60"
+    },
+    {
+      "fieldName": "createdAt",
+      "fieldType": "Instant",
+      "fieldValidateRules": ["required"]
+    }
+  ],
+  "name": "Organization",
+  "relationships": [],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

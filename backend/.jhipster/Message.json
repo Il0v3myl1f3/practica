@@ -1,0 +1,93 @@
+{
+  "annotations": {
+    "changelogDate": "20260910063142"
+  },
+  "applications": ["notificariMud"],
+  "documentation": "Ciorna si trimitere in aceeasi entitate, diferentiate prin status.\\nbodyHtml contine chip-uri de variabile: {{nume}} {{prenume}} {{grup}} {{email}}",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "subject",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "200"
+    },
+    {
+      "fieldName": "bodyHtml",
+      "fieldType": "TextBlob"
+    },
+    {
+      "fieldName": "status",
+      "fieldType": "MessageStatus",
+      "fieldTypeDocumentation": "DRAFT = ciorna. PARTIAL/FAILED se calculeaza din MessageRecipient.",
+      "fieldValidateRules": ["required"],
+      "fieldValues": "DRAFT,QUEUED,SENT,PARTIAL,FAILED"
+    },
+    {
+      "fieldName": "recipientCount",
+      "fieldType": "Integer",
+      "fieldValidateRules": ["min"],
+      "fieldValidateRulesMin": "0"
+    },
+    {
+      "fieldName": "createdAt",
+      "fieldType": "Instant",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "sentAt",
+      "fieldType": "Instant"
+    }
+  ],
+  "jpaMetamodelFiltering": true,
+  "name": "Message",
+  "pagination": "pagination",
+  "relationships": [
+    {
+      "otherEntityName": "messageChannel",
+      "otherEntityRelationshipName": "message",
+      "relationshipName": "channels",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-many"
+    },
+    {
+      "otherEntityName": "messageRecipient",
+      "otherEntityRelationshipName": "message",
+      "relationshipName": "deliveries",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-many"
+    },
+    {
+      "otherEntityName": "messageAttachment",
+      "otherEntityRelationshipName": "message",
+      "relationshipName": "attachments",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-many"
+    },
+    {
+      "otherEntityField": "name",
+      "otherEntityName": "organization",
+      "relationshipName": "organization",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    },
+    {
+      "otherEntityField": "name",
+      "otherEntityName": "messageTemplate",
+      "relationshipName": "template",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one"
+    },
+    {
+      "otherEntityField": "login",
+      "otherEntityName": "user",
+      "relationshipName": "createdBy",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one",
+      "relationshipWithBuiltInEntity": true
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

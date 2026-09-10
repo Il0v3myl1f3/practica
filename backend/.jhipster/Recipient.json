@@ -1,0 +1,63 @@
+{
+  "annotations": {
+    "changelogDate": "20260910062842"
+  },
+  "applications": ["notificariMud"],
+  "documentation": "fullName NU se stocheaza: este derivat din firstName + \" \" + lastName.",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "firstName",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "maxlength"],
+      "fieldValidateRulesMaxlength": "60"
+    },
+    {
+      "fieldName": "lastName",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "maxlength"],
+      "fieldValidateRulesMaxlength": "60"
+    },
+    {
+      "fieldName": "email",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "maxlength", "pattern"],
+      "fieldValidateRulesMaxlength": "254",
+      "fieldValidateRulesPattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+    },
+    {
+      "fieldName": "createdAt",
+      "fieldType": "Instant"
+    }
+  ],
+  "jpaMetamodelFiltering": true,
+  "name": "Recipient",
+  "pagination": "pagination",
+  "relationships": [
+    {
+      "otherEntityName": "recipientChannel",
+      "otherEntityRelationshipName": "recipient",
+      "relationshipName": "channels",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-many"
+    },
+    {
+      "otherEntityField": "name",
+      "otherEntityName": "organization",
+      "relationshipName": "organization",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    },
+    {
+      "otherEntityField": "name",
+      "otherEntityName": "recipientGroup",
+      "relationshipName": "recipientGroup",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

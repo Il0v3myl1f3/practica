@@ -1,0 +1,40 @@
+{
+  "annotations": {
+    "changelogDate": "20260910063442"
+  },
+  "applications": ["notificariMud"],
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "fileName",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "maxlength"],
+      "fieldValidateRulesMaxlength": "255"
+    },
+    {
+      "fieldName": "contentType",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "100"
+    },
+    {
+      "fieldName": "file",
+      "fieldType": "ImageBlob",
+      "fieldValidateRules": ["required"]
+    }
+  ],
+  "name": "MessageAttachment",
+  "relationships": [
+    {
+      "otherEntityField": "subject",
+      "otherEntityName": "message",
+      "otherEntityRelationshipName": "attachments",
+      "relationshipName": "message",
+      "relationshipSide": "right",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

@@ -1,0 +1,33 @@
+{
+  "generator-jhipster": {
+    "applicationType": "monolith",
+    "authenticationType": "jwt",
+    "baseName": "notificariMud",
+    "buildTool": "maven",
+    "cacheProvider": "ehcache",
+    "clientFramework": "no",
+    "databaseType": "sql",
+    "devDatabaseType": "h2Disk",
+    "enableTranslation": false,
+    "entities": [
+      "Organization",
+      "Membership",
+      "RecipientGroup",
+      "Recipient",
+      "RecipientChannel",
+      "MessageTemplate",
+      "Message",
+      "MessageChannel",
+      "MessageRecipient",
+      "MessageAttachment"
+    ],
+    "jhipsterVersion": "9.1.0",
+    "jwtSecretKey": "NmZkNTJkMGQwMjM4NTRmYjg1ZDE3NTFmODdkNTlmZjRlN2FmODMxOTk3NTBmODc2YmFlZGI2NTA2NzhjYTU3YzhiOTc5NTc4ZTI1Zjc4YWU1N2IzYzE4ZDcwM2E5ZGU5OWVhMmQ3NmRlMTRhZTY4MWYxYThhMzZiZGY0YTdhNDk=",
+    "lastLiquibaseTimestamp": 1789022082000,
+    "packageName": "md.mud.notificari",
+    "prodDatabaseType": "postgresql",
+    "serverPort": "8080",
+    "skipClient": true,
+    "testFrameworks": []
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "annotations": {
+    "changelogDate": "20260910063242"
+  },
+  "applications": ["notificariMud"],
+  "documentation": "Canalele alese pentru mesaj. Tabela separata pentru ca JDL nu are\\ncolectii de enum-uri, iar istoricul se filtreaza dupa canal in DB.",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "channel",
+      "fieldType": "Channel",
+      "fieldValidateRules": ["required"],
+      "fieldValues": "EMAIL,TELEGRAM,WHATSAPP"
+    }
+  ],
+  "name": "MessageChannel",
+  "relationships": [
+    {
+      "otherEntityField": "subject",
+      "otherEntityName": "message",
+      "otherEntityRelationshipName": "channels",
+      "relationshipName": "message",
+      "relationshipSide": "right",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

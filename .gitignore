@@ -1,0 +1,20 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# Build
+target/
+build/
+dist/
+node_modules/
+
+# Runtime
+*.log
+.h2.server.properties
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
