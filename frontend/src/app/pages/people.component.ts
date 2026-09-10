@@ -1,0 +1,449 @@
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ApiService } from '../core/api.service';
+import { Store } from '../core/store';
+import { ToastService } from '../core/toast.service';
+import { COL, EMAIL_RE, downloadCsv, findColumn, parseCsv } from '../core/csv';
+import { pagerItems, plural } from '../core/format';
+import { Recipient, RecipientUpsert } from '../core/models';
+
+const PAGE = 10;
+const COLS = 'minmax(160px, 2fr) minmax(0, 1.4fr) 150px 110px 88px';
+
+interface Staged extends RecipientUpsert {
+  key: number;
+}
+
+@Component({
+  selector: 'app-people',
+  standalone: true,
+  imports: [FormsModule],
+  template: `
+    @if (staged() !== null) {
+      <!-- Verificarea importului: randurile citite din fisier, editabile inainte de a fi scrise. -->
+      <section class="shell">
+        <div class="toolbar">
+          <div class="grow">
+            <b>{{ plural(staged()!.length, 'destinatar nou', 'destinatari noi') }}</b>
+            <div class="notes">
+              @for (n of stagedNotes(); track n) {
+                <div class="note">{{ n }}</div>
+              }
+            </div>
+          </div>
+          <button type="button" class="btn btn-ghost sm" (click)="cancelImport()">Renunță</button>
+          <button type="button" class="btn btn-primary sm" [disabled]="!staged()!.length" (click)="finishImport()">
+            Finalizează importul
+          </button>
+        </div>
+
+        <div class="tbody">
+          <div class="row head" [style.gridTemplateColumns]="stagedCols" [style.minWidth]="'640px'">
+            <span>Nume</span><span>Email</span><span>Grup</span><span></span>
+          </div>
+          @for (s of staged(); track s.key) {
+            <div class="row" [style.gridTemplateColumns]="stagedCols" [style.minWidth]="'640px'">
+              <span class="cell-strong">{{ s.firstName }} {{ s.lastName }}</span>
+              <span class="cell-muted">{{ s.email }}</span>
+              <span>{{ s.group }}</span>
+              <span class="cell-actions">
+                <button type="button" class="icon-btn" title="Scoate din import" (click)="dropStaged(s)">🗑</button>
+              </span>
+            </div>
+          } @empty {
+            <div class="empty">Nu a mai rămas nicio linie de importat.</div>
+          }
+        </div>
+      </section>
+    } @else {
+      <section class="shell">
+        <div class="toolbar">
+          <label class="search-wrap">
+            <span>⌕</span>
+            <input placeholder="Caută nume, email sau grup…" [ngModel]="q()" (ngModelChange)="q.set($event); page.set(0)" />
+          </label>
+
+          <select class="select filter" [ngModel]="groupFilter()" (ngModelChange)="groupFilter.set($event); page.set(0)">
+            <option value="">Toate grupurile · {{ store.recipients().length }}</option>
+            @for (g of store.groups(); track g.id) {
+              <option [value]="g.name">{{ g.name }} · {{ g.count }}</option>
+            }
+          </select>
+
+          @if (filtersActive()) {
+            <button type="button" class="btn btn-ghost sm" (click)="resetFilters()">Curăță filtrele</button>
+          }
+
+          <span class="grow"></span>
+          <button type="button" class="btn btn-ghost sm" (click)="file.click()">Importă CSV</button>
+          <button type="button" class="btn btn-ghost sm" (click)="exportCsv()">Exportă CSV</button>
+          <button type="button" class="btn btn-primary sm" (click)="openNew()">Adaugă</button>
+          <input #file type="file" accept=".csv,text/csv" hidden (change)="onFile($event)" />
+        </div>
+
+        <div class="tbody">
+          <div class="row head" [style.gridTemplateColumns]="cols" [style.minWidth]="'740px'">
+            <span>Nume</span><span>Email</span><span>Grup</span><span>Canale</span><span></span>
+          </div>
+
+          @for (p of slice(); track p.id) {
+            <div class="row" [style.gridTemplateColumns]="cols" [style.minWidth]="'740px'">
+              <span class="cell-strong">{{ p.name }}</span>
+              <span class="cell-muted">{{ p.email }}</span>
+              <span>{{ p.group }}</span>
+              <span class="chans">
+                @for (c of p.channels; track c) {
+                  <span class="chan" [title]="c">{{ short(c) }}</span>
+                }
+              </span>
+              <span class="cell-actions">
+                <button type="button" class="icon-btn" title="Editează" (click)="openEdit(p)">✎</button>
+                <button type="button" class="icon-btn" title="Șterge" (click)="toDelete.set(p)">🗑</button>
+              </span>
+            </div>
+          }
+
+          @if (!filtered().length) {
+            <div class="empty">Nicio persoană nu corespunde căutării.</div>
+          }
+        </div>
+
+        <div class="pager">
+          <span>{{ rangeLabel() }}</span>
+          <div class="pager-items">
+            <button type="button" class="pager-item" [disabled]="page() === 0" (click)="page.set(page() - 1)">‹</button>
+            @for (p of pages(); track $index) {
+              @if (p === '…') {
+                <span class="pager-item" style="cursor:default">…</span>
+              } @else {
+                <button type="button" class="pager-item" [class.on]="p === page()" (click)="page.set(+p)">{{ +p + 1 }}</button>
+              }
+            }
+            <button type="button" class="pager-item" [disabled]="page() >= pageCount() - 1" (click)="page.set(page() + 1)">›</button>
+          </div>
+        </div>
+      </section>
+    }
+
+    @if (editing()) {
+      <div class="backdrop" (click)="closeEdit($event)">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <h3>{{ editing()!.id ? 'Editează destinatarul' : 'Destinatar nou' }}</h3>
+          <div class="form">
+            <div class="two">
+              <label class="field"><span>Prenume</span><input class="input" [(ngModel)]="form.firstName" /></label>
+              <label class="field"><span>Nume</span><input class="input" [(ngModel)]="form.lastName" /></label>
+            </div>
+            <label class="field"><span>Email</span><input class="input" type="email" [(ngModel)]="form.email" /></label>
+            <label class="field">
+              <span>Grup</span>
+              <input class="input" list="grp-list" [(ngModel)]="form.group" placeholder="Marketing" />
+              <datalist id="grp-list">
+                @for (g of store.groups(); track g.id) {
+                  <option [value]="g.name"></option>
+                }
+              </datalist>
+            </label>
+            <div class="two">
+              <label class="field">
+                <span>Telefon WhatsApp</span>
+                <input class="input" [(ngModel)]="form.phoneNumber" placeholder="+373…" />
+              </label>
+              <label class="field">
+                <span>Telegram chat ID</span>
+                <input class="input" [(ngModel)]="form.telegramChatId" placeholder="opțional" />
+              </label>
+            </div>
+            <p class="hint">Canalele fără adresă completată nu apar la selecția destinatarilor.</p>
+            @if (editError()) {
+              <div class="alert">{{ editError() }}</div>
+            }
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" (click)="editing.set(null)">Anulează</button>
+            <button type="button" class="btn btn-primary" (click)="save()">Salvează</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (toDelete(); as d) {
+      <div class="backdrop">
+        <div class="modal" style="max-width:440px">
+          <h3>Ștergi acest destinatar?</h3>
+          <p style="margin:0 0 4px">{{ d.name }}</p>
+          <p class="modal-sub">{{ d.email }} — acțiunea nu poate fi anulată.</p>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" (click)="toDelete.set(null)">Anulează</button>
+            <button type="button" class="btn btn-danger" (click)="confirmDelete(d)">Șterge destinatarul</button>
+          </div>
+        </div>
+      </div>
+    }
+  `,
+  styles: [
+    `
+      .filter { flex: 0 1 auto; width: auto; min-width: 190px; height: 40px; font-size: 14px; }
+      .grow { flex: 1 1 auto; min-width: 0; }
+      .chans { display: flex; gap: 4px; }
+      .chan {
+        width: 22px;
+        height: 22px;
+        border-radius: 9999px;
+        background: var(--brand-soft);
+        color: var(--brand-ink);
+        font-size: 11px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .form { display: flex; flex-direction: column; gap: 16px; }
+      .two { display: flex; gap: 12px; flex-wrap: wrap; }
+      .two > .field { flex: 1 1 160px; }
+      .hint { margin: -6px 0 0; font-size: 12px; color: var(--muted); }
+      .notes { margin-top: 4px; }
+      .note { font-size: 13px; color: var(--warn-ink); }
+    `,
+  ],
+})
+export class PeopleComponent {
+  readonly store = inject(Store);
+  private api = inject(ApiService);
+  private toast = inject(ToastService);
+
+  readonly cols = COLS;
+  readonly stagedCols = 'minmax(160px, 2fr) minmax(0, 1.4fr) 150px 88px';
+  readonly plural = plural;
+
+  readonly q = signal('');
+  readonly groupFilter = signal('');
+  readonly page = signal(0);
+
+  readonly editing = signal<Recipient | { id: null } | null>(null);
+  readonly editError = signal('');
+  form: RecipientUpsert = blank();
+
+  readonly toDelete = signal<Recipient | null>(null);
+
+  readonly staged = signal<Staged[] | null>(null);
+  readonly stagedNotes = signal<string[]>([]);
+
+  constructor() {
+    this.store.loadRecipients();
+    this.store.loadGroups();
+  }
+
+  filtered = computed(() => {
+    const q = this.q().trim().toLowerCase();
+    const g = this.groupFilter();
+    return this.store
+      .recipients()
+      .filter(p => (!g || p.group === g) && (!q || `${p.name} ${p.email} ${p.group}`.toLowerCase().includes(q)));
+  });
+
+  pageCount = computed(() => Math.max(1, Math.ceil(this.filtered().length / PAGE)));
+  slice = computed(() => {
+    const p = Math.min(this.page(), this.pageCount() - 1);
+    return this.filtered().slice(p * PAGE, p * PAGE + PAGE);
+  });
+  pages = computed(() => pagerItems(Math.min(this.page(), this.pageCount() - 1), this.pageCount()));
+
+  rangeLabel = computed(() => {
+    const total = this.filtered().length;
+    if (!total) return 'Nicio persoană';
+    const p = Math.min(this.page(), this.pageCount() - 1);
+    return `${p * PAGE + 1}–${Math.min(total, p * PAGE + PAGE)} din ${total} persoane`;
+  });
+
+  filtersActive = computed(() => !!this.groupFilter() || !!this.q().trim());
+
+  short(c: string): string {
+    return { EMAIL: '@', TELEGRAM: 'TG', WHATSAPP: 'WA' }[c] ?? c[0];
+  }
+
+  resetFilters(): void {
+    this.q.set('');
+    this.groupFilter.set('');
+    this.page.set(0);
+  }
+
+  // ------------------------------------------------------------ editare
+
+  openNew(): void {
+    this.form = blank();
+    this.form.group = this.store.groupNames()[0] ?? '';
+    this.editError.set('');
+    this.editing.set({ id: null });
+  }
+
+  openEdit(p: Recipient): void {
+    this.form = {
+      firstName: p.firstName,
+      lastName: p.lastName,
+      email: p.email,
+      group: p.group,
+      phoneNumber: p.phoneNumber ?? '',
+      telegramChatId: p.telegramChatId ?? '',
+    };
+    this.editError.set('');
+    this.editing.set(p);
+  }
+
+  closeEdit(e: Event): void {
+    if (e.target === e.currentTarget) this.editing.set(null);
+  }
+
+  save(): void {
+    const f = this.form;
+    if (!f.firstName.trim() || !f.lastName.trim()) {
+      return this.editError.set('Numele și prenumele sunt obligatorii.');
+    }
+    if (!EMAIL_RE.test(f.email.trim())) {
+      return this.editError.set('Adresa de email nu este validă.');
+    }
+    if (!f.group.trim()) {
+      return this.editError.set('Alege un grup.');
+    }
+    const current = this.editing();
+    const done = () => {
+      this.editing.set(null);
+      this.store.loadRecipients();
+      this.store.loadGroups();
+      this.toast.show(current && 'id' in current && current.id ? 'Destinatar actualizat.' : 'Destinatar adăugat.');
+    };
+    const fail = (e: unknown) => this.editError.set(errMessage(e));
+    if (current && 'id' in current && current.id) {
+      this.api.updateRecipient(current.id, f).subscribe({ next: done, error: fail });
+    } else {
+      this.api.createRecipient(f).subscribe({ next: done, error: fail });
+    }
+  }
+
+  confirmDelete(p: Recipient): void {
+    this.api.deleteRecipient(p.id).subscribe({
+      next: () => {
+        this.toDelete.set(null);
+        this.store.loadRecipients();
+        this.store.loadGroups();
+        this.toast.show('Destinatar șters.');
+      },
+      error: e => {
+        this.toDelete.set(null);
+        this.toast.error(e);
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------- CSV
+
+  exportCsv(): void {
+    const rows = [['nume', 'prenume', 'email', 'grup'], ...this.store.recipients().map(p => [p.lastName, p.firstName, p.email, p.group])];
+    downloadCsv(rows, 'destinatari');
+    this.toast.show(`${this.store.recipients().length} destinatari exportați în CSV.`);
+  }
+
+  onFile(e: Event): void {
+    const input = e.target as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = '';
+    if (!f) return;
+
+    const reader = new FileReader();
+    reader.onerror = () => this.toast.show('Fișierul nu a putut fi citit.');
+    reader.onload = () => {
+      const rows = parseCsv(String(reader.result ?? ''));
+      if (rows.length < 2) return this.toast.show('Fișierul este gol sau are doar antetul.');
+
+      const head = rows[0];
+      const idx = {
+        last: findColumn(head, COL.last),
+        first: findColumn(head, COL.first),
+        email: findColumn(head, COL.email),
+        group: findColumn(head, COL.group),
+      };
+      const missing = (['last', 'first', 'email', 'group'] as const)
+        .filter(k => idx[k] < 0)
+        .map(k => ({ last: 'nume', first: 'prenume', email: 'email', group: 'grup' })[k]);
+      if (missing.length) {
+        return this.toast.show(`Lipsesc coloanele obligatorii: ${missing.join(', ')}.`);
+      }
+
+      const existing = new Set(this.store.recipients().map(p => p.email.toLowerCase()));
+      const seen = new Set<string>();
+      const added: Staged[] = [];
+      const invalid: string[] = [];
+      let duplicates = 0;
+
+      rows.slice(1).forEach((r, i) => {
+        const get = (k: keyof typeof idx) => (r[idx[k]] ?? '').trim();
+        const last = get('last');
+        const first = get('first');
+        const email = get('email');
+        const group = get('group');
+        const line = i + 2;
+        if (!last || !first || !email || !group) {
+          invalid.push(`Linia ${line}: câmpuri lipsă`);
+          return;
+        }
+        if (!EMAIL_RE.test(email)) {
+          invalid.push(`Linia ${line}: email invalid (${email})`);
+          return;
+        }
+        const key = email.toLowerCase();
+        if (existing.has(key) || seen.has(key)) {
+          duplicates++;
+          return;
+        }
+        seen.add(key);
+        added.push({ key: line, firstName: first, lastName: last, email, group });
+      });
+
+      if (!added.length) {
+        return this.toast.show(
+          `Nicio linie validă. ${duplicates ? duplicates + ' duplicate. ' : ''}${invalid.length ? invalid.length + ' respinse.' : ''}`,
+        );
+      }
+
+      const notes: string[] = [];
+      if (duplicates) notes.push(`${duplicates} linii sărite — emailul există deja în listă.`);
+      if (invalid.length) {
+        notes.push(`${invalid.length} linii respinse: ${invalid.slice(0, 3).join('; ')}${invalid.length > 3 ? ' …' : ''}`);
+      }
+      this.stagedNotes.set(notes);
+      this.staged.set(added);
+    };
+    reader.readAsText(f, 'utf-8');
+  }
+
+  dropStaged(s: Staged): void {
+    this.staged.set((this.staged() ?? []).filter(x => x.key !== s.key));
+  }
+
+  cancelImport(): void {
+    this.staged.set(null);
+    this.stagedNotes.set([]);
+  }
+
+  finishImport(): void {
+    const rows = this.staged() ?? [];
+    this.api.importRecipients(rows.map(({ key, ...rest }) => rest)).subscribe({
+      next: created => {
+        this.cancelImport();
+        this.store.loadRecipients();
+        this.store.loadGroups();
+        this.page.set(0);
+        this.toast.show(`${plural(created.length, 'destinatar importat', 'destinatari importați')}.`);
+      },
+      error: e => this.toast.error(e),
+    });
+  }
+}
+
+function blank(): RecipientUpsert {
+  return { firstName: '', lastName: '', email: '', group: '', phoneNumber: '', telegramChatId: '' };
+}
+
+function errMessage(e: unknown): string {
+  return (e as { error?: { message?: string } })?.error?.message ?? 'Salvarea nu a reușit.';
+}

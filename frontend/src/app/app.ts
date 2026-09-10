@@ -1,12 +1,18 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ToastService } from './core/toast.service';
 
 @Component({
-  imports: [RouterOutlet],
   selector: 'app-root',
-  styleUrl: './app.scss',
-  templateUrl: './app.html',
+  standalone: true,
+  imports: [RouterOutlet],
+  template: `
+    <router-outlet />
+    @if (toast.message()) {
+      <div class="toast">{{ toast.message() }}</div>
+    }
+  `,
 })
 export class App {
-  protected readonly title = signal('notificari-mud-web');
+  readonly toast = inject(ToastService);
 }

@@ -1,0 +1,191 @@
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { Store } from '../core/store';
+import { dateLabel, pagerItems } from '../core/format';
+import { CHANNELS, Channel, MessageStatus, channelTitle, statusLabel } from '../core/models';
+
+const PAGE = 6;
+const COLS = 'minmax(180px, 2.2fr) 130px 100px 140px 100px';
+
+@Component({
+  selector: 'app-sent',
+  standalone: true,
+  imports: [FormsModule],
+  template: `
+    <section class="shell">
+      <div class="toolbar">
+        <label class="search-wrap">
+          <span>⌕</span>
+          <input placeholder="Caută după subiect…" [ngModel]="q()" (ngModelChange)="q.set($event); page.set(0)" />
+        </label>
+
+        <select class="select filter" [ngModel]="chFilter()" (ngModelChange)="chFilter.set($event); page.set(0)">
+          <option value="">Toate canalele · {{ store.sent().length }}</option>
+          @for (c of channels; track c.id) {
+            <option [value]="c.id">{{ c.title }} · {{ countByChannel(c.id) }}</option>
+          }
+        </select>
+
+        <select class="select filter" [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event); page.set(0)">
+          <option value="">Orice stare · {{ store.sent().length }}</option>
+          @for (s of statuses; track s) {
+            <option [value]="s">{{ label(s) }} · {{ countByStatus(s) }}</option>
+          }
+        </select>
+
+        @if (filtersActive()) {
+          <button type="button" class="btn btn-ghost sm" (click)="resetFilters()">Curăță filtrele</button>
+        }
+      </div>
+
+      <div class="tbody">
+        <div class="row head" [style.gridTemplateColumns]="cols" [style.minWidth]="'720px'">
+          <button type="button" class="sort" (click)="sortBy('subject')">Subiect {{ arrow('subject') }}</button>
+          <span>Canal</span>
+          <button type="button" class="sort" (click)="sortBy('count')">Destinatari {{ arrow('count') }}</button>
+          <button type="button" class="sort" (click)="sortBy('date')">Dată {{ arrow('date') }}</button>
+          <span>Stare</span>
+        </div>
+
+        @for (r of slice(); track r.id) {
+          <div class="row clickable" [style.gridTemplateColumns]="cols" [style.minWidth]="'720px'" (click)="open(r.id)">
+            <span class="cell-strong">{{ r.subject }}</span>
+            <span class="tags">
+              @for (c of r.channels; track c) {
+                <span class="tag">{{ title(c) }}</span>
+              }
+            </span>
+            <span>{{ r.recipientCount }}</span>
+            <span class="cell-muted">{{ date(r.sentAt ?? r.createdAt) }}</span>
+            <span><span class="status" [class]="r.status">{{ label(r.status) }}</span></span>
+          </div>
+        }
+
+        @if (!filtered().length) {
+          <div class="empty">Nicio trimitere nu corespunde filtrelor.</div>
+        }
+      </div>
+
+      <div class="pager">
+        <span>{{ rangeLabel() }}</span>
+        <div class="pager-items">
+          <button type="button" class="pager-item" [disabled]="page() === 0" (click)="page.set(page() - 1)">‹</button>
+          @for (p of pages(); track $index) {
+            @if (p === '…') {
+              <span class="pager-item" style="cursor:default">…</span>
+            } @else {
+              <button type="button" class="pager-item" [class.on]="p === page()" (click)="page.set(+p)">{{ +p + 1 }}</button>
+            }
+          }
+          <button type="button" class="pager-item" [disabled]="page() >= pageCount() - 1" (click)="page.set(page() + 1)">›</button>
+        </div>
+      </div>
+    </section>
+  `,
+  styles: [
+    `
+      .filter { flex: 0 1 auto; width: auto; min-width: 190px; height: 40px; font-size: 14px; }
+      .tags { display: flex; gap: 4px; flex-wrap: wrap; }
+      .sort {
+        border: none;
+        background: none;
+        padding: 0;
+        font: inherit;
+        font-weight: 500;
+        color: var(--ink);
+        cursor: pointer;
+        text-align: left;
+      }
+    `,
+  ],
+})
+export class SentComponent {
+  readonly store = inject(Store);
+  private router = inject(Router);
+
+  readonly channels = CHANNELS;
+  readonly statuses: MessageStatus[] = ['SENT', 'PARTIAL', 'FAILED'];
+  readonly cols = COLS;
+  readonly label = statusLabel;
+  readonly title = channelTitle;
+  readonly date = dateLabel;
+
+  readonly q = signal('');
+  readonly chFilter = signal<string>('');
+  readonly statusFilter = signal<string>('');
+  readonly page = signal(0);
+  readonly sortKey = signal<'subject' | 'count' | 'date'>('date');
+  readonly sortDir = signal<'asc' | 'desc'>('desc');
+
+  constructor() {
+    this.store.loadSent();
+  }
+
+  filtered = computed(() => {
+    const q = this.q().trim().toLowerCase();
+    const ch = this.chFilter();
+    const st = this.statusFilter();
+    const rows = this.store
+      .sent()
+      .filter(r => (!ch || r.channels.includes(ch as Channel)) && (!st || r.status === st) && (!q || r.subject.toLowerCase().includes(q)));
+    const dir = this.sortDir() === 'asc' ? 1 : -1;
+    const key = this.sortKey();
+    return [...rows].sort((a, b) => {
+      if (key === 'count') return (a.recipientCount - b.recipientCount) * dir;
+      if (key === 'subject') return a.subject.localeCompare(b.subject, 'ro') * dir;
+      const at = new Date(a.sentAt ?? a.createdAt).getTime();
+      const bt = new Date(b.sentAt ?? b.createdAt).getTime();
+      return (at - bt) * dir;
+    });
+  });
+
+  pageCount = computed(() => Math.max(1, Math.ceil(this.filtered().length / PAGE)));
+  slice = computed(() => {
+    const p = Math.min(this.page(), this.pageCount() - 1);
+    return this.filtered().slice(p * PAGE, p * PAGE + PAGE);
+  });
+  pages = computed(() => pagerItems(Math.min(this.page(), this.pageCount() - 1), this.pageCount()));
+
+  rangeLabel = computed(() => {
+    const total = this.filtered().length;
+    if (!total) return 'Nicio trimitere';
+    const p = Math.min(this.page(), this.pageCount() - 1);
+    return `${p * PAGE + 1}–${Math.min(total, p * PAGE + PAGE)} din ${total} trimiteri`;
+  });
+
+  filtersActive = computed(() => !!this.chFilter() || !!this.statusFilter() || !!this.q().trim());
+
+  countByChannel(id: Channel): number {
+    return this.store.sent().filter(r => r.channels.includes(id)).length;
+  }
+
+  countByStatus(s: MessageStatus): number {
+    return this.store.sent().filter(r => r.status === s).length;
+  }
+
+  resetFilters(): void {
+    this.q.set('');
+    this.chFilter.set('');
+    this.statusFilter.set('');
+    this.page.set(0);
+  }
+
+  sortBy(key: 'subject' | 'count' | 'date'): void {
+    if (this.sortKey() === key) {
+      this.sortDir.set(this.sortDir() === 'desc' ? 'asc' : 'desc');
+    } else {
+      this.sortKey.set(key);
+      this.sortDir.set('desc');
+    }
+    this.page.set(0);
+  }
+
+  arrow(key: 'subject' | 'count' | 'date'): string {
+    return this.sortKey() === key ? (this.sortDir() === 'asc' ? '↑' : '↓') : '';
+  }
+
+  open(id: number): void {
+    this.router.navigate(['/trimise', id]);
+  }
+}

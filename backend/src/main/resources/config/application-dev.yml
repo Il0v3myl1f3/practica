@@ -47,10 +47,24 @@ spring:
       enabled: true
   liquibase:
     # Remove 'faker' if you do not want the sample data to be loaded automatically
-    contexts: dev, faker
+    # 'faker' scos: datele de test vin din DevDataSeeder, lizibile si consecvente
+    contexts: dev
   mail:
-    host: localhost
-    port: 25
+    host: smtp.gmail.com
+    port: 587
+    # Pune-le ca variabile de mediu. MAIL_PASSWORD trebuie sa fie o
+    # 'App password' din contul Google, nu parola contului.
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+        transport:
+          protocol: smtp
   messages:
     cache-duration: PT1S # 1 second, see the ISO 8601 standard
   thymeleaf:
@@ -91,6 +105,7 @@ jhipster:
         token-validity-in-seconds-for-remember-me: 2592000
   mail: # specific JHipster mail property, for standard properties see MailProperties
     base-url: http://127.0.0.1:8080
+    from: ${MAIL_USERNAME:no-reply@notificari-mud.md}
   logging:
     use-json-format: false # By default, logs are not in Json format
     logstash: # Forward logs to logstash over a socket, used by LoggingConfiguration
