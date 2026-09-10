@@ -8,18 +8,22 @@ Fără frontend — clientul Angular este un proiect separat, în `../frontend`.
 ## Rulare
 
 ```bash
+docker compose -f src/main/docker/postgresql.yml up -d
 ./mvnw
 ```
 
-Pornește pe `http://localhost:8080` cu H2 pe disc (profil `dev`, nimic de
-instalat). Conturi generate: `admin` / `admin` și `user` / `user`.
+Pornește pe `http://localhost:8080`. Conturi: `admin` / `admin` și `user` / `user`.
 
-Cu PostgreSQL:
+Baza de date e PostgreSQL 18.4 în Docker, pe ambele profiluri. Containerul
+trebuie pornit înainte de aplicație — altfel pornirea eșuează la conectare.
 
-```bash
-docker compose -f src/main/docker/postgresql.yml up -d
-./mvnw -Pprod
-```
+Datele stau în volumul Docker `notificari-mud-db`. `down` oprește containerul și
+păstrează datele; doar `down -v` le șterge. Atenție dacă umbli la montare:
+Postgres 18 ține datele în `/var/lib/postgresql/18/docker`, nu în
+`/var/lib/postgresql/data` ca versiunile anterioare — de asta montăm directorul
+părinte, care e și volumul declarat de imagine.
+
+Pe o bază goală, `DevDataSeeder` încarcă datele din prototip la prima pornire.
 
 ## API
 

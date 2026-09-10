@@ -36,15 +36,20 @@ spring:
     serialization:
       indent-output: true
   datasource:
+    # Postgres in Docker: datele raman intre reporniri, in volumul notificari-mud-db.
+    #   docker compose -f src/main/docker/postgresql.yml up -d
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:h2:file:./target/h2db/db/notificariMud;DB_CLOSE_DELAY=-1
+    url: jdbc:postgresql://localhost:5432/notificariMud
+    username: notificariMud
+    password: ''
     hikari:
       poolName: Hikari
       auto-commit: false
   h2:
     console:
-      # JHipster uses a custom h2-console initializer
-      enabled: true
+      # Dezactivat: dezvoltarea merge pe Postgres. Cat timp e false, JHipster nu
+      # mai porneste nici serverul TCP H2 (vezi DatabaseConfiguration).
+      enabled: false
   liquibase:
     # Remove 'faker' if you do not want the sample data to be loaded automatically
     # 'faker' scos: datele de test vin din DevDataSeeder, lizibile si consecvente

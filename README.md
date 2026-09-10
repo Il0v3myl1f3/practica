@@ -15,13 +15,24 @@ Monorepo cu două proiecte independente:
 ## Pornire rapidă
 
 ```bash
-cd backend && ./mvnw          # API pe http://localhost:8080, cont admin/admin
-cd frontend && npm start      # UI pe http://localhost:4200
+cd backend
+docker compose -f src/main/docker/postgresql.yml up -d   # baza de date
+./mvnw                                                   # API pe :8080, admin/admin
+
+cd ../frontend && npm start                              # UI pe :4200
 ```
 
-Baza de date de dezvoltare este H2 pe disc — nu trebuie instalat nimic.
-Pentru PostgreSQL: `docker compose -f backend/src/main/docker/postgresql.yml up -d`
-și pornește cu profilul `prod`.
+Baza de date este **PostgreSQL 18.4 în Docker**, atât în dezvoltare cât și în
+producție. Datele stau în volumul `notificari-mud-db` și supraviețuiesc opririi
+sau ștergerii containerului:
+
+```bash
+docker compose -f src/main/docker/postgresql.yml down      # datele rămân
+docker compose -f src/main/docker/postgresql.yml down -v   # șterge și datele
+```
+
+La prima pornire pe o bază goală, `DevDataSeeder` încarcă setul din prototip:
+34 destinatari, 4 grupuri, 4 șabloane și istoricul de 9 trimiteri.
 
 ## Modelul de date
 
