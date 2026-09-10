@@ -9,7 +9,7 @@ Monorepo cu două proiecte independente:
 | Folder | Ce e | Stare |
 |---|---|---|
 | [`backend/`](backend) | API REST — Spring Boot 4 + JHipster 9, PostgreSQL, JWT | funcțional |
-| [`frontend/`](frontend) | Client Angular 22 (SCSS, fără SSR) | schelet |
+| [`frontend/`](frontend) | Client Angular 22 (SCSS, fără SSR) | funcțional |
 | [`frontend/design/`](frontend/design) | Prototipul de UI și token-urile de design MUD | referință |
 
 ## Pornire rapidă
@@ -52,9 +52,27 @@ compunere, rezolvarea conflictelor de canal, importul CSV cu validare și ecran 
 verificare, variabilele de personalizare `{{nume}}`, `{{prenume}}`, `{{grup}}`,
 `{{email}}`.
 
+## Ce funcționează
+
+Toate ecranele din prototip sunt implementate și legate de backend: login pe JWT,
+panou cu indicatori, istoricul trimiterilor cu filtre și sortare, ciorne,
+destinatari cu import/export CSV, șabloane, și fluxul de trimitere în trei pași
+cu editor bogat, variabile de personalizare și rezolvarea conflictelor de canal.
+
+Trimiterea creează livrări reale, una per destinatar și canal, din care se
+calculează starea mesajului. **Emailul** pleacă prin SMTP (Gmail) de îndată ce
+pui credențialele; până atunci se comportă ca mock, ca istoricul să nu fie tot
+roșu. **Telegram** și **WhatsApp** sunt mock-uri, izolate în spatele interfeței
+`ChannelSender` — se înlocuiesc fără să atingi restul.
+
+```bash
+# ca emailurile să plece cu adevărat (App password din contul Google, nu parola)
+setx MAIL_USERNAME "adresa@gmail.com"
+setx MAIL_PASSWORD "parola-de-aplicatie"
+```
+
 ## De făcut
 
-- [ ] Unicitate per organizație: email destinatar, nume grup, nume șablon
-- [ ] Logica de business din finalul `app.jdl`: parser CSV, conflict de canale,
-      substituția variabilelor, agregarea statusului de livrare
-- [ ] Integrarea efectivă cu providerii de email / Telegram / WhatsApp
+- [ ] Index unic în baza de date pentru email/grup/șablon per organizație
+      (verificarea există deja în service layer)
+- [ ] Clienți reali pentru Telegram și WhatsApp (înlocuiesc `MockChannelSender`)

@@ -8,6 +8,16 @@ npm install     # prima dată
 npm start       # http://localhost:4200
 ```
 
+Backend-ul trebuie să ruleze pe 8080. Autentificare: `admin` / `admin`.
+
+## Structură
+
+- `core/` — serviciul API, autentificarea JWT (interceptor + guard), store-urile
+  cu semnale, parserul CSV, formatările
+- `pages/` — un fișier per ecran, componente standalone cu template inline
+- `shared/editor.component.ts` — editorul bogat cu chip-uri de variabile
+- `styles.scss` — token-urile MUD; componentele nu hardcodează culori
+
 Backend-ul expune deja API-ul complet la `http://localhost:8080` — vezi
 `/v3/api-docs` pentru contractul OpenAPI, din care se poate genera clientul
 TypeScript.
