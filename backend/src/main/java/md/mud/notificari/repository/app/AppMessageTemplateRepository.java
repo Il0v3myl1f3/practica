@@ -12,5 +12,7 @@ public interface AppMessageTemplateRepository extends JpaRepository<MessageTempl
 
     boolean existsByOrganizationIdAndNameIgnoreCase(Long organizationId, String name);
 
+    boolean existsByOrganizationIdAndNameIgnoreCaseAndIdNot(Long organizationId, String name, Long id);
+
     long countByOrganizationId(Long organizationId);
 }

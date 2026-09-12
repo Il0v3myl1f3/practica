@@ -37,6 +37,12 @@ spring:
   mail:
     host: localhost
     port: 25
+    properties:
+      mail:
+        smtp:
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 20000
   thymeleaf:
     cache: true
 
@@ -86,4 +92,8 @@ jhipster:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+  messaging:
+    channels:
+      email:
+        provider: ${MESSAGING_EMAIL_PROVIDER:smtp}

@@ -50,7 +50,20 @@ public final class AppDtos {
         List<GroupView> groupDistribution
     ) {}
 
-    public record SendResult(Long messageId, String status, int delivered, int failed, int recipientCount) {}
+    /**
+     * Starea unei trimiteri. Cat timp {@code status} e QUEUED, {@code queued} e
+     * numarul de livrari inca in lucru si restul cresc pe masura ce coada se
+     * scurge; frontendul reinterogheaza pana cand statusul nu mai e QUEUED.
+     */
+    public record SendResult(
+        Long messageId,
+        String status,
+        int queued,
+        int delivered,
+        int failed,
+        int skipped,
+        int recipientCount
+    ) {}
 
     // ------------------------------------------------------------- requests
 

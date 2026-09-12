@@ -10,7 +10,13 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-/** Real delivery over SMTP (Gmail in development). */
+/**
+ * Livrare reala prin SMTP (Gmail in dezvoltare).
+ *
+ * Nu are niciun fallback pe mock: daca nu vrei sa plece emailuri, pune
+ * {@code application.messaging.channels.email.provider: mock}. Un fallback tacit
+ * ar face istoricul ambiguu - nu ai mai sti daca un rand verde a fost real.
+ */
 @Service
 public class EmailChannelSender implements ChannelSender {
 
@@ -36,13 +42,23 @@ public class EmailChannelSender implements ChannelSender {
     }
 
     @Override
-    public SendOutcome send(Delivery delivery) {
+    public String providerId() {
+        return "smtp";
+    }
+
+    @Override
+    public void validateConfiguration() {
         if (username == null || username.isBlank()) {
-            // Fara credentiale SMTP orice trimitere ar esua si tot istoricul ar fi rosu.
-            // Pana se pun MAIL_USERNAME / MAIL_PASSWORD, emailul se comporta ca mock-urile.
-            LOG.info("[EMAIL MOCK] catre {} ({}): {}", delivery.recipientName(), delivery.address(), delivery.subject());
-            return SendOutcome.ok("mock-email-" + System.nanoTime());
+            throw new IllegalStateException(
+                "application.messaging.channels.email.provider=smtp dar spring.mail.username e gol. " +
+                "Seteaza MAIL_USERNAME si MAIL_PASSWORD (App password din contul Google, nu parola contului) " +
+                "sau pune provider: mock."
+            );
         }
+    }
+
+    @Override
+    public SendOutcome send(Delivery delivery) {
         try {
             MimeMessage mime = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mime, !delivery.attachments().isEmpty(), "UTF-8");
@@ -56,8 +72,9 @@ public class EmailChannelSender implements ChannelSender {
             mailSender.send(mime);
             return SendOutcome.ok(mime.getMessageID());
         } catch (Exception e) {
-            LOG.warn("Email către {} a eșuat: {}", delivery.address(), e.getMessage());
-            return SendOutcome.failed(e.getMessage());
+            SendOutcome outcome = EmailFailureClassifier.classify(e);
+            LOG.warn("Email către {} a eșuat ({}): {}", delivery.address(), outcome.status(), outcome.error());
+            return outcome;
         }
     }
 }

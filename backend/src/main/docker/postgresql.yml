@@ -1,23 +1,11 @@
-# Baza de date de dezvoltare. Pornire:
-#   docker compose -f src/main/docker/postgresql.yml up -d
-# Oprire (datele raman):
-#   docker compose -f src/main/docker/postgresql.yml down
-# Stergere completa, inclusiv datele:
-#   docker compose -f src/main/docker/postgresql.yml down -v
-#
-# Configurare de dezvoltare: autentificarea e 'trust' si portul e legat doar de
-# localhost. Pentru productie e nevoie de parola si TLS.
 name: notificarimud
 
 services:
   postgresql:
-    image: postgres:18.4
+    image: postgres:18
     container_name: notificari-mud-postgres
     restart: unless-stopped
     volumes:
-      # Postgres 18 tine datele in /var/lib/postgresql/18/docker, nu in
-      # /var/lib/postgresql/data ca versiunile vechi. Montam parintele, care e
-      # si volumul declarat de imagine, ca sa nu depindem de numarul versiunii.
       - notificari-mud-db:/var/lib/postgresql
     environment:
       - POSTGRES_USER=notificariMud
@@ -28,9 +16,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    # Scoate prefixul "127.0.0.1:" doar daca vrei baza accesibila din retea.
     ports:
-      - 127.0.0.1:5432:5432
+      - 127.0.0.1:5442:5432
 
 volumes:
   notificari-mud-db:

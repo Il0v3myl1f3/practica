@@ -8,16 +8,18 @@ import java.io.Serializable;
 import java.time.Instant;
 import md.mud.notificari.domain.enumeration.Channel;
 import md.mud.notificari.domain.enumeration.DeliveryStatus;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 /**
  * O linie per (destinatar, canal) efectiv folosit la trimitere.
  * Aici se materializeaza si override-ul de canal per persoana din pasul 3.
+ *
+ * Tabelul e si coada de trimitere: dispecerul ia randurile PENDING/SENDING cu
+ * next_attempt_at trecut, deci e scris cu UPDATE-uri in masa care ocolesc
+ * cache-ul de nivel 2. Din acest motiv entitatea nu e cache-uita - vezi
+ * CacheConfiguration.
  */
 @Entity
 @Table(name = "message_recipient")
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class MessageRecipient implements Serializable {
 
@@ -53,6 +55,22 @@ public class MessageRecipient implements Serializable {
 
     @Column(name = "delivered_at")
     private Instant deliveredAt;
+
+    /** De cate ori livrarea a fost data unui provider. Creste la fiecare claim. */
+    @NotNull
+    @Column(name = "attempt_count", nullable = false)
+    private Integer attemptCount = 0;
+
+    /**
+     * Cand redevine disponibila pentru dispecer. Cat timp randul e SENDING, tot
+     * acest camp tine termenul de vizibilitate: daca aplicatia moare la mijloc,
+     * randul se reia singur dupa ce trece termenul, fara job de curatare.
+     */
+    @Column(name = "next_attempt_at")
+    private Instant nextAttemptAt;
+
+    @Column(name = "last_attempt_at")
+    private Instant lastAttemptAt;
 
     @ManyToOne(optional = false)
     @NotNull
@@ -160,6 +178,45 @@ public class MessageRecipient implements Serializable {
         this.deliveredAt = deliveredAt;
     }
 
+    public Integer getAttemptCount() {
+        return this.attemptCount;
+    }
+
+    public MessageRecipient attemptCount(Integer attemptCount) {
+        this.setAttemptCount(attemptCount);
+        return this;
+    }
+
+    public void setAttemptCount(Integer attemptCount) {
+        this.attemptCount = attemptCount;
+    }
+
+    public Instant getNextAttemptAt() {
+        return this.nextAttemptAt;
+    }
+
+    public MessageRecipient nextAttemptAt(Instant nextAttemptAt) {
+        this.setNextAttemptAt(nextAttemptAt);
+        return this;
+    }
+
+    public void setNextAttemptAt(Instant nextAttemptAt) {
+        this.nextAttemptAt = nextAttemptAt;
+    }
+
+    public Instant getLastAttemptAt() {
+        return this.lastAttemptAt;
+    }
+
+    public MessageRecipient lastAttemptAt(Instant lastAttemptAt) {
+        this.setLastAttemptAt(lastAttemptAt);
+        return this;
+    }
+
+    public void setLastAttemptAt(Instant lastAttemptAt) {
+        this.lastAttemptAt = lastAttemptAt;
+    }
+
     public Recipient getRecipient() {
         return this.recipient;
     }
@@ -216,6 +273,9 @@ public class MessageRecipient implements Serializable {
             ", errorMessage='" + getErrorMessage() + "'" +
             ", sentAt='" + getSentAt() + "'" +
             ", deliveredAt='" + getDeliveredAt() + "'" +
+            ", attemptCount=" + getAttemptCount() +
+            ", nextAttemptAt='" + getNextAttemptAt() + "'" +
+            ", lastAttemptAt='" + getLastAttemptAt() + "'" +
             "}";
     }
 }

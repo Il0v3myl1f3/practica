@@ -16,6 +16,7 @@ import md.mud.notificari.service.app.AppDtos.SendPayload;
 import md.mud.notificari.service.app.AppDtos.SendResult;
 import md.mud.notificari.service.app.AppDtos.TemplateView;
 import md.mud.notificari.service.app.AppService;
+import md.mud.notificari.service.app.SendCoordinator;
 import md.mud.notificari.service.app.TemplateArchiveService;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -43,10 +44,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class AppResource {
 
     private final AppService app;
+    private final SendCoordinator sending;
     private final TemplateArchiveService archive;
 
-    public AppResource(AppService app, TemplateArchiveService archive) {
+    public AppResource(AppService app, SendCoordinator sending, TemplateArchiveService archive) {
         this.app = app;
+        this.sending = sending;
         this.archive = archive;
     }
 
@@ -102,6 +105,11 @@ public class AppResource {
         return app.createTemplate(body);
     }
 
+    @PutMapping("/templates/{id}")
+    public TemplateView updateTemplate(@PathVariable Long id, @RequestBody TemplateView body) {
+        return app.updateTemplate(id, body);
+    }
+
     /** Toate sabloanele, ca arhiva ZIP cu cate un fisier HTML fiecare. */
     @GetMapping(value = "/templates/export", produces = "application/zip")
     public ResponseEntity<byte[]> exportTemplates() {
@@ -144,7 +152,13 @@ public class AppResource {
 
     @PostMapping("/messages/send")
     public SendResult send(@RequestBody SendPayload body) {
-        return app.send(body);
+        return sending.send(body);
+    }
+
+    /** Starea trimiterii, pentru ecranul de compunere cat timp mesajul e in coada. */
+    @GetMapping("/messages/{id}/status")
+    public SendResult sendStatus(@PathVariable Long id) {
+        return app.sendStatus(id);
     }
 
     @GetMapping("/drafts")

@@ -53,11 +53,13 @@ public class CacheConfiguration {
             createCache(cm, md.mud.notificari.domain.MessageTemplate.class.getName());
             createCache(cm, md.mud.notificari.domain.Message.class.getName());
             createCache(cm, md.mud.notificari.domain.Message.class.getName() + ".channelses");
-            createCache(cm, md.mud.notificari.domain.Message.class.getName() + ".deliverieses");
             createCache(cm, md.mud.notificari.domain.Message.class.getName() + ".attachmentses");
             createCache(cm, md.mud.notificari.domain.MessageChannel.class.getName());
-            createCache(cm, md.mud.notificari.domain.MessageRecipient.class.getName());
             createCache(cm, md.mud.notificari.domain.MessageAttachment.class.getName());
+            // MessageRecipient si Message.deliverieses nu sunt cache-uite: tabelul e coada
+            // de trimitere, scrisa cu UPDATE-uri in masa care ocolesc cache-ul de nivel 2.
+            // Daca reintroduci @Cache pe entitate, adauga si liniile de aici - altfel
+            // Hibernate pica la pornire cu "cache not found".
             // jhipster-needle-ehcache-add-entry
         };
     }

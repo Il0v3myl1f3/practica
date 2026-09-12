@@ -60,8 +60,9 @@ public class Message implements Serializable {
     @JsonIgnoreProperties(value = { "message" }, allowSetters = true)
     private Set<MessageChannel> channelses = new HashSet<>();
 
+    // Fara cache de nivel 2: livrarile sunt coada de trimitere, scrisa cu UPDATE-uri
+    // in masa de catre dispecer, care nu trec prin cache.
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "message")
-    @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     @JsonIgnoreProperties(value = { "recipient", "message" }, allowSetters = true)
     private Set<MessageRecipient> deliverieses = new HashSet<>();
 

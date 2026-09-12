@@ -184,9 +184,13 @@ filter Recipient, Message
 //     per destinatar, la trimitere.
 //  8. Specific canal: Telegram si WhatsApp nu au subiect - acesta devine prima
 //     linie a mesajului; la WhatsApp imaginile pleaca separat.
-//  9. Agregare status Message din MessageRecipient: toate DELIVERED -> SENT,
-//     unele FAILED -> PARTIAL, toate FAILED -> FAILED.
-// 10. Trimiterea se face asincron, cu retry si rate limiting per provider.
+//  9. Agregare status Message din MessageRecipient: cat mai exista PENDING sau
+//     SENDING -> QUEUED; apoi niciun FAILED -> SENT, niciun succes -> FAILED,
+//     amestecat -> PARTIAL. Succes = SENT sau DELIVERED: SENT e starea scrisa de
+//     dispecer, DELIVERED e rezervat webhook-urilor dar umple istoricul vechi.
+//     Randurile SKIPPED nu conteaza nici ca reusita, nici ca esec.
+// 10. [implementat] Trimiterea se face asincron, cu retry si rate limiting per
+//     provider. Vezi docs/notificari.md.
 // 11. KPI panou: acoperire medie = sum(recipientCount)/nr. trimiteri,
 //     livrate integral = trimiteri cu status SENT.
 // 12. CORS pentru originea frontendului Angular (jhipster.cors in yml).

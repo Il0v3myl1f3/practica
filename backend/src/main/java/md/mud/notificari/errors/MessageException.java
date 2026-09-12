@@ -21,4 +21,9 @@ public final class MessageException extends EntityErrorException {
     public static MessageException noRecipientSelected() {
         return new MessageException(HttpStatus.BAD_REQUEST, "Bifeaza cel putin un destinatar.", "norecipient");
     }
+
+    /** application.messaging.enabled = false: trimiterile sunt oprite din configurare. */
+    public static MessageException sendingDisabled() {
+        return new MessageException(HttpStatus.CONFLICT, "Trimiterile sunt oprite din configurare.", "sendingdisabled");
+    }
 }

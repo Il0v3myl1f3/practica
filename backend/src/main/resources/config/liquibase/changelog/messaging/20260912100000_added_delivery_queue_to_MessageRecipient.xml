@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Trimiterea devine asincrona: message_recipient e si coada de livrari.
+        Randurile existente sunt toate in stari terminale (DELIVERED/FAILED/SKIPPED)
+        si primesc attempt_count = 0 cu next_attempt_at null, deci interogarea de
+        coada nu le vede niciodata.
+
+        status ramane varchar(255) fara check constraint, asa ca noua valoare
+        SENDING nu cere migrare.
+    -->
+    <changeSet id="20260912100000-1" author="dev">
+        <addColumn tableName="message_recipient">
+            <column name="attempt_count" type="int" defaultValueNumeric="0">
+                <constraints nullable="false" />
+            </column>
+            <column name="next_attempt_at" type="${datetimeType}" />
+            <column name="last_attempt_at" type="${datetimeType}" />
+        </addColumn>
+    </changeSet>
+
+    <!-- Predicatul dispecerului: status in (PENDING, SENDING) and next_attempt_at <= now -->
+    <changeSet id="20260912100000-2" author="dev">
+        <createIndex tableName="message_recipient" indexName="idx_message_recipient_dispatch">
+            <column name="status" />
+            <column name="next_attempt_at" />
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

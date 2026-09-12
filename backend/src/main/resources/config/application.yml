@@ -122,7 +122,8 @@ spring:
     scheduling:
       thread-name-prefix: notificari-mud-scheduling-
       pool:
-        size: 2
+        # Dispecerul de livrari ocupa un fir; UserService are deja un cron zilnic.
+        size: 3
   thymeleaf:
     mode: HTML
   output:
@@ -181,4 +182,33 @@ jhipster:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+  messaging:
+    # Doua butoane cu intelesuri diferite:
+    #   enabled: false             -> oprit. Trimiterea e refuzata, dispecerul sta.
+    #   channels.<x>.provider: mock -> pornit, dar simulat: istoricul se populeaza,
+    #                                  dar nimic nu pleaca din aplicatie.
+    enabled: true
+    # false = se trimite inline, in cererea HTTP, ca inainte de coada.
+    async: true
+    channels:
+      # Implicit totul e pe mock, ca un clone proaspat sa porneasca fara
+      # variabile de mediu si sa nu trimita nimic real din greseala.
+      email:
+        provider: mock # mock | smtp
+        batch-size: 25
+        min-interval: 200ms
+      telegram:
+        provider: mock # mock (telegram-bot, cand exista clientul real)
+      whatsapp:
+        provider: mock # mock (whatsapp-cloud, cand exista clientul real)
+    dispatcher:
+      poll-interval: 5s
+      # Cat poate sta o livrare SENDING inainte sa fie considerata abandonata.
+      visibility-timeout: 5m
+      max-attempts: 5
+      # ~30s, ~90s, ~4.5min, ~13.5min, apoi FAILED.
+      backoff-initial: 30s
+      backoff-multiplier: 3
+      backoff-max: 1h
+      backoff-jitter: 0.2

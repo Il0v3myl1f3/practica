@@ -3,13 +3,11 @@ package md.mud.notificari.service.app;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.EnumMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
+import md.mud.notificari.config.ApplicationProperties;
 import md.mud.notificari.domain.Message;
 import md.mud.notificari.domain.MessageAttachment;
 import md.mud.notificari.domain.MessageChannel;
@@ -44,10 +42,6 @@ import md.mud.notificari.service.app.AppDtos.RecipientView;
 import md.mud.notificari.service.app.AppDtos.SendPayload;
 import md.mud.notificari.service.app.AppDtos.SendResult;
 import md.mud.notificari.service.app.AppDtos.TemplateView;
-import md.mud.notificari.service.messaging.ChannelSender;
-import md.mud.notificari.service.messaging.Delivery;
-import md.mud.notificari.service.messaging.SendOutcome;
-import md.mud.notificari.service.messaging.VariableRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -74,8 +68,7 @@ public class AppService {
     private final AppMessageRecipientRepository deliveries;
     private final MessageChannelRepository messageChannels;
     private final MessageAttachmentRepository attachments;
-    private final VariableRenderer renderer;
-    private final Map<Channel, ChannelSender> senders = new EnumMap<>(Channel.class);
+    private final ApplicationProperties properties;
 
     public AppService(
         TenantService tenant,
@@ -87,8 +80,7 @@ public class AppService {
         AppMessageRecipientRepository deliveries,
         MessageChannelRepository messageChannels,
         MessageAttachmentRepository attachments,
-        VariableRenderer renderer,
-        List<ChannelSender> senderBeans
+        ApplicationProperties properties
     ) {
         this.tenant = tenant;
         this.recipients = recipients;
@@ -99,8 +91,7 @@ public class AppService {
         this.deliveries = deliveries;
         this.messageChannels = messageChannels;
         this.attachments = attachments;
-        this.renderer = renderer;
-        senderBeans.forEach(s -> this.senders.put(s.channel(), s));
+        this.properties = properties;
     }
 
     // ================================================================== reads
@@ -168,7 +159,7 @@ public class AppService {
         long delivered = sent.stream().filter(m -> m.getStatus() == MessageStatus.SENT).count();
         return new OverviewView(
             sent.size(),
-            recipients.countByOrganizationId(org),
+            recipients.countByOrganizationIdAndArchivedAtIsNull(org),
             groups.countByOrganizationId(org),
             messages.countByOrganizationIdAndStatus(org, MessageStatus.DRAFT),
             reach,
@@ -183,7 +174,7 @@ public class AppService {
         Organization org = tenant.currentOrganization();
         String email = required(in.email(), "Emailul");
         recipients
-            .findByOrganizationIdAndEmailIgnoreCase(org.getId(), email)
+            .findByOrganizationIdAndEmailIgnoreCaseAndArchivedAtIsNull(org.getId(), email)
             .ifPresent(r -> {
                 throw RecipientException.emailAlreadyUsed();
             });
@@ -205,7 +196,7 @@ public class AppService {
         Recipient r = recipients.findByIdAndOrganizationId(id, org.getId()).orElseThrow(() -> RecipientException.notFound(id));
         String email = required(in.email(), "Emailul");
         recipients
-            .findByOrganizationIdAndEmailIgnoreCase(org.getId(), email)
+            .findByOrganizationIdAndEmailIgnoreCaseAndArchivedAtIsNull(org.getId(), email)
             .filter(other -> !other.getId().equals(id))
             .ifPresent(other -> {
                 throw RecipientException.emailAlreadyUsed();
@@ -220,8 +211,17 @@ public class AppService {
         return toView(recipients.findByIdAndOrganizationId(id, org.getId()).orElseThrow());
     }
 
+    /**
+     * Sterge destinatarul daca nu a primit nimic; altfel il arhiveaza, fiindca
+     * istoricul livrarilor trimite catre randul lui cu FK obligatoriu. In ambele
+     * cazuri dispare din toate ecranele.
+     */
     public void deleteRecipient(Long id) {
         Recipient r = recipients.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> RecipientException.notFound(id));
+        if (deliveries.existsByRecipientId(r.getId())) {
+            recipients.save(r.archivedAt(Instant.now()));
+            return;
+        }
         recipientChannels.deleteByRecipientId(r.getId());
         recipients.delete(r);
     }
@@ -258,6 +258,20 @@ public class AppService {
         return new TemplateView(t.getId(), t.getName(), t.getDescription(), t.getSubject(), t.getBody());
     }
 
+    public TemplateView updateTemplate(Long id, TemplateView in) {
+        MessageTemplate t = templates.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> MessageTemplateException.notFound(id));
+        String name = required(in.name(), "Numele sablonului");
+        if (templates.existsByOrganizationIdAndNameIgnoreCaseAndIdNot(orgId(), name, id)) {
+            throw MessageTemplateException.nameAlreadyUsed();
+        }
+        t.name(name)
+            .description(blankTo(in.description(), "Sablon creat de tine."))
+            .subject(blankTo(in.subject(), name))
+            .body(nullToEmpty(in.body()));
+        templates.save(t);
+        return new TemplateView(t.getId(), t.getName(), t.getDescription(), t.getSubject(), t.getBody());
+    }
+
     public void deleteTemplate(Long id) {
         templates.delete(templates.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> MessageTemplateException.notFound(id)));
     }
@@ -287,7 +301,18 @@ public class AppService {
         messages.delete(m);
     }
 
+    /**
+     * Pune mesajul in coada: un rand MessageRecipient per (destinatar, canal).
+     * Nu face niciun apel de retea, deci tranzactia ramane scurta - trimiterea
+     * propriu-zisa e treaba dispecerului.
+     *
+     * Apelantul e {@link SendCoordinator}, care in modul sincron scurge coada
+     * imediat dupa commit.
+     */
     public SendResult send(SendPayload payload) {
+        if (!properties.getMessaging().isEnabled()) {
+            throw MessageException.sendingDisabled();
+        }
         Organization org = tenant.currentOrganization();
         ComposePayload compose = payload.message();
         List<Channel> wanted = parseChannels(compose.channels());
@@ -298,52 +323,62 @@ public class AppService {
         if (ids.isEmpty()) {
             throw MessageException.noRecipientSelected();
         }
-        List<Recipient> targets = recipients.findByOrganizationIdAndIdIn(org.getId(), ids);
+        List<Recipient> targets = recipients.findByOrganizationIdAndArchivedAtIsNullAndIdIn(org.getId(), ids);
+        if (targets.isEmpty()) {
+            throw MessageException.noRecipientSelected();
+        }
 
         Message message = persistMessage(compose, MessageStatus.QUEUED, targets.size());
-        List<Delivery.Attachment> files = decode(compose.attachments());
         Map<Long, List<String>> overrides = payload.channelOverrides() == null ? Map.of() : payload.channelOverrides();
+        Instant now = Instant.now();
 
-        int delivered = 0;
-        int failed = 0;
-        Set<Long> reached = new LinkedHashSet<>();
+        int queued = 0;
+        int skipped = 0;
 
         for (Recipient r : targets) {
             List<Channel> allowed = overrides.containsKey(r.getId()) ? parseChannels(overrides.get(r.getId())) : wanted;
             for (Channel ch : allowed) {
-                Optional<String> address = addressFor(r, ch);
-                if (address.isEmpty()) {
+                if (addressFor(r, ch).isEmpty()) {
                     // Canal neconfigurat pentru acest destinatar: nu e o eroare de
                     // livrare, e rezultatul selectiei de la pasul 3. Se noteaza SKIPPED.
                     deliveries.save(new MessageRecipient().message(message).recipient(r).channel(ch).status(DeliveryStatus.SKIPPED));
+                    skipped++;
                     continue;
                 }
-                String subject = renderer.render(nullToEmpty(compose.subject()), r);
-                String body = renderer.render(nullToEmpty(compose.bodyHtml()), r);
-                SendOutcome outcome = senders.get(ch).send(new Delivery(address.get(), fullName(r), subject, body, files));
-                MessageRecipient row = new MessageRecipient()
-                    .message(message)
-                    .recipient(r)
-                    .channel(ch)
-                    .status(outcome.ok() ? DeliveryStatus.DELIVERED : DeliveryStatus.FAILED)
-                    .providerMessageId(outcome.providerMessageId())
-                    .errorMessage(truncate(outcome.error()))
-                    .sentAt(Instant.now());
-                if (outcome.ok()) {
-                    row.deliveredAt(Instant.now());
-                    delivered++;
-                    reached.add(r.getId());
-                } else {
-                    failed++;
-                }
-                deliveries.save(row);
+                deliveries.save(
+                    new MessageRecipient()
+                        .message(message)
+                        .recipient(r)
+                        .channel(ch)
+                        .status(DeliveryStatus.PENDING)
+                        .attemptCount(0)
+                        .nextAttemptAt(now)
+                );
+                queued++;
             }
         }
 
-        MessageStatus status = failed == 0 ? MessageStatus.SENT : (delivered == 0 ? MessageStatus.FAILED : MessageStatus.PARTIAL);
-        message.status(status).sentAt(Instant.now()).recipientCount(reached.size());
-        messages.save(message);
-        return new SendResult(message.getId(), status.name(), delivered, failed, reached.size());
+        return new SendResult(message.getId(), MessageStatus.QUEUED.name(), queued, 0, 0, skipped, targets.size());
+    }
+
+    /** Starea curenta a unei trimiteri - suficient de ieftina pentru poll la cateva secunde. */
+    @Transactional(readOnly = true)
+    public SendResult sendStatus(Long messageId) {
+        Message message = messages.findByIdAndOrganizationId(messageId, orgId()).orElseThrow(() -> MessageException.notFound(messageId));
+        List<DeliveryStatus> statuses = deliveries.statusesForMessage(messageId);
+        int queued = (int) statuses.stream().filter(DeliveryStatus::isInFlight).count();
+        int delivered = (int) statuses.stream().filter(DeliveryStatus::isSuccess).count();
+        int failed = (int) statuses.stream().filter(s -> s == DeliveryStatus.FAILED).count();
+        int skipped = (int) statuses.stream().filter(s -> s == DeliveryStatus.SKIPPED).count();
+        return new SendResult(
+            message.getId(),
+            message.getStatus().name(),
+            queued,
+            delivered,
+            failed,
+            skipped,
+            message.getRecipientCount() == null ? 0 : message.getRecipientCount()
+        );
     }
 
     // ================================================================ helpers
@@ -428,16 +463,6 @@ public class AppService {
             .map(RecipientChannel::getAddress)
             .filter(a -> a != null && !a.isBlank())
             .findFirst();
-    }
-
-    private List<Delivery.Attachment> decode(List<AttachmentPayload> payloads) {
-        if (payloads == null) {
-            return List.of();
-        }
-        return payloads
-            .stream()
-            .map(a -> new Delivery.Attachment(a.fileName(), a.contentType(), Base64.getDecoder().decode(stripDataUrl(a.dataBase64()))))
-            .toList();
     }
 
     private static String stripDataUrl(String value) {
@@ -526,9 +551,5 @@ public class AppService {
             throw new IllegalArgumentException(label + " este obligatoriu.");
         }
         return value.trim();
-    }
-
-    private static String truncate(String s) {
-        return s == null ? null : s.substring(0, Math.min(s.length(), 500));
     }
 }

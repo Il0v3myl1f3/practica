@@ -23,18 +23,30 @@ Postgres 18 ține datele în `/var/lib/postgresql/18/docker`, nu în
 `/var/lib/postgresql/data` ca versiunile anterioare — de asta montăm directorul
 părinte, care e și volumul declarat de imagine.
 
-Pe o bază goală, `DevDataSeeder` încarcă datele din prototip la prima pornire.
+Pe o bază goală, `DevDataSeeder` creează organizația, 4 grupuri și 4 șabloane la
+prima pornire. Nu creează destinatari — lista pornește goală, ca să testezi cu
+adrese reale, alese de tine.
 
 ## API
 
-- `POST /api/authenticate` — login, întoarce JWT
+- `POST /api/authenticate` — login, întoarce JWT în câmpul `id_token`
+- `/api/app/**` — API-ul pe care îl folosește clientul Angular, modelat după
+  ecrane; printre altele `POST /api/app/messages/send` (pune mesajul în coadă) și
+  `GET /api/app/messages/{id}/status` (starea trimiterii)
 - `/api/organizations`, `/api/recipients`, `/api/recipient-groups`,
   `/api/recipient-channels`, `/api/message-templates`, `/api/messages`,
   `/api/message-channels`, `/api/message-recipients`, `/api/message-attachments`
+  — CRUD-ul generat, rămas pentru uz administrativ
 - `/v3/api-docs` — OpenAPI; `/management/health` — health check
 
 `Recipient` și `Message` au filtrare pe criterii (`?email.contains=`,
 `?status.equals=SENT`) prin query service-urile generate.
+
+## Trimiterea notificărilor
+
+Livrările trec printr-o coadă asincronă cu retry, iar providerul fiecărui canal
+(`mock` / `smtp`) se alege din `application.messaging.*`. Configurare, API,
+arhitectură și ghid de extindere: **[`docs/notificari.md`](docs/notificari.md)**.
 
 ## Modelul de date
 

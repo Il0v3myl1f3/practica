@@ -19,6 +19,7 @@ logging:
     tech.jhipster: DEBUG
     org.hibernate.SQL: DEBUG
     md.mud.notificari: DEBUG
+    javax.management.remote.rmi: INFO
 
 spring:
   devtools:
@@ -63,6 +64,11 @@ spring:
           starttls:
             enable: true
             required: true
+          # Fara astea, JavaMail asteapta la nesfarsit si un singur socket blocat
+          # opreste dispecerul de livrari impreuna cu restul task-urilor programate.
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 20000
         transport:
           protocol: smtp
   messages:
@@ -122,4 +128,14 @@ jhipster:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+  messaging:
+    channels:
+      # Emailul real se porneste dintr-o variabila de mediu, fara editarea fisierului:
+      #   setx MESSAGING_EMAIL_PROVIDER smtp
+      #   setx MAIL_USERNAME adresa@gmail.com
+      #   setx MAIL_PASSWORD parola-de-aplicatie
+      # Cu provider=smtp si MAIL_USERNAME gol, aplicatia refuza sa porneasca -
+      # deliberat, ca istoricul sa nu fie niciodata ambiguu.
+      email:
+        provider: ${MESSAGING_EMAIL_PROVIDER:mock}

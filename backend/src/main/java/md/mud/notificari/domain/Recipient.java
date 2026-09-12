@@ -48,6 +48,14 @@ public class Recipient implements Serializable {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    /**
+     * Destinatar scos din liste, dar pastrat pentru istoric: randurile din
+     * message_recipient trimit obligatoriu catre el, deci nu poate fi sters dupa
+     * ce a primit macar un mesaj. Null inseamna activ.
+     */
+    @Column(name = "archived_at")
+    private Instant archivedAt;
+
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "recipient")
     @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     @JsonIgnoreProperties(value = { "recipient" }, allowSetters = true)
@@ -127,6 +135,19 @@ public class Recipient implements Serializable {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Instant getArchivedAt() {
+        return this.archivedAt;
+    }
+
+    public Recipient archivedAt(Instant archivedAt) {
+        this.setArchivedAt(archivedAt);
+        return this;
+    }
+
+    public void setArchivedAt(Instant archivedAt) {
+        this.archivedAt = archivedAt;
     }
 
     public Set<RecipientChannel> getChannelses() {
