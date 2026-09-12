@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../core/api.service';
@@ -32,7 +32,9 @@ import { EditorComponent } from '../shared/editor.component';
 
       <div class="actions">
         <button type="button" class="btn btn-ghost" (click)="router.navigate(['/sabloane'])">Anulează</button>
-        <button type="button" class="btn btn-primary" (click)="save()">Salvează șablonul</button>
+        <button type="button" class="btn btn-primary" (click)="save()">
+          {{ editing() ? 'Salvează modificările' : 'Salvează șablonul' }}
+        </button>
       </div>
     </section>
   `,
@@ -51,31 +53,53 @@ export class TemplateNewComponent {
   private store = inject(Store);
   private toast = inject(ToastService);
 
+  /** Legat din ruta /sabloane/:id/editeaza; absent la creare. */
+  readonly id = input<string>();
+
   name = '';
   description = '';
   subject = '';
   readonly body = signal('');
+
+  readonly editing = computed(() => !!this.id());
+  private seeded = false;
+
+  constructor() {
+    // Sabloanele sunt incarcate de shell; completam formularul cand ajung.
+    effect(() => {
+      const id = Number(this.id());
+      if (this.seeded || !id) return;
+      const t = this.store.templates().find(x => x.id === id);
+      if (!t) return;
+      this.name = t.name;
+      this.description = t.description;
+      this.subject = t.subject;
+      this.body.set(t.body);
+      this.seeded = true;
+    });
+  }
 
   save(): void {
     if (!this.name.trim()) {
       this.toast.show('Dă un nume șablonului.');
       return;
     }
-    this.api
-      .createTemplate({
-        id: null,
-        name: this.name.trim(),
-        description: this.description.trim(),
-        subject: this.subject.trim(),
-        body: this.body(),
-      })
-      .subscribe({
-        next: () => {
-          this.store.loadTemplates();
-          this.toast.show('Șablon adăugat.');
-          this.router.navigate(['/sabloane']);
-        },
-        error: e => this.toast.error(e),
-      });
+    const id = Number(this.id());
+    const body = {
+      id: id || null,
+      name: this.name.trim(),
+      description: this.description.trim(),
+      subject: this.subject.trim(),
+      body: this.body(),
+    };
+    const request = id ? this.api.updateTemplate(id, body) : this.api.createTemplate(body);
+    request.subscribe({
+      next: () => {
+        this.store.loadTemplates();
+        this.toast.show(id ? 'Șablon actualizat.' : 'Șablon adăugat.');
+        this.router.navigate(['/sabloane']);
+      },
+      error: e => this.toast.error(e),
+    });
   }
 }

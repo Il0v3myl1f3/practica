@@ -5,6 +5,7 @@ import { Store } from '../core/store';
 import { dateLabel, pagerItems } from '../core/format';
 import { CHANNELS, Channel, MessageStatus, channelTitle, statusLabel } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
+import { SelectComponent, SelectOption } from '../shared/select.component';
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Search } from '../shared/icons';
 
 const PAGE = 6;
@@ -13,7 +14,7 @@ const COLS = 'minmax(180px, 2.2fr) 130px 100px 140px 100px';
 @Component({
   selector: 'app-sent',
   standalone: true,
-  imports: [FormsModule, IconComponent],
+  imports: [FormsModule, IconComponent, SelectComponent],
   template: `
     <section class="shell">
       <div class="toolbar">
@@ -22,19 +23,19 @@ const COLS = 'minmax(180px, 2.2fr) 130px 100px 140px 100px';
           <input placeholder="Caută după subiect…" [ngModel]="q()" (ngModelChange)="q.set($event); page.set(0)" />
         </label>
 
-        <select class="select filter" [ngModel]="chFilter()" (ngModelChange)="chFilter.set($event); page.set(0)">
-          <option value="">Toate canalele · {{ store.sent().length }}</option>
-          @for (c of channels; track c.id) {
-            <option [value]="c.id">{{ c.title }} · {{ countByChannel(c.id) }}</option>
-          }
-        </select>
+        <app-select
+          label="Canal"
+          [options]="channelOptions()"
+          [value]="chFilter()"
+          (valueChange)="chFilter.set($event); page.set(0)"
+        />
 
-        <select class="select filter" [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event); page.set(0)">
-          <option value="">Orice stare · {{ store.sent().length }}</option>
-          @for (s of statuses; track s) {
-            <option [value]="s">{{ label(s) }} · {{ countByStatus(s) }}</option>
-          }
-        </select>
+        <app-select
+          label="Stare"
+          [options]="statusOptions()"
+          [value]="statusFilter()"
+          (valueChange)="statusFilter.set($event); page.set(0)"
+        />
 
         @if (filtersActive()) {
           <button type="button" class="btn btn-ghost sm" (click)="resetFilters()">Curăță filtrele</button>
@@ -93,7 +94,6 @@ const COLS = 'minmax(180px, 2.2fr) 130px 100px 140px 100px';
   `,
   styles: [
     `
-      .filter { flex: 0 1 auto; width: auto; min-width: 190px; height: 40px; font-size: 14px; }
       .tags { display: flex; gap: 4px; flex-wrap: wrap; }
       .sort {
         display: inline-flex;
@@ -116,7 +116,8 @@ export class SentComponent {
   private router = inject(Router);
 
   readonly channels = CHANNELS;
-  readonly statuses: MessageStatus[] = ['SENT', 'PARTIAL', 'FAILED'];
+  // QUEUED e filtrabil de când trimiterea e asincronă: un mesaj chiar zăbovește acolo.
+  readonly statuses: MessageStatus[] = ['QUEUED', 'SENT', 'PARTIAL', 'FAILED'];
   readonly cols = COLS;
   readonly label = statusLabel;
   readonly title = channelTitle;
@@ -168,6 +169,16 @@ export class SentComponent {
   });
 
   filtersActive = computed(() => !!this.chFilter() || !!this.statusFilter() || !!this.q().trim());
+
+  channelOptions = computed<SelectOption[]>(() => [
+    { id: '', title: 'Toate canalele', count: this.store.sent().length },
+    ...this.channels.map(c => ({ id: c.id, title: c.title, count: this.countByChannel(c.id) })),
+  ]);
+
+  statusOptions = computed<SelectOption[]>(() => [
+    { id: '', title: 'Orice stare', count: this.store.sent().length },
+    ...this.statuses.map(s => ({ id: s, title: statusLabel(s), count: this.countByStatus(s) })),
+  ]);
 
   countByChannel(id: Channel): number {
     return this.store.sent().filter(r => r.channels.includes(id)).length;

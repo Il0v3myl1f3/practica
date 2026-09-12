@@ -57,6 +57,10 @@ export class ApiService {
     return this.http.post<Template>(`${API}/api/app/templates`, body);
   }
 
+  updateTemplate(id: number, body: Template): Observable<Template> {
+    return this.http.put<Template>(`${API}/api/app/templates/${id}`, body);
+  }
+
   /** Toate sabloanele, ca arhiva ZIP cu cate un HTML fiecare. */
   exportTemplatesZip(): Observable<Blob> {
     return this.http.get(`${API}/api/app/templates/export`, { responseType: 'blob' });
@@ -82,6 +86,11 @@ export class ApiService {
 
   send(body: SendPayload): Observable<SendResult> {
     return this.http.post<SendResult>(`${API}/api/app/messages/send`, body);
+  }
+
+  /** Starea unei trimiteri puse la coadă. Suficient de ieftin pentru poll la câteva secunde. */
+  sendStatus(id: number): Observable<SendResult> {
+    return this.http.get<SendResult>(`${API}/api/app/messages/${id}/status`);
   }
 
   drafts(): Observable<MessageView[]> {

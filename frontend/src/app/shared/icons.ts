@@ -7,6 +7,7 @@
 export {
   ArrowDown,
   ArrowUp,
+  Baseline,
   Bold,
   Braces,
   Check,
@@ -24,7 +25,6 @@ export {
   ListOrdered,
   LogOut,
   Minus,
-  Palette,
   PanelLeft,
   Pencil,
   Plus,
@@ -32,7 +32,6 @@ export {
   Search,
   Send,
   Trash2,
-  Type,
   Underline,
   Upload,
   Users,

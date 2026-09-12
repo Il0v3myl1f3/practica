@@ -60,7 +60,7 @@ import { channelTitle, statusLabel } from '../core/models';
         </section>
 
         <section class="shell">
-          <div class="card-head"><h2>Distribuție pe grupuri</h2></div>
+          <div class="card-head"><h2>Destinatari pe grupuri</h2></div>
           <div class="dist">
             @for (g of ov.groupDistribution; track g.id) {
               <div class="grp">
@@ -79,28 +79,31 @@ import { channelTitle, statusLabel } from '../core/models';
   `,
   styles: [
     `
+      :host { display: flex; flex-direction: column; gap: 24px; }
       .kpis {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 1px;
-        background: var(--line);
+        background: var(--line-soft);
         border: 1px solid var(--line);
         border-radius: var(--r-lg);
         overflow: hidden;
       }
       .kpi { padding: 20px 24px; background: var(--surface); }
       .kpi.wide { grid-column: span 2; }
-      .k-label { font-size: 13px; color: var(--muted); }
+      .k-label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
       .k-value { font-size: 28px; line-height: 36px; font-weight: 600; margin: 6px 0 4px; }
       .k-value.big { font-size: 36px; line-height: 44px; }
       .k-sub { font-size: 13px; color: var(--muted); }
       .k-sub.brand { color: var(--brand); }
-      .cols { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; }
+      .cols { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; align-items: start; }
       .card-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 20px;
+        gap: 12px;
+        min-height: 48px;
+        padding: 12px 24px;
         border-bottom: 1px solid var(--line);
       }
       .card-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
@@ -110,7 +113,8 @@ import { channelTitle, statusLabel } from '../core/models';
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        padding: 12px 20px;
+        min-height: 48px;
+        padding: 10px 24px;
         border-bottom: 1px solid var(--line-soft);
         text-decoration: none;
         color: inherit;
@@ -118,13 +122,16 @@ import { channelTitle, statusLabel } from '../core/models';
       .recent:hover { background: #fafafa; }
       .recent:last-child { border-bottom: none; }
       .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
-      .dist { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+      .dist { padding: 16px 24px 20px; display: flex; flex-direction: column; gap: 16px; }
       .grp-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
       .muted { color: var(--muted); }
-      .track { height: 8px; background: var(--line-soft); border-radius: 9999px; overflow: hidden; }
+      .track { height: 6px; background: var(--line-soft); border-radius: 9999px; overflow: hidden; }
       .bar { height: 100%; background: var(--brand); border-radius: 9999px; }
       @media (max-width: 900px) {
         .cols { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 720px) {
+        .kpis { grid-template-columns: 1fr; }
         .kpi.wide { grid-column: span 1; }
       }
     `,

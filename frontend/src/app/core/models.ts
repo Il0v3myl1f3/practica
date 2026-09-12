@@ -83,11 +83,18 @@ export interface SendPayload {
   channelOverrides: Record<number, Channel[]>;
 }
 
+/**
+ * Cât timp `status` e QUEUED, `queued` e numărul de livrări încă în lucru, iar
+ * `delivered` / `failed` cresc pe măsură ce coada se scurge. Ecranul de
+ * compunere reinterogează până când statusul nu mai e QUEUED.
+ */
 export interface SendResult {
   messageId: number;
   status: MessageStatus;
+  queued: number;
   delivered: number;
   failed: number;
+  skipped: number;
   recipientCount: number;
 }
 

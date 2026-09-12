@@ -22,7 +22,7 @@ const COLS = 'minmax(160px, 2fr) 130px 140px';
           <app-icon [icon]="I.Search" [size]="16" />
           <input placeholder="Caută după subiect…" [ngModel]="q()" (ngModelChange)="q.set($event)" />
         </label>
-        <button type="button" class="btn btn-primary sm" (click)="newMessage()">Mesaj nou</button>
+        <button type="button" class="btn btn-primary sm" (click)="newMessage()">Ciornă nouă</button>
       </div>
 
       <div class="tbody">

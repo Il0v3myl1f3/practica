@@ -24,6 +24,10 @@ import { Check, ImagePlus, X } from '../shared/icons';
         <div class="field">
           <span>Conținut</span>
           <app-editor [value]="c.bodyHtml()" (valueChange)="c.bodyHtml.set($event)" />
+          <p class="hint">
+            Variabilele inserate se înlocuiesc cu datele fiecărui destinatar la trimitere. Formatarea se aplică la
+            livrarea prin email; pe Telegram și WhatsApp textul pleacă simplu.
+          </p>
         </div>
 
         <div class="field">
@@ -65,11 +69,12 @@ import { Check, ImagePlus, X } from '../shared/icons';
           <div class="sum"><span>Șablon</span><b>{{ c.templateName() || 'Mesaj gol' }}</b></div>
           <div class="sum"><span>Canal</span><b>{{ channelsLabel() }}</b></div>
           <div class="sum"><span>Imagini</span><b>{{ c.attachments().length || 'fără' }}</b></div>
+          <div class="sum"><span>Destinatari</span><b>{{ selectedLabel() }}</b></div>
         </section>
 
         <div class="actions">
+          <button type="button" class="btn btn-primary" (click)="next()">Continuă la destinatari</button>
           <button type="button" class="btn btn-ghost" (click)="saveDraft()">Salvează ciornă</button>
-          <button type="button" class="btn btn-primary" (click)="next()">Continuă</button>
         </div>
       </aside>
     </div>
@@ -102,7 +107,7 @@ import { Check, ImagePlus, X } from '../shared/icons';
       .hint { margin: 0; font-size: 12px; line-height: 18px; color: var(--muted); }
       .sum { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
       .sum span { color: var(--muted); }
-      .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+      .actions { display: flex; flex-direction: column; gap: 8px; }
       .images { display: flex; gap: 10px; flex-wrap: wrap; }
       .thumb { position: relative; width: 84px; height: 84px; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--line); }
       .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -147,6 +152,8 @@ export class ComposeComponent {
   readonly I = { Check, X, ImagePlus };
 
   channelsLabel = computed(() => this.c.channels().map(channelTitle).join(' + '));
+
+  selectedLabel = computed(() => `${this.c.selected().length} din ${this.store.recipients().length}`);
 
   channelHint = computed(() => {
     const list = this.c.channels();

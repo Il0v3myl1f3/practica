@@ -19,16 +19,16 @@ import {
 
 const FLOW = ['/mesaj/sablon', '/mesaj/compune', '/mesaj/destinatari'];
 
-const TITLES: Record<string, [string, string]> = {
-  '/panou': ['Panou', 'Starea trimiterilor din contul tău, pe scurt.'],
-  '/trimise': ['Mesaje trimise', 'Istoricul complet al trimiterilor, cu canal, destinatari și stare.'],
-  '/ciorne': ['Ciorne', 'Mesaje salvate pentru mai târziu — text, imagini și canal, exact ca la salvare.'],
-  '/destinatari': ['Destinatari', 'Toate persoanele din contul tău, cu grupul din care fac parte.'],
-  '/sabloane': ['Șabloane', 'Adaugă, șterge sau folosește direct un șablon ca punct de plecare.'],
-  '/sabloane/nou': ['Șablon nou', 'Definește un punct de plecare reutilizabil pentru mesajele viitoare.'],
-  '/mesaj/sablon': ['Mesaj nou', 'Alege un șablon ca punct de plecare — tot textul rămâne editabil.'],
-  '/mesaj/compune': ['Compune mesajul', 'Editează liber textul, adaugă imagini și alege canalul de livrare.'],
-  '/mesaj/destinatari': ['Selectează destinatarii', 'Selecția este manuală și reversibilă până la apăsarea butonului de trimitere.'],
+const TITLES: Record<string, string> = {
+  '/panou': 'Panou',
+  '/trimise': 'Mesaje trimise',
+  '/ciorne': 'Ciorne',
+  '/destinatari': 'Destinatari',
+  '/sabloane': 'Șabloane',
+  '/sabloane/nou': 'Șablon nou',
+  '/mesaj/sablon': 'Mesaj nou',
+  '/mesaj/compune': 'Compune mesajul',
+  '/mesaj/destinatari': 'Selectează destinatarii',
 };
 
 @Component({
@@ -99,26 +99,24 @@ const TITLES: Record<string, [string, string]> = {
 
       <div class="main">
         <header class="top">
-          <button type="button" class="icon-btn" (click)="railOpen.set(!railOpen())" title="Restrânge meniul"><app-icon [icon]="I.PanelLeft" /></button>
-          <div class="crumbs">
-            @for (c of crumbs(); track c.label; let last = $last) {
-              @if (!$first) {<span class="sep">/</span>}
-              @if (last) {
-                <span class="current">{{ c.label }}</span>
-              } @else {
-                <a [routerLink]="c.link">{{ c.label }}</a>
+          <div class="top-left">
+            <button type="button" class="icon-btn" (click)="railOpen.set(!railOpen())" title="Restrânge meniul"><app-icon [icon]="I.PanelLeft" /></button>
+            <div class="crumbs">
+              @for (c of crumbs(); track c.label; let last = $last) {
+                @if (!$first) {<span class="sep">/</span>}
+                @if (last) {
+                  <span class="current">{{ c.label }}</span>
+                } @else {
+                  <a [routerLink]="c.link">{{ c.label }}</a>
+                }
               }
-            }
+            </div>
           </div>
+          <button type="button" class="btn btn-primary xs" (click)="newMessage()">Mesaj nou</button>
         </header>
 
         <div class="scroll">
           <div class="page">
-            <div class="page-head">
-              <h1 class="page-title">{{ head()[0] }}</h1>
-              <p class="page-sub">{{ head()[1] }}</p>
-            </div>
-
             @if (inFlow()) {
               <div class="steps">
                 @for (s of steps; track s.path; let i = $index) {
@@ -269,9 +267,11 @@ const TITLES: Record<string, [string, string]> = {
         border-bottom: 1px solid var(--line);
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 16px;
         padding: 0 24px;
       }
+      .top-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
       .crumbs { display: flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0; overflow: hidden; }
       .crumbs a { color: var(--muted); text-decoration: none; white-space: nowrap; }
       .crumbs a:hover { color: var(--brand); text-decoration: underline; }
@@ -279,7 +279,6 @@ const TITLES: Record<string, [string, string]> = {
       .current { color: var(--ink); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .scroll { flex: 1; overflow-y: auto; }
       .page { padding: 24px; max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-      .page-head { display: flex; flex-direction: column; }
       .steps { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
       .step-wrap { display: flex; align-items: center; gap: 12px; flex: 1 1 0; min-width: 0; }
       .step-wrap:last-child { flex: none; }
@@ -357,12 +356,15 @@ export class ShellComponent {
   inFlow = computed(() => FLOW.includes(this.url()));
   stepIndex = computed(() => FLOW.indexOf(this.url()));
 
-  head = computed<[string, string]>(() => {
+  head = computed<string>(() => {
     const u = this.url();
     if (u.startsWith('/trimise/')) {
-      return ['Mesaj trimis', 'Conținutul livrat, canalele folosite și destinatarii trimiterii.'];
+      return 'Mesaj trimis';
     }
-    return TITLES[u] ?? ['Panou', ''];
+    if (u.startsWith('/sabloane/') && u.endsWith('/editeaza')) {
+      return 'Editează șablonul';
+    }
+    return TITLES[u] ?? 'Panou';
   });
 
   crumbs = computed(() => {
@@ -371,15 +373,15 @@ export class ShellComponent {
     if (u === '/panou') return trail;
     if (u.startsWith('/sabloane')) {
       trail.push({ label: 'Șabloane', link: '/sabloane' });
-      if (u !== '/sabloane') trail.push({ label: 'Șablon nou', link: u });
+      if (u !== '/sabloane') trail.push({ label: this.head(), link: u });
     } else if (u.startsWith('/trimise')) {
       trail.push({ label: 'Mesaje trimise', link: '/trimise' });
-      if (u !== '/trimise') trail.push({ label: this.head()[0], link: u });
+      if (u !== '/trimise') trail.push({ label: this.head(), link: u });
     } else if (this.inFlow()) {
       trail.push({ label: 'Mesaj nou', link: '/mesaj/sablon' });
-      if (u !== '/mesaj/sablon') trail.push({ label: this.head()[0], link: u });
+      if (u !== '/mesaj/sablon') trail.push({ label: this.head(), link: u });
     } else {
-      trail.push({ label: this.head()[0], link: u });
+      trail.push({ label: this.head(), link: u });
     }
     return trail;
   });

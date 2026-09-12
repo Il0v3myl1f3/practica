@@ -9,9 +9,9 @@ import { plural } from '../core/format';
 import { Template } from '../core/models';
 import { templateToHtml } from '../shared/editor.component';
 import { IconComponent } from '../shared/icon.component';
-import { Download, Plus, Search, Trash2, Upload } from '../shared/icons';
+import { Download, Pencil, Plus, Search, Trash2, Upload } from '../shared/icons';
 
-const COLS = 'minmax(200px, 1fr) 160px';
+const COLS = 'minmax(200px, 1fr) 200px';
 
 @Component({
   selector: 'app-templates',
@@ -46,6 +46,7 @@ const COLS = 'minmax(200px, 1fr) 160px';
             </div>
             <span class="cell-actions">
               <button type="button" class="btn btn-ghost xs" (click)="use(t)">Folosește</button>
+              <button type="button" class="icon-btn" title="Editează" (click)="edit(t)"><app-icon [icon]="I.Pencil" /></button>
               <button type="button" class="icon-btn" title="Șterge" (click)="remove(t)"><app-icon [icon]="I.Trash2" /></button>
             </span>
           </div>
@@ -76,7 +77,7 @@ export class TemplatesComponent {
   private toast = inject(ToastService);
 
   readonly cols = COLS;
-  readonly I = { Search, Trash2, Upload, Download, Plus };
+  readonly I = { Search, Trash2, Upload, Download, Plus, Pencil };
   readonly q = signal('');
 
   constructor() {
@@ -101,6 +102,10 @@ export class TemplatesComponent {
     this.compose.templateId.set(t.id);
     this.compose.templateName.set(t.name);
     this.router.navigate(['/mesaj/compune']);
+  }
+
+  edit(t: Template): void {
+    this.router.navigate(['/sabloane', t.id, 'editeaza']);
   }
 
   remove(t: Template): void {

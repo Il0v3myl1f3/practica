@@ -16,6 +16,10 @@ export const routes: Routes = [
       { path: 'destinatari', loadComponent: () => import('./pages/people.component').then(m => m.PeopleComponent) },
       { path: 'sabloane', loadComponent: () => import('./pages/templates.component').then(m => m.TemplatesComponent) },
       { path: 'sabloane/nou', loadComponent: () => import('./pages/template-new.component').then(m => m.TemplateNewComponent) },
+      {
+        path: 'sabloane/:id/editeaza',
+        loadComponent: () => import('./pages/template-new.component').then(m => m.TemplateNewComponent),
+      },
       { path: 'mesaj/sablon', loadComponent: () => import('./pages/compose-pick.component').then(m => m.ComposePickComponent) },
       { path: 'mesaj/compune', loadComponent: () => import('./pages/compose.component').then(m => m.ComposeComponent) },
       { path: 'mesaj/destinatari', loadComponent: () => import('./pages/compose-recipients.component').then(m => m.ComposeRecipientsComponent) },

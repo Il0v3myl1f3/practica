@@ -1,11 +1,14 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject, interval, switchMap, takeUntil, takeWhile } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { ComposeStore, Store } from '../core/store';
 import { ToastService } from '../core/toast.service';
 import { Channel, Recipient, SendResult, channelTitle } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
+import { SelectComponent, SelectOption } from '../shared/select.component';
 import { Check, ChevronDown, ChevronRight, Minus, Search } from '../shared/icons';
 
 const COLS = 'minmax(140px, 2fr) minmax(0, 1.4fr) 190px';
@@ -13,7 +16,7 @@ const COLS = 'minmax(140px, 2fr) minmax(0, 1.4fr) 190px';
 @Component({
   selector: 'app-compose-recipients',
   standalone: true,
-  imports: [FormsModule, IconComponent],
+  imports: [FormsModule, IconComponent, SelectComponent],
   template: `
     <section class="shell">
       <div class="toolbar">
@@ -21,12 +24,7 @@ const COLS = 'minmax(140px, 2fr) minmax(0, 1.4fr) 190px';
           <app-icon [icon]="I.Search" [size]="16" />
           <input placeholder="Caută nume, email sau grup…" [ngModel]="q()" (ngModelChange)="q.set($event)" />
         </label>
-        <select class="select filter" [ngModel]="groupFilter()" (ngModelChange)="groupFilter.set($event)">
-          <option value="">Toate grupurile</option>
-          @for (g of store.groups(); track g.id) {
-            <option [value]="g.name">{{ g.name }} · {{ g.count }}</option>
-          }
-        </select>
+        <app-select label="Grup" [options]="groupOptions()" [(value)]="groupFilter" />
         <span class="grow"></span>
         <button type="button" class="btn btn-ghost sm" (click)="selectAll(true)">Bifează tot</button>
         <button type="button" class="btn btn-ghost sm" (click)="selectAll(false)">Debifează tot</button>
@@ -175,12 +173,22 @@ const COLS = 'minmax(140px, 2fr) minmax(0, 1.4fr) 190px';
     @if (result(); as r) {
       <div class="backdrop">
         <div class="modal">
-          <div class="ok-mark"><app-icon [icon]="I.Check" [size]="22" [stroke]="2.5" /></div>
-          <h3>Mesaj trimis</h3>
-          <p class="modal-sub">
-            {{ r.recipientCount }} {{ r.recipientCount === 1 ? 'destinatar a primit mesajul' : 'destinatari au primit mesajul' }}
-            · {{ r.delivered }} livrări reușite@if (r.failed) {, {{ r.failed }} eșuate}.
-          </p>
+          @if (r.status === 'QUEUED') {
+            <!-- Cât timp mesajul e în coadă nu punem bifa verde: încă poate eșua. -->
+            <div class="ok-mark pending"><span class="spinner"></span></div>
+            <h3>Mesaj pus la coadă</h3>
+            <p class="modal-sub">
+              {{ r.delivered }} din {{ r.delivered + r.failed + r.queued }} livrări finalizate.
+              Poți închide fereastra, trimiterea continuă în fundal.
+            </p>
+          } @else {
+            <div class="ok-mark"><app-icon [icon]="I.Check" [size]="22" [stroke]="2.5" /></div>
+            <h3>Mesaj trimis</h3>
+            <p class="modal-sub">
+              {{ r.recipientCount }} {{ r.recipientCount === 1 ? 'destinatar a primit mesajul' : 'destinatari au primit mesajul' }}
+              · {{ r.delivered }} livrări reușite@if (r.failed) {, {{ r.failed }} eșuate}.
+            </p>
+          }
           <div class="recap">
             <div><span>Subiect</span><b>{{ c.subject() || 'Fără subiect' }}</b></div>
             <div><span>Canal</span><b>{{ channelsLabel() }}</b></div>
@@ -195,7 +203,6 @@ const COLS = 'minmax(140px, 2fr) minmax(0, 1.4fr) 190px';
   `,
   styles: [
     `
-      .filter { flex: 0 1 auto; width: auto; min-width: 190px; height: 40px; font-size: 14px; }
       .grow { flex: 1 1 auto; }
       .notice { margin: 0 16px 12px; }
       .notice-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -272,6 +279,21 @@ const COLS = 'minmax(140px, 2fr) minmax(0, 1.4fr) 190px';
         font-weight: 700;
         margin-bottom: 16px;
       }
+      .ok-mark.pending { background: var(--brand-soft); color: var(--brand); }
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border-radius: 9999px;
+        border: 2.5px solid currentColor;
+        border-top-color: transparent;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .spinner { animation-duration: 2.4s; }
+      }
       .recap { border: 1px solid var(--line-soft); border-radius: var(--r-md); overflow: hidden; }
       .recap > div {
         display: grid;
@@ -300,11 +322,21 @@ export class ComposeRecipientsComponent {
   readonly q = signal('');
   readonly groupFilter = signal('');
   readonly collapsed = signal<string[]>([]);
+
+  groupOptions = computed<SelectOption[]>(() => [
+    { id: '', title: 'Toate grupurile', count: this.store.recipients().length },
+    ...this.store.groups().map(g => ({ id: g.name, title: g.name, count: g.count })),
+  ]);
+
   readonly person = signal<Recipient | null>(null);
   readonly pick = signal<Channel[]>([]);
   readonly confirming = signal(false);
   readonly sending = signal(false);
   readonly result = signal<SendResult | null>(null);
+
+  private destroyRef = inject(DestroyRef);
+  /** Oprește poll-ul când utilizatorul închide modala înainte ca trimiterea să se termine. */
+  private stopPolling = new Subject<void>();
 
   constructor() {
     this.store.loadRecipients();
@@ -499,12 +531,15 @@ export class ComposeRecipientsComponent {
           this.sending.set(false);
           this.confirming.set(false);
           this.result.set(r);
-          this.store.loadSent();
-          this.store.loadOverview();
           const draft = this.c.draftId();
           if (draft) {
             // Ciorna si-a atins scopul: mesajul a plecat, nu mai are ce cauta in lista.
             this.api.deleteDraft(draft).subscribe({ next: () => this.store.loadDrafts(), error: () => undefined });
+          }
+          if (r.status === 'QUEUED') {
+            this.pollUntilDone(r.messageId);
+          } else {
+            this.refreshLists();
           }
         },
         error: e => {
@@ -515,13 +550,43 @@ export class ComposeRecipientsComponent {
       });
   }
 
+  /**
+   * Trimiterea e asincronă: răspunsul spune doar că mesajul a intrat în coadă.
+   * Reinterogăm până când nu mai e QUEUED, ca modala să nu pretindă un succes
+   * care încă se poate transforma în eșec.
+   */
+  private pollUntilDone(messageId: number): void {
+    interval(2000)
+      .pipe(
+        switchMap(() => this.api.sendStatus(messageId)),
+        takeWhile(r => r.status === 'QUEUED', true),
+        takeUntil(this.stopPolling),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: r => {
+          this.result.set(r);
+          if (r.status !== 'QUEUED') this.refreshLists();
+        },
+        // Un poll picat (rețea, sesiune) nu are voie să arunce modala.
+        error: () => undefined,
+      });
+  }
+
+  private refreshLists(): void {
+    this.store.loadSent();
+    this.store.loadOverview();
+  }
+
   again(): void {
+    this.stopPolling.next();
     this.result.set(null);
     this.c.reset();
     this.router.navigate(['/mesaj/sablon']);
   }
 
   goSent(): void {
+    this.stopPolling.next();
     this.result.set(null);
     this.c.reset();
     this.router.navigate(['/trimise']);

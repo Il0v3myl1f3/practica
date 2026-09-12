@@ -7,6 +7,7 @@ import { COL, EMAIL_RE, downloadCsv, findColumn, parseCsv } from '../core/csv';
 import { pagerItems, plural } from '../core/format';
 import { Recipient, RecipientUpsert } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
+import { SelectComponent, SelectOption } from '../shared/select.component';
 import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Search, Trash2, Upload } from '../shared/icons';
 
 const PAGE = 10;
@@ -22,7 +23,7 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
 @Component({
   selector: 'app-people',
   standalone: true,
-  imports: [FormsModule, IconComponent],
+  imports: [FormsModule, IconComponent, SelectComponent],
   template: `
     @if (staged() !== null) {
       <!-- Verificarea importului: randurile citite din fisier, editabile inainte de a fi scrise. -->
@@ -73,12 +74,12 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
             <input placeholder="Caută nume, email sau grup…" [ngModel]="q()" (ngModelChange)="q.set($event); page.set(0)" />
           </label>
 
-          <select class="select filter" [ngModel]="groupFilter()" (ngModelChange)="groupFilter.set($event); page.set(0)">
-            <option value="">Toate grupurile · {{ store.recipients().length }}</option>
-            @for (g of store.groups(); track g.id) {
-              <option [value]="g.name">{{ g.name }} · {{ g.count }}</option>
-            }
-          </select>
+          <app-select
+            label="Grup"
+            [options]="groupOptions()"
+            [value]="groupFilter()"
+            (valueChange)="groupFilter.set($event); page.set(0)"
+          />
 
           @if (filtersActive()) {
             <button type="button" class="btn btn-ghost sm" (click)="resetFilters()">Curăță filtrele</button>
@@ -203,7 +204,6 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
   `,
   styles: [
     `
-      .filter { flex: 0 1 auto; width: auto; min-width: 190px; height: 40px; font-size: 14px; }
       .grow { flex: 1 1 auto; min-width: 0; }
       .chans { display: flex; gap: 4px; }
       .chan {
@@ -278,6 +278,11 @@ export class PeopleComponent {
   });
 
   filtersActive = computed(() => !!this.groupFilter() || !!this.q().trim());
+
+  groupOptions = computed<SelectOption[]>(() => [
+    { id: '', title: 'Toate grupurile', count: this.store.recipients().length },
+    ...this.store.groups().map(g => ({ id: g.name, title: g.name, count: g.count })),
+  ]);
 
   short(c: string): string {
     return { EMAIL: '@', TELEGRAM: 'TG', WHATSAPP: 'WA' }[c] ?? c[0];

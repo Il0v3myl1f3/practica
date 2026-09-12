@@ -19,8 +19,8 @@ import { Channel, MessageDetail, channelTitle, statusLabel } from '../core/model
             <span class="status" [class]="d.summary.status">{{ label(d.summary.status) }}</span>
           </div>
           <div class="actions">
-            <button type="button" class="btn btn-ghost sm" (click)="back()">Înapoi</button>
-            <button type="button" class="btn btn-primary sm" (click)="resend()">Trimite din nou</button>
+            <button type="button" class="btn btn-ghost sm" (click)="back()">Înapoi la listă</button>
+            <button type="button" class="btn btn-primary sm" (click)="resend()">Retrimite mesajul</button>
           </div>
         </div>
 
