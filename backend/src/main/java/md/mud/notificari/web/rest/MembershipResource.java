@@ -10,7 +10,8 @@ import java.util.Optional;
 import md.mud.notificari.repository.MembershipRepository;
 import md.mud.notificari.service.MembershipService;
 import md.mud.notificari.service.dto.MembershipDTO;
-import md.mud.notificari.web.rest.errors.BadRequestAlertException;
+import md.mud.notificari.errors.BadRequestAlertException;
+import md.mud.notificari.errors.MembershipException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -85,7 +86,7 @@ public class MembershipResource {
         }
 
         if (!membershipRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw MembershipException.notFound(id);
         }
 
         membershipDTO = membershipService.update(membershipDTO);
@@ -119,7 +120,7 @@ public class MembershipResource {
         }
 
         if (!membershipRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw MembershipException.notFound(id);
         }
 
         Optional<MembershipDTO> result = membershipService.partialUpdate(membershipDTO);

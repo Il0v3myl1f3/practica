@@ -22,6 +22,9 @@ import md.mud.notificari.domain.RecipientGroup;
 import md.mud.notificari.domain.enumeration.Channel;
 import md.mud.notificari.domain.enumeration.DeliveryStatus;
 import md.mud.notificari.domain.enumeration.MessageStatus;
+import md.mud.notificari.errors.MessageException;
+import md.mud.notificari.errors.MessageTemplateException;
+import md.mud.notificari.errors.RecipientException;
 import md.mud.notificari.repository.MessageAttachmentRepository;
 import md.mud.notificari.repository.MessageChannelRepository;
 import md.mud.notificari.repository.app.AppMessageRecipientRepository;
@@ -143,7 +146,7 @@ public class AppService {
 
     @Transactional(readOnly = true)
     public MessageDetail message(Long id) {
-        Message m = messages.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> notFound("Mesajul"));
+        Message m = messages.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> MessageException.notFound(id));
         List<String> names = deliveries
             .findAllForMessage(m.getId())
             .stream()
@@ -182,7 +185,7 @@ public class AppService {
         recipients
             .findByOrganizationIdAndEmailIgnoreCase(org.getId(), email)
             .ifPresent(r -> {
-                throw new IllegalArgumentException("Un alt destinatar are deja acest email.");
+                throw RecipientException.emailAlreadyUsed();
             });
         Recipient saved = recipients.save(
             new Recipient()
@@ -199,13 +202,13 @@ public class AppService {
 
     public RecipientView updateRecipient(Long id, RecipientUpsert in) {
         Organization org = tenant.currentOrganization();
-        Recipient r = recipients.findByIdAndOrganizationId(id, org.getId()).orElseThrow(() -> notFound("Destinatarul"));
+        Recipient r = recipients.findByIdAndOrganizationId(id, org.getId()).orElseThrow(() -> RecipientException.notFound(id));
         String email = required(in.email(), "Emailul");
         recipients
             .findByOrganizationIdAndEmailIgnoreCase(org.getId(), email)
             .filter(other -> !other.getId().equals(id))
             .ifPresent(other -> {
-                throw new IllegalArgumentException("Un alt destinatar are deja acest email.");
+                throw RecipientException.emailAlreadyUsed();
             });
         r
             .firstName(required(in.firstName(), "Prenumele"))
@@ -218,7 +221,7 @@ public class AppService {
     }
 
     public void deleteRecipient(Long id) {
-        Recipient r = recipients.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> notFound("Destinatarul"));
+        Recipient r = recipients.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> RecipientException.notFound(id));
         recipientChannels.deleteByRecipientId(r.getId());
         recipients.delete(r);
     }
@@ -229,7 +232,7 @@ public class AppService {
         for (RecipientUpsert row : rows) {
             try {
                 added.add(createRecipient(row));
-            } catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException | RecipientException e) {
                 LOG.debug("Linie sarita la import: {}", e.getMessage());
             }
         }
@@ -242,7 +245,7 @@ public class AppService {
         Organization org = tenant.currentOrganization();
         String name = required(in.name(), "Numele sablonului");
         if (templates.existsByOrganizationIdAndNameIgnoreCase(org.getId(), name)) {
-            throw new IllegalArgumentException("Exista deja un sablon cu acest nume.");
+            throw MessageTemplateException.nameAlreadyUsed();
         }
         MessageTemplate t = templates.save(
             new MessageTemplate()
@@ -256,7 +259,7 @@ public class AppService {
     }
 
     public void deleteTemplate(Long id) {
-        templates.delete(templates.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> notFound("Sablonul")));
+        templates.delete(templates.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> MessageTemplateException.notFound(id)));
     }
 
     public List<TemplateView> importTemplates(List<TemplateView> rows) {
@@ -264,7 +267,7 @@ public class AppService {
         for (TemplateView row : rows) {
             try {
                 added.add(createTemplate(row));
-            } catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException | MessageTemplateException e) {
                 LOG.debug("Sablon sarit la import: {}", e.getMessage());
             }
         }
@@ -278,7 +281,7 @@ public class AppService {
     }
 
     public void deleteDraft(Long id) {
-        Message m = messages.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> notFound("Ciorna"));
+        Message m = messages.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> MessageException.notFound(id));
         messageChannels.deleteAll(m.getChannelses());
         attachments.deleteAll(m.getAttachmentses());
         messages.delete(m);
@@ -289,11 +292,11 @@ public class AppService {
         ComposePayload compose = payload.message();
         List<Channel> wanted = parseChannels(compose.channels());
         if (wanted.isEmpty()) {
-            throw new IllegalArgumentException("Alege cel putin un canal.");
+            throw MessageException.noChannelSelected();
         }
         List<Long> ids = payload.recipientIds() == null ? List.of() : payload.recipientIds();
         if (ids.isEmpty()) {
-            throw new IllegalArgumentException("Bifeaza cel putin un destinatar.");
+            throw MessageException.noRecipientSelected();
         }
         List<Recipient> targets = recipients.findByOrganizationIdAndIdIn(org.getId(), ids);
 
@@ -527,9 +530,5 @@ public class AppService {
 
     private static String truncate(String s) {
         return s == null ? null : s.substring(0, Math.min(s.length(), 500));
-    }
-
-    private static IllegalArgumentException notFound(String what) {
-        return new IllegalArgumentException(what + " nu a fost gasit.");
     }
 }

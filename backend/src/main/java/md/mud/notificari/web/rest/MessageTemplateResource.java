@@ -10,7 +10,8 @@ import java.util.Optional;
 import md.mud.notificari.repository.MessageTemplateRepository;
 import md.mud.notificari.service.MessageTemplateService;
 import md.mud.notificari.service.dto.MessageTemplateDTO;
-import md.mud.notificari.web.rest.errors.BadRequestAlertException;
+import md.mud.notificari.errors.BadRequestAlertException;
+import md.mud.notificari.errors.MessageTemplateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -91,7 +92,7 @@ public class MessageTemplateResource {
         }
 
         if (!messageTemplateRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw MessageTemplateException.notFound(id);
         }
 
         messageTemplateDTO = messageTemplateService.update(messageTemplateDTO);
@@ -125,7 +126,7 @@ public class MessageTemplateResource {
         }
 
         if (!messageTemplateRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw MessageTemplateException.notFound(id);
         }
 
         Optional<MessageTemplateDTO> result = messageTemplateService.partialUpdate(messageTemplateDTO);

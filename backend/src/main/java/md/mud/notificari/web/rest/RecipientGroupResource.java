@@ -10,7 +10,8 @@ import java.util.Optional;
 import md.mud.notificari.repository.RecipientGroupRepository;
 import md.mud.notificari.service.RecipientGroupService;
 import md.mud.notificari.service.dto.RecipientGroupDTO;
-import md.mud.notificari.web.rest.errors.BadRequestAlertException;
+import md.mud.notificari.errors.BadRequestAlertException;
+import md.mud.notificari.errors.RecipientGroupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -86,7 +87,7 @@ public class RecipientGroupResource {
         }
 
         if (!recipientGroupRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw RecipientGroupException.notFound(id);
         }
 
         recipientGroupDTO = recipientGroupService.update(recipientGroupDTO);
@@ -120,7 +121,7 @@ public class RecipientGroupResource {
         }
 
         if (!recipientGroupRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw RecipientGroupException.notFound(id);
         }
 
         Optional<RecipientGroupDTO> result = recipientGroupService.partialUpdate(recipientGroupDTO);

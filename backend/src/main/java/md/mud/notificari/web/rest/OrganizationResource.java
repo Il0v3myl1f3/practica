@@ -10,7 +10,8 @@ import java.util.Optional;
 import md.mud.notificari.repository.OrganizationRepository;
 import md.mud.notificari.service.OrganizationService;
 import md.mud.notificari.service.dto.OrganizationDTO;
-import md.mud.notificari.web.rest.errors.BadRequestAlertException;
+import md.mud.notificari.errors.BadRequestAlertException;
+import md.mud.notificari.errors.OrganizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -86,7 +87,7 @@ public class OrganizationResource {
         }
 
         if (!organizationRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw OrganizationException.notFound(id);
         }
 
         organizationDTO = organizationService.update(organizationDTO);
@@ -120,7 +121,7 @@ public class OrganizationResource {
         }
 
         if (!organizationRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw OrganizationException.notFound(id);
         }
 
         Optional<OrganizationDTO> result = organizationService.partialUpdate(organizationDTO);

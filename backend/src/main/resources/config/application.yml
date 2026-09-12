@@ -62,11 +62,6 @@ management:
 spring:
   application:
     name: notificariMud
-  docker:
-    compose:
-      enabled: true
-      lifecycle-management: start-only
-      file: src/main/docker/services.yml
   profiles:
     # The commented value for `active` can be replaced with valid Spring profiles to load.
     # Otherwise, it will be filled in by maven when building the JAR file
@@ -76,8 +71,6 @@ spring:
       dev:
         - secret-samples
         - api-docs
-        # Uncomment to activate TLS for the dev profile
-        #- tls
   jmx:
     enabled: false
   data:
@@ -135,7 +128,7 @@ spring:
   output:
     ansi:
       console-available: true
-
+---
 spring:
   servlet:
     multipart:
@@ -152,11 +145,6 @@ server:
 
 springdoc:
   show-actuator: true
-
-# Properties to be exposed on the /info management endpoint
-info:
-  # Comma separated list of profiles that will trigger the ribbon to show
-  display-ribbon-on-profiles: 'dev'
 
 # ===================================================================
 # JHipster specific properties

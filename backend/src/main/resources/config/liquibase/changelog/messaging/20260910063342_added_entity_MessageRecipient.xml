@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <!--
+        Added the entity MessageRecipient.
+    -->
+    <changeSet id="20260910063342-1" author="jhipster">
+        <createTable tableName="message_recipient" remarks="O linie per (destinatar, canal) efectiv folosit la trimitere.\nAici se materializeaza si override-ul de canal per persoana din pasul 3.">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="channel" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="status" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="provider_message_id" type="varchar(120)">
+                <constraints nullable="true" />
+            </column>
+            <column name="error_message" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="sent_at" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="delivered_at" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="recipient_id" type="bigint">
+                <constraints nullable="false" />
+            </column>
+            <column name="message_id" type="bigint">
+                <constraints nullable="false" />
+            </column>
+            <!-- jhipster-needle-liquibase-add-column - JHipster will add columns here -->
+        </createTable>
+        <dropDefaultValue tableName="message_recipient" columnName="sent_at" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="message_recipient" columnName="delivered_at" columnDataType="${datetimeType}"/>
+    </changeSet>
+
+    <!-- jhipster-needle-liquibase-add-changeset - JHipster will add changesets here -->
+</databaseChangeLog>

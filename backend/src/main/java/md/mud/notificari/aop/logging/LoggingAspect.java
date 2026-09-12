@@ -2,10 +2,9 @@ package md.mud.notificari.aop.logging;
 
 import java.util.Arrays;
 import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.AfterThrowing;
-import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +13,7 @@ import org.springframework.core.env.Profiles;
 import tech.jhipster.config.JHipsterConstants;
 
 /**
- * Aspect for logging execution of service and repository Spring components.
+ * Aspect for logging execution of controller and service Spring components.
  *
  * By default, it only runs with the "dev" profile.
  */
@@ -28,12 +27,11 @@ public class LoggingAspect {
     }
 
     /**
-     * Pointcut that matches all repositories, services and Web REST endpoints.
+     * Pointcut that matches all services and Web REST endpoints.
      */
     @Pointcut(
         """
-        within(@org.springframework.stereotype.Repository *)
-        || within(@org.springframework.stereotype.Service *)
+        within(@org.springframework.stereotype.Service *)
         || within(@org.springframework.web.bind.annotation.RestController *)
         """
     )
@@ -46,8 +44,7 @@ public class LoggingAspect {
      */
     @Pointcut(
         """
-        within(md.mud.notificari.repository..*)
-        || within(md.mud.notificari.service..*)
+        within(md.mud.notificari.service..*)
         || within(md.mud.notificari.web.rest..*)
         """
     )
@@ -91,27 +88,15 @@ public class LoggingAspect {
     }
 
     /**
-     * Advice that logs when a method is entered and exited.
+     * Advice that logs when a method is entered.
      *
      * @param joinPoint join point for advice.
-     * @return result.
-     * @throws Throwable throws {@link IllegalArgumentException}.
      */
-    @Around("applicationPackagePointcut() && springBeanPointcut()")
-    public Object logAround(ProceedingJoinPoint joinPoint) throws Throwable {
+    @Before("applicationPackagePointcut() && springBeanPointcut()")
+    public void logBefore(JoinPoint joinPoint) {
         var log = logger(joinPoint);
         if (log.isDebugEnabled()) {
             log.debug("Enter: {}() with argument[s] = {}", joinPoint.getSignature().getName(), Arrays.toString(joinPoint.getArgs()));
-        }
-        try {
-            Object result = joinPoint.proceed();
-            if (log.isDebugEnabled()) {
-                log.debug("Exit: {}() with result = {}", joinPoint.getSignature().getName(), result);
-            }
-            return result;
-        } catch (IllegalArgumentException e) {
-            log.error("Illegal argument: {} in {}()", Arrays.toString(joinPoint.getArgs()), joinPoint.getSignature().getName());
-            throw e;
         }
     }
 }

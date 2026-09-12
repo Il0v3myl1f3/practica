@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import md.mud.notificari.domain.Authority;
 import md.mud.notificari.repository.AuthorityRepository;
-import md.mud.notificari.web.rest.errors.BadRequestAlertException;
+import md.mud.notificari.errors.BadRequestAlertException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

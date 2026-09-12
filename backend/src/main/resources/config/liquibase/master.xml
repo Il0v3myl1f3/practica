@@ -18,27 +18,14 @@
     <property name="datetimeType" value="datetime" dbms="postgresql"/>
     <property name="timeType" value="time(6)" dbms="postgresql"/>
 
-    <include file="config/liquibase/changelog/00000000000000_initial_schema.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910062542_added_entity_Organization.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910062642_added_entity_Membership.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910062742_added_entity_RecipientGroup.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910062842_added_entity_Recipient.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910062942_added_entity_RecipientChannel.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910063042_added_entity_MessageTemplate.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910063142_added_entity_Message.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910063242_added_entity_MessageChannel.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910063342_added_entity_MessageRecipient.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910063442_added_entity_MessageAttachment.xml" relativeToChangelogFile="false"/>
-    <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
-    <include file="config/liquibase/changelog/20260910062642_added_entity_constraints_Membership.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910062742_added_entity_constraints_RecipientGroup.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910062842_added_entity_constraints_Recipient.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910062942_added_entity_constraints_RecipientChannel.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910063042_added_entity_constraints_MessageTemplate.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910063142_added_entity_constraints_Message.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910063242_added_entity_constraints_MessageChannel.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910063342_added_entity_constraints_MessageRecipient.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910063442_added_entity_constraints_MessageAttachment.xml" relativeToChangelogFile="false"/>
+    <includeAll path="config/liquibase/changelog/initial"/>
+    <includeAll path="config/liquibase/changelog/organization"/>
+    <includeAll path="config/liquibase/changelog/recipients"/>
+    <includeAll path="config/liquibase/changelog/messaging"/>
+    <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here.
+         NOTE: this project groups changesets into initial/organization/recipients/messaging subfolders,
+         each pulled in above via <includeAll>; a newly generated changeset lands flat here and must be
+         moved into the right subfolder by hand - it will then be picked up automatically. -->
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
 </databaseChangeLog>

@@ -12,7 +12,8 @@ import md.mud.notificari.service.RecipientQueryService;
 import md.mud.notificari.service.RecipientService;
 import md.mud.notificari.service.criteria.RecipientCriteria;
 import md.mud.notificari.service.dto.RecipientDTO;
-import md.mud.notificari.web.rest.errors.BadRequestAlertException;
+import md.mud.notificari.errors.BadRequestAlertException;
+import md.mud.notificari.errors.RecipientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -99,7 +100,7 @@ public class RecipientResource {
         }
 
         if (!recipientRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw RecipientException.notFound(id);
         }
 
         recipientDTO = recipientService.update(recipientDTO);
@@ -133,7 +134,7 @@ public class RecipientResource {
         }
 
         if (!recipientRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw RecipientException.notFound(id);
         }
 
         Optional<RecipientDTO> result = recipientService.partialUpdate(recipientDTO);

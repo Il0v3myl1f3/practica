@@ -10,7 +10,7 @@ import java.util.Optional;
 import md.mud.notificari.repository.MessageRecipientRepository;
 import md.mud.notificari.service.MessageRecipientService;
 import md.mud.notificari.service.dto.MessageRecipientDTO;
-import md.mud.notificari.web.rest.errors.BadRequestAlertException;
+import md.mud.notificari.errors.BadRequestAlertException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <!--
+        Added the entity Message.
+    -->
+    <changeSet id="20260910063142-1" author="jhipster">
+        <createTable tableName="message" remarks="Ciorna si trimitere in aceeasi entitate, diferentiate prin status.\nbodyHtml contine chip-uri de variabile: {{nume}} {{prenume}} {{grup}} {{email}}">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="subject" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="body_html" type="${clobType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="status" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="recipient_count" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="created_at" type="${datetimeType}">
+                <constraints nullable="false" />
+            </column>
+            <column name="sent_at" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="organization_id" type="bigint">
+                <constraints nullable="false" />
+            </column>
+            <column name="template_id" type="bigint">
+                <constraints nullable="true" />
+            </column>
+            <column name="created_by_id" type="bigint">
+                <constraints nullable="true" />
+            </column>
+            <!-- jhipster-needle-liquibase-add-column - JHipster will add columns here -->
+        </createTable>
+        <dropDefaultValue tableName="message" columnName="created_at" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="message" columnName="sent_at" columnDataType="${datetimeType}"/>
+    </changeSet>
+
+    <!-- jhipster-needle-liquibase-add-changeset - JHipster will add changesets here -->
+</databaseChangeLog>

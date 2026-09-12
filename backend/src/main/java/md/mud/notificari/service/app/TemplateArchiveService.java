@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+import md.mud.notificari.errors.MessageTemplateException;
 import md.mud.notificari.service.app.AppDtos.TemplateView;
 import org.springframework.stereotype.Service;
 
@@ -73,10 +74,10 @@ public class TemplateArchiveService {
                 found.add(fromHtml(name, html));
             }
         } catch (IOException e) {
-            throw new IllegalArgumentException("Fisierul nu este o arhiva ZIP valida.");
+            throw MessageTemplateException.invalidArchive();
         }
         if (found.isEmpty()) {
-            throw new IllegalArgumentException("Arhiva nu contine niciun fisier .html.");
+            throw MessageTemplateException.emptyArchive();
         }
         return found;
     }

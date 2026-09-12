@@ -12,7 +12,8 @@ import md.mud.notificari.service.MessageQueryService;
 import md.mud.notificari.service.MessageService;
 import md.mud.notificari.service.criteria.MessageCriteria;
 import md.mud.notificari.service.dto.MessageDTO;
-import md.mud.notificari.web.rest.errors.BadRequestAlertException;
+import md.mud.notificari.errors.BadRequestAlertException;
+import md.mud.notificari.errors.MessageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -95,7 +96,7 @@ public class MessageResource {
         }
 
         if (!messageRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw MessageException.notFound(id);
         }
 
         messageDTO = messageService.update(messageDTO);
@@ -129,7 +130,7 @@ public class MessageResource {
         }
 
         if (!messageRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw MessageException.notFound(id);
         }
 
         Optional<MessageDTO> result = messageService.partialUpdate(messageDTO);

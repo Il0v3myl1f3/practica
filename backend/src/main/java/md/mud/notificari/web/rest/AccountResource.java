@@ -9,7 +9,7 @@ import md.mud.notificari.service.MailService;
 import md.mud.notificari.service.UserService;
 import md.mud.notificari.service.dto.AdminUserDTO;
 import md.mud.notificari.service.dto.PasswordChangeDTO;
-import md.mud.notificari.web.rest.errors.*;
+import md.mud.notificari.errors.*;
 import md.mud.notificari.web.rest.vm.KeyAndPasswordVM;
 import md.mud.notificari.web.rest.vm.ManagedUserVM;
 import org.apache.commons.lang3.StringUtils;
