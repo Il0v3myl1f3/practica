@@ -34,6 +34,16 @@ public class RetryPolicy {
         return Duration.ofMillis(Math.max(1, (long) (capped * spread)));
     }
 
+    /**
+     * Ca {@link #delayFor(int)}, dar respecta pauza ceruta de provider cand e mai
+     * lunga decat a noastra. Mai scurta n-o luam: un provider nu are de unde sti
+     * cat ne permitem sa asteptam, iar backoff-ul nostru e deja prudent.
+     */
+    public Duration delayFor(int attempt, Duration retryAfter) {
+        Duration ours = delayFor(attempt);
+        return retryAfter == null || retryAfter.compareTo(ours) <= 0 ? ours : retryAfter;
+    }
+
     public boolean exhausted(int attempt) {
         return attempt >= config.getMaxAttempts();
     }

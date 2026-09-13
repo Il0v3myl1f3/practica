@@ -48,7 +48,9 @@ public class CacheConfiguration {
             createCache(cm, md.mud.notificari.domain.Membership.class.getName());
             createCache(cm, md.mud.notificari.domain.RecipientGroup.class.getName());
             createCache(cm, md.mud.notificari.domain.Recipient.class.getName());
-            createCache(cm, md.mud.notificari.domain.Recipient.class.getName() + ".channelses");
+            // Recipient.channelses nu e cache-uita: salvarea unui destinatar sterge si
+            // rescrie randurile de canal, iar colectia cache-uita a parintelui nu se
+            // invalideaza la stergerea unui copil. Vezi comentariul din Recipient.
             createCache(cm, md.mud.notificari.domain.RecipientChannel.class.getName());
             createCache(cm, md.mud.notificari.domain.MessageTemplate.class.getName());
             createCache(cm, md.mud.notificari.domain.Message.class.getName());

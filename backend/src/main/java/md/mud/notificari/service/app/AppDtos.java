@@ -65,6 +65,25 @@ public final class AppDtos {
         int recipientCount
     ) {}
 
+    /**
+     * Contactele botului de Telegram, adica oamenii care i-au scris. Un bot nu
+     * poate scrie primul nimanui, deci asta e singura cale de a afla un chat ID.
+     *
+     * {@code botUsername} e pentru linkul t.me/... pe care il dai oamenilor;
+     * {@code recipientId} e nenul cand chat ID-ul e deja legat la un destinatar.
+     */
+    public record TelegramDirectory(String botUsername, List<TelegramContact> contacts) {}
+
+    public record TelegramContact(
+        String chatId,
+        String name,
+        String username,
+        String lastMessage,
+        Instant lastAt,
+        Long recipientId,
+        String recipientName
+    ) {}
+
     // ------------------------------------------------------------- requests
 
     public record RecipientUpsert(
@@ -95,4 +114,6 @@ public final class AppDtos {
         List<Long> recipientIds,
         Map<Long, List<String>> channelOverrides
     ) {}
+
+    public record TelegramLink(String chatId, Long recipientId) {}
 }

@@ -26,6 +26,11 @@ public abstract class EntityErrorException extends ErrorResponseException {
                 .withStatus(status.value())
                 .withType(ErrorConstants.DEFAULT_TYPE)
                 .withTitle(defaultMessage)
+                // Si in "detail", fiindca ExceptionTranslator rescrie "title" cu
+                // motivul standard HTTP ("Conflict"). "detail" il lasa in pace daca
+                // e deja setat, deci asta e singurul loc in care mesajul in romana
+                // ajunge la client - altfel utilizatorul vede cheia "error.xxx".
+                .withDetail(defaultMessage)
                 .withProperty("message", "error." + errorKey)
                 .withProperty("params", entityName)
                 .build(),

@@ -184,6 +184,12 @@ filter Recipient, Message
 //     per destinatar, la trimitere.
 //  8. Specific canal: Telegram si WhatsApp nu au subiect - acesta devine prima
 //     linie a mesajului; la WhatsApp imaginile pleaca separat.
+//     Telegram (implementat): RecipientChannel.address e chat_id-ul numeric, nu
+//     @username, si se obtine doar dupa ce omul scrie botului (un bot nu poate
+//     scrie primul) - vezi ecranul de conectare. HTML-ul se reduce la subsetul
+//     acceptat (b i u s a code pre blockquote), mesajul se taie la 4096 de
+//     caractere, atasamentele pleaca separat prin sendDocument, imaginile inline
+//     nu pleaca deloc.
 //  9. Agregare status Message din MessageRecipient: cat mai exista PENDING sau
 //     SENDING -> QUEUED; apoi niciun FAILED -> SENT, niciun succes -> FAILED,
 //     amestecat -> PARTIAL. Succes = SENT sau DELIVERED: SENT e starea scrisa de

@@ -35,7 +35,7 @@ reîncercări la erorile trecătoare. Cererea HTTP nu așteaptă trimiterea.
                     DeliveryDispatcher
                           │  revendică un lot
                           ▼
-                    ChannelSender (smtp / mock)
+                    ChannelSender (smtp / telegram-bot / mock)
                           │
                           ▼
                     SENT sau FAILED  ──►  statusul mesajului recalculat
@@ -50,7 +50,7 @@ Starea canalelor astăzi:
 | Canal | Providere disponibile | Starea |
 |---|---|---|
 | `EMAIL` | `smtp`, `mock` | **poate trimite real**, prin SMTP |
-| `TELEGRAM` | `mock` | doar simulat — clientul real nu există încă |
+| `TELEGRAM` | `telegram-bot`, `mock` | **poate trimite real**, prin Bot API |
 | `WHATSAPP` | `mock` | doar simulat — clientul real nu există încă |
 
 Mock-ul nu e un artificiu de dezvoltare pe care să-l ștergi: e un provider de
@@ -81,11 +81,11 @@ Toate cheile stau sub `application.messaging` în
 
 | Cheie | Implicit | Ce face |
 |---|---|---|
-| `provider` | `mock` | Id-ul providerului: `mock`, `smtp`. Trebuie să existe un `ChannelSender` cu acest `providerId()`, altfel aplicația nu pornește. |
+| `provider` | `mock` | Id-ul providerului: `mock`, `smtp` (email), `telegram-bot` (Telegram). Trebuie să existe un `ChannelSender` cu acest `providerId()`, altfel aplicația nu pornește. |
 | `batch-size` | `25` | Câte livrări ia dispecerul pe acest canal, la fiecare tick. |
 | `min-interval` | `0` (dar `200ms` pentru email în `application.yml`) | Pauză între două trimiteri consecutive pe canal. Limitare de rată simplă. |
 | `mock-failure-rate` | `0` | Doar pentru `provider: mock`: fracțiunea de trimiteri care eșuează, ca să poți exersa retry-ul. |
-| `options.*` | — | Hartă liberă de setări specifice providerului (token, URL). Un client nou nu cere câmpuri noi în `ApplicationProperties`. |
+| `options.*` | — | Hartă liberă de setări specifice providerului. Pentru `telegram-bot`: `bot-token` și `base-url`. Un client nou nu cere câmpuri noi în `ApplicationProperties`. |
 
 ### 2.3 Dispecer — `dispatcher.*`
 
@@ -143,13 +143,63 @@ pe mock când lipseau credențialele, iar rezultatul era că **nu puteai spune,
 uitându-te la un rând verde „Livrat" din istoric, dacă emailul a plecat într-adevăr**.
 `provider: mock` este fallback-ul — doar că acum e o alegere scrisă, nu un accident.
 
-### 2.6 Implicitele pe profil
+### 2.6 Pornirea Telegramului real
 
-| Profil | Email | `async` |
+Două variabile, plus un pas care **nu e de configurare**: legarea chat-urilor.
+
+```bash
+# Windows
+setx MESSAGING_TELEGRAM_PROVIDER telegram-bot
+setx TELEGRAM_BOT_TOKEN 123456789:AA...   # tokenul primit de la @BotFather
+```
+
+```bash
+# Linux / macOS
+export MESSAGING_TELEGRAM_PROVIDER=telegram-bot
+export TELEGRAM_BOT_TOKEN=123456789:AA...
+```
+
+Ca la email: `provider: telegram-bot` fără token **oprește pornirea**, cu mesajul
+care spune ce lipsește.
+
+**Pasul care surprinde: un bot nu poate scrie primul.** Telegram nu permite unui
+bot să inițieze o conversație, iar Bot API **nu acceptă `@username`** pentru
+persoane — are nevoie de `chat_id` numeric. Deci fiecare destinatar trebuie să
+deschidă botul și să apese *Start*; abia atunci îi putem afla chat ID-ul.
+
+Fluxul, din UI: **Destinatari → Conectează Telegram**. Ecranul arată linkul
+`t.me/<bot>` de trimis oamenilor și lista celor care au scris botului, cu un
+select pentru a lega fiecare chat la un destinatar. Legarea scrie
+`RecipientChannel(TELEGRAM, address = chat_id, verified = true)`.
+
+Două limite de platformă, vizibile în ecran:
+
+- Telegram păstrează update-urile neconfirmate **~24h**. Cine nu mai apare în
+  listă trebuie să scrie din nou botului.
+- `getUpdates` e chemat **fără `offset`**, dinadins: un offset confirmă
+  update-urile și Telegram nu le mai trimite niciodată, deci lista ar fi goală de
+  a doua deschidere a ecranului.
+
+Endpointurile din spate (vezi §3.6) răspund **409 `error.telegramnotactive`** cât
+timp providerul activ pentru TELEGRAM nu e `telegram-bot` — mai bine o eroare
+clară decât o listă goală care pare să spună „nimeni nu a scris".
+
+| Opțiune | Implicit | Ce face |
 |---|---|---|
-| `dev` (`application-dev.yml`) | `${MESSAGING_EMAIL_PROVIDER:mock}` | `true` |
-| `prod` (`application-prod.yml`) | `${MESSAGING_EMAIL_PROVIDER:smtp}` | `true` |
-| teste (`src/test/resources/config/application.yml`) | `mock` | `false` |
+| `options.bot-token` | `${TELEGRAM_BOT_TOKEN:}` | Tokenul de la @BotFather. Ajunge în calea URL-ului, deci nu se loghează niciodată. |
+| `options.base-url` | `https://api.telegram.org` | Se schimbă doar pentru teste contra unui server fals. |
+| `min-interval` | `50ms` în `application.yml` | ~20 mesaje/s, sub limita de ~30/s a Telegram. |
+
+### 2.7 Implicitele pe profil
+
+| Profil | Email | Telegram | `async` |
+|---|---|---|---|
+| `dev` (`application-dev.yml`) | `${MESSAGING_EMAIL_PROVIDER:mock}` | `${MESSAGING_TELEGRAM_PROVIDER:mock}` | `true` |
+| `prod` (`application-prod.yml`) | `${MESSAGING_EMAIL_PROVIDER:smtp}` | `${MESSAGING_TELEGRAM_PROVIDER:mock}` | `true` |
+| teste (`src/test/resources/config/application.yml`) | `mock` | `mock` | `false` |
+
+Telegramul rămâne pe `mock` chiar și în `prod`: cere un bot și chat ID-uri legate,
+deci se pornește explicit, când e pregătit.
 
 Un clone proaspăt, fără nicio variabilă de mediu, pornește și nu trimite nimic real.
 
@@ -157,19 +207,31 @@ Testele rulează pe `async: false` din două motive: răspunsul conține statusu
 final (deci aserțiunile sunt simple) și nu se atinge interogarea de revendicare
 cu `for update skip locked`, pe care H2 nu o poate parsa.
 
-### 2.7 `async: false` pentru depanare
+### 2.8 `async: false` pentru depanare
 
 Cu `async: false`, `POST /messages/send` trimite pe loc și întoarce rezultatul
 final (`SENT` / `PARTIAL` / `FAILED`), nu `QUEUED`. E comportamentul de dinaintea
 cozii și e util când vrei să vezi eroarea unui provider imediat, în răspuns. Merge
 prin exact aceleași clase ca dispecerul — doar declanșatorul diferă.
 
-### 2.8 Timeout-uri SMTP
+### 2.9 Timeout-uri de rețea
 
 `application-dev.yml` și `application-prod.yml` setează
 `mail.smtp.connectiontimeout`, `timeout` și `writetimeout`. **Nu le scoate.**
 Fără ele JavaMail așteaptă la nesfârșit, iar un singur socket blocat oprește
 dispecerul împreună cu restul task-urilor programate.
+
+Aceeași grijă, în cod, la Telegram: `TelegramClient` își construiește fabrica de
+cereri cu 10s la conectare și 20s la citire. Nu sunt configurabile din yaml — sunt
+o măsură de protecție a dispecerului, nu un buton.
+
+### 2.10 Ce e activ — linia de la pornire
+
+```
+ChannelSenderRegistry : Canale de trimitere: EMAIL -> smtp · TELEGRAM -> telegram-bot · WHATSAPP -> mock
+```
+
+Singura sursă de adevăr despre ce pleacă real și ce e simulat.
 
 ---
 
@@ -283,26 +345,67 @@ Corpul e `ProblemDetail` (RFC 7807), extins de JHipster:
   "title": "Bad Request",
   "status": 400,
   "instance": "/api/app/messages/send",
+  "detail": "Alege cel putin un canal.",
   "message": "error.nochannel",
   "params": "message",
   "path": "/api/app/messages/send"
 }
 ```
 
-> **De știut:** `message` e o **cheie de traducere**, nu text pentru om. Textul
-> românesc din `errors/MessageException.java` nu ajunge în răspuns. Iar
-> `core/toast.service.ts` afișează `message` ca atare, deci utilizatorul vede
-> literal „error.sendingdisabled". Comportamentul e vechi (la fel se întâmplă
-> deja cu `error.nochannel` și `error.norecipient`) și nu l-am schimbat, dar se
-> vede mai des acum că există un comutator de oprire. Rezolvarea e o hartă
-> cheie → text în frontend, sau trecerea textului în `detail`.
+> **De știut:** `message` e o **cheie**, nu text pentru om, iar `title` e rescris
+> de `ExceptionTranslator` cu motivul standard HTTP („Bad Request"). Textul
+> românesc ajunge la client prin **`detail`** — `EntityErrorException` îl pune
+> acolo tocmai pentru că `detail` e singurul câmp pe care translatorul nu-l
+> suprascrie. `core/toast.service.ts` citește `detail ?? message`, deci
+> utilizatorul vede propoziția, nu cheia.
 
 Validările de tip „câmp obligatoriu" din service layer aruncă
 `IllegalArgumentException` și au **altă formă**, produsă de handler-ul din
 `AppResource.java:181`: `{ "message": "<text românesc>" }`. Acolo textul *este*
 afișabil.
 
-### 3.6 Exemplu complet
+### 3.6 Conectarea chat-urilor de Telegram
+
+Două endpointuri, folosite de ecranul **Destinatari → Conectează Telegram**. Ambele
+răspund **409 `error.telegramnotactive`** dacă providerul activ pe TELEGRAM nu e
+`telegram-bot`.
+
+**`GET /api/app/telegram/contacts`** — cine a scris botului:
+
+```json
+{
+  "botUsername": "anunturi_mud_bot",
+  "contacts": [
+    {
+      "chatId": "1001",
+      "name": "Ion Popescu",
+      "username": "ionp",
+      "lastMessage": "/start",
+      "lastAt": "2026-09-12T18:00:00Z",
+      "recipientId": 1201,
+      "recipientName": "Ion Popescu"
+    }
+  ]
+}
+```
+
+`recipientId` e nenul când chat ID-ul e deja legat. Lista e dedublată pe `chatId`
+(rămâne ultimul mesaj) și sortată descrescător după `lastAt`. `botUsername` vine
+din `getMe`, pentru linkul `t.me/<bot>`.
+
+**`POST /api/app/telegram/link`** — leagă un chat la un destinatar:
+
+```json
+{ "chatId": "1001", "recipientId": 1201 }
+```
+
+Răspunde **204**. Scrie sau actualizează `RecipientChannel(TELEGRAM, address,
+active = true, verified = true)`. Erori: **409 `error.chatidexists`** dacă alt
+destinatar din organizație are deja acel chat ID, **404 `error.notfound`** dacă
+destinatarul nu există, **400 `error.invalidchatid`** dacă `chatId` lipsește,
+**502 `error.telegramunavailable`** dacă Telegram nu răspunde.
+
+### 3.7 Exemplu complet
 
 ```bash
 BASE=http://localhost:8080
@@ -380,8 +483,21 @@ curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/app/messages/$ID/status"
 | `MockChannelSender` | Providerul `mock`: logează și raportează reușit. Opțional eșuează cu `mock-failure-rate`. |
 | `EmailChannelSender` | Providerul `smtp`. Doar SMTP real, fără niciun fallback. |
 | `EmailFailureClassifier` | Decide dacă un eșec SMTP e trecător sau definitiv. |
-| `Delivery`, `SendOutcome` | Sarcina randată și rezultatul ei. |
+| `Delivery`, `SendOutcome` | Sarcina randată și rezultatul ei. `SendOutcome.retryAfter` e pauza cerută de provider. |
 | `VariableRenderer` | Substituie `{{nume}}`, `{{prenume}}`, `{{grup}}`, `{{email}}`. |
+
+`service/messaging/telegram/` — providerul `telegram-bot`:
+
+| Clasă | Rol |
+|---|---|
+| `TelegramChannelSender` | Providerul. Subiectul devine prima linie, textul se taie în mesaje, atașamentele pleacă separat. |
+| `TelegramClient` | Clientul HTTP (`sendMessage`, `sendDocument`, `getMe`, `getUpdates`). Timeout-uri proprii, tokenul nu se loghează. |
+| `TelegramHtmlFormatter` | Reduce HTML-ul editorului la subsetul Telegram (cu jsoup) și îl împarte la 4096. |
+| `TelegramFailureClassifier` | Traduce statusul HTTP + `description` în `retry` / `permanent`, cu `retry_after`. |
+| `TelegramResponse`, `TelegramUpdates`, `TelegramApiException` | Forma răspunsurilor Bot API și refuzul lor. |
+
+`service/app/TelegramLinkService` — contactele botului și legarea lor la
+destinatari (ecranul de conectare). Nu ia parte la trimitere.
 
 `service/messaging/dispatch/` — coada:
 
@@ -443,6 +559,24 @@ Codul se citește din mesaj, nu din `SMTPSendFailedException`: implementarea Ang
 e dependință de **runtime** în Spring Boot 4, deci clasele ei nu sunt pe
 classpath-ul de compilare. Textul începe însă mereu cu codul (`550-5.1.1 ...`).
 
+`TelegramFailureClassifier` face același lucru pentru Bot API:
+
+| Situație | Verdict |
+|---|---|
+| 401 token greșit/revocat | **definitiv** |
+| 403 „bot was blocked", „user is deactivated", „bot can't initiate conversation" | **definitiv** |
+| 400 „chat not found", „chat_id is empty" | **definitiv** |
+| 400 „can't parse entities" | o reîncercare imediată în text curat; dacă nici aceea nu trece, **definitiv** |
+| 413 / „file is too big" | **definitiv** |
+| 429 | reîncercabil, **la momentul cerut în `retry_after`** |
+| 5xx, conexiune refuzată, timeout | reîncercabil |
+| Orice altceva | reîncercabil |
+
+Un `retry_after` mai lung decât backoff-ul nostru îl înlocuiește
+(`RetryPolicy.delayFor(attempt, retryAfter)`). Motivul: o pauză de flood poate cere
+o oră, iar reîncercările din 30 în 30 de secunde ar consuma toate încercările pe
+refuzuri. Mai scurt nu luăm — providerul nu știe cât ne permitem să așteptăm.
+
 Întârzierea: `min(initial × multiplier^(încercare-1), max)`, plus jitter ±20%. Cu
 implicitele: **~30s → ~90s → ~4.5min → ~13.5min → `FAILED`** (5 încercări, o
 fereastră de ~19 minute). Jitter-ul contează pentru că atunci când pică rețeaua
@@ -480,7 +614,10 @@ Scrise explicit, ca să nu fie luate drept defecte:
 - **Livrare „cel puțin o dată".** Dacă predarea către provider reușește dar
   înregistrarea rezultatului nu apucă să facă commit (proces oprit), livrarea se
   reia după `visibility-timeout` și mesajul pleacă a doua oară. E inerent oricărei
-  cozi fără chei de idempotență la provider — SMTP nu oferă așa ceva.
+  cozi fără chei de idempotență la provider — nici SMTP, nici Bot API nu oferă
+  așa ceva. Pe Telegram efectul e vizibil și într-un caz mai mic: un mesaj împărțit
+  în mai multe bucăți, care eșuează la a doua, retrimite la reîncercare **toate**
+  bucățile.
 - **O singură instanță.** Revendicarea folosește `for update skip locked`, deci
   două instanțe nu ar lua același rând, dar restul nu a fost verificat pe mai
   multe noduri.
@@ -497,38 +634,33 @@ Un provider nou e **o clasă nouă plus două linii de yaml**. Nu se modifică
 `AppService`, `SendCoordinator`, dispecerul sau vreun DTO. Mock-ul existent rămâne
 la locul lui — nu se înlocuiește, doar nu mai e selectat.
 
-### Pasul 1 — clasa
+Modelul de urmat e `service/messaging/telegram/` — providerul `telegram-bot`, scris
+exact pe tiparul de mai jos. Singurul canal rămas fără client real e **WHATSAPP**.
 
-`service/messaging/telegram/TelegramChannelSender.java`:
+### Pasul 1 — clasa
 
 ```java
 @Service
-public class TelegramChannelSender implements ChannelSender {
+public class WhatsAppChannelSender implements ChannelSender {
 
-    private final RestClient http;          // deja în spring-boot-starter-web
-    private final String token;
+    private final WhatsAppClient client;   // clientul HTTP, separat de sender
 
-    public TelegramChannelSender(RestClient.Builder builder, ApplicationProperties properties) {
-        this.http = builder.baseUrl("https://api.telegram.org").build();
-        this.token = properties.getMessaging().settingsFor(Channel.TELEGRAM).getOptions().get("bot-token");
-    }
-
-    @Override public Channel channel()   { return Channel.TELEGRAM; }
-    @Override public String providerId() { return "telegram-bot"; }
+    @Override public Channel channel()   { return Channel.WHATSAPP; }
+    @Override public String providerId() { return "whatsapp-cloud"; }
 
     @Override
     public void validateConfiguration() {
-        if (token == null || token.isBlank()) {
-            throw new IllegalStateException("Lipseste application.messaging.channels.telegram.options.bot-token");
-        }
+        // doar verificări offline: token prezent, numar configurat.
+        // Fara apel de retea - o pana la provider nu trebuie sa blocheze pornirea.
     }
 
     @Override
     public SendOutcome send(Delivery delivery) {
-        // 429 -> SendOutcome.retry(...)   (Telegram trimite si retry_after)
-        // 4xx -> SendOutcome.permanent(...) ("chat not found")
-        // 5xx / IO -> SendOutcome.retry(...)
-        // la reusita: SendOutcome.ok(<id-ul real de la provider>)
+        try {
+            return SendOutcome.ok(String.valueOf(client.sendText(delivery.address(), text)));
+        } catch (Exception e) {
+            return WhatsAppFailureClassifier.classify(e);   // retry / permanent
+        }
     }
 }
 ```
@@ -539,10 +671,11 @@ public class TelegramChannelSender implements ChannelSender {
 application:
   messaging:
     channels:
-      telegram:
-        provider: telegram-bot
+      whatsapp:
+        provider: ${MESSAGING_WHATSAPP_PROVIDER:mock}
         options:
-          bot-token: ${TELEGRAM_BOT_TOKEN:}
+          access-token: ${WHATSAPP_TOKEN:}
+          phone-number-id: ${WHATSAPP_PHONE_ID:}
 ```
 
 Harta `options` e motivul pentru care acest pas **nu** cere un câmp nou în
@@ -550,7 +683,7 @@ Harta `options` e motivul pentru care acest pas **nu** cere un câmp nou în
 
 ### Pasul 3 — restart
 
-Logul confirmă: `Canale de trimitere: ... · TELEGRAM -> telegram-bot · ...`.
+Logul confirmă: `Canale de trimitere: ... · WHATSAPP -> whatsapp-cloud`.
 Dacă `providerId()` nu corespunde cu `provider` din yaml, aplicația refuză să
 pornească și listează ce e disponibil.
 
@@ -563,21 +696,43 @@ pornească și listează ce e disponibil.
    `provider_message_id` și e singura urmă a trimiterii.
 3. **Nu arunca** dacă poți întoarce un `SendOutcome`. (Dacă totuși arunci,
    `DeliveryRunner` prinde și tratează ca `retry`, ca să nu cadă tot lotul.)
+4. **Pune timeout-uri pe clientul HTTP.** Dispecerul rulează pe planificatorul de
+   task-uri; un socket blocat îl oprește cu totul. Vezi `TelegramClient`.
+5. **Nu loga tokenul.** La Telegram el stă chiar în calea URL-ului.
 
-### Capcanele cunoscute
+### Cum arată la Telegram — de citit înainte de WhatsApp
 
-**Telegram.** Acceptă doar un subset mic de HTML — `b`, `i`, `u`, `s`, `a`,
-`code`, `pre`, `blockquote`. HTML-ul venit din editorul bogat al aplicației
-**trebuie redus**, nu trimis ca atare. Limita e 4096 caractere per mesaj.
+`TelegramChannelSender` rezolvă deja trei probleme pe care orice canal de chat le
+are, și merită copiate:
 
-**WhatsApp (Cloud API).** Text liber e permis **doar în fereastra de 24h** de la
-ultimul mesaj al utilizatorului. În afara ei se pot trimite doar șabloane aprobate
-de Meta, cu parametri. Asta e o constrângere de **produs** asupra ecranului de
-compunere, nu un detaliu de implementare al clientului — de discutat înainte de
-a scrie codul.
+- **HTML-ul editorului nu e acceptat.** Telegram cunoaște doar `b i u s a code pre
+  blockquote` și respinge tot mesajul cu 400 dacă apare un `<div>`.
+  `TelegramHtmlFormatter` parcurge DOM-ul cu jsoup și traduce și stilurile CSS
+  (`font-weight: 700` → `<b>`), fiindcă editorul scrie formatarea ca `style`.
+  Plasa de siguranță: la 400 „can't parse entities" mesajul se retrimite o dată în
+  text curat, cu un `WARN` care numește tag-ul vinovat.
+- **Limită de lungime.** 4096 caractere per mesaj, deci textul se taie pe limite de
+  paragraf. Invariantul care face tăierea sigură: fiecare linie produsă are
+  tag-urile echilibrate în ea însăși.
+- **Fișierele pleacă separat.** `sendMessage` nu poate purta atașamente; fiecare
+  fișier se trimite cu `sendDocument` (multipart), după text.
+
+Ce **nu** pleacă pe Telegram: imaginile inline din corp. `<img>` e aruncat de
+formatter — Bot API nu are imagini în interiorul unui mesaj text.
+
+### Capcana WhatsApp (Cloud API)
+
+Text liber e permis **doar în fereastra de 24h** de la ultimul mesaj al
+utilizatorului. În afara ei se pot trimite doar șabloane aprobate de Meta, cu
+parametri. Asta e o constrângere de **produs** asupra ecranului de compunere, nu un
+detaliu de implementare al clientului — de discutat înainte de a scrie codul.
+
+La fel ca la Telegram, va avea nevoie și de un pas de consimțământ: numărul trebuie
+să fi scris primul. Ecranul **Conectează Telegram** e modelul pentru asta.
 
 **Ambele.** Nu au subiect (regula 8 din `app.jdl`). Convenția pe care mock-ul o
-stabilește deja: subiectul devine prima linie a corpului. Păstrează-o.
+stabilește deja și pe care `telegram-bot` o respectă: subiectul devine prima linie a
+corpului. Păstrează-o.
 
 ---
 
@@ -588,7 +743,7 @@ stabilește deja: subiectul devine prima linie a corpului. Păstrează-o.
 Linia de la pornire e singura sursă de adevăr:
 
 ```
-ChannelSenderRegistry : Canale de trimitere: EMAIL -> smtp · TELEGRAM -> mock · WHATSAPP -> mock
+ChannelSenderRegistry : Canale de trimitere: EMAIL -> smtp · TELEGRAM -> telegram-bot · WHATSAPP -> mock
 ```
 
 ### Ce s-a întâmplat cu o trimitere
@@ -610,6 +765,12 @@ select channel, status, attempt_count, next_attempt_at, error_message, provider_
 | Rânduri `SKIPPED` neașteptate | Destinatarii nu au adresă activă pe canalul respectiv. Verifică `recipient_channel`. |
 | Istoricul vechi apare eșuat | Cineva a scos tratarea lui `DELIVERED` ca succes. Vezi §4.1. |
 | Aplicația nu pornește, eroare de configurare | Cheie `application.*` fără câmp în `ApplicationProperties`, sau `provider` inexistent. Mesajul spune care. |
+| **Telegram:** toată lumea e `FAILED` cu „chat not found" | Chat ID-urile nu sunt legate, sau sunt scrise de mână și greșite. Destinatari → Conectează Telegram. |
+| **Telegram:** `FAILED` cu „bot was blocked by the user" | Omul a blocat botul. Nu se rezolvă din aplicație. |
+| **Telegram:** un `WARN` cu „a respins formatarea" | Editorul produce un tag nou, pe care formatter-ul nu-l traduce. Mesajul a plecat în text curat; tag-ul e numit în log, de adăugat în `TelegramHtmlFormatter`. |
+| **Telegram:** `PENDING` cu „Limita de rată" și `next_attempt_at` departe | 429 cu `retry_after`. Se reia singur. Dacă se repetă, mărește `channels.telegram.min-interval`. |
+| **Telegram:** „Telegramul real nu e pornit" în ecranul de conectare | `MESSAGING_TELEGRAM_PROVIDER` nu e `telegram-bot`. |
+| **Telegram:** lista de contacte e goală deși omul a scris | Au trecut peste ~24h de la mesajul lui. Trebuie să scrie din nou. |
 
 ### Exersarea retry-ului fără rețea
 
@@ -624,6 +785,23 @@ application:
 
 Jumătate din livrări se întorc `retry`, deci poți urmări backoff-ul și
 `attempt_count` fără SMTP și fără internet.
+
+### Telegram fără bot: `base-url` spre un server propriu
+
+`options.base-url` există exact pentru asta. Pornești un server local care răspunde
+la `/bot<token>/getMe`, `/sendMessage`, `/sendDocument`, `/getUpdates` și poate
+întoarce erori la comandă, apoi:
+
+```bash
+MESSAGING_TELEGRAM_PROVIDER=telegram-bot \
+TELEGRAM_BOT_TOKEN=orice \
+TELEGRAM_BASE_URL=http://localhost:8099 \
+./mvnw
+```
+
+Așa se pot exersa, fără token de la @BotFather, chiar și cazurile greu de provocat
+pe viu: 429 cu `retry_after`, „chat not found", „can't parse entities" sau un corp
+peste 4096 de caractere.
 
 ### Oprirea trimiterilor pentru mentenanță
 

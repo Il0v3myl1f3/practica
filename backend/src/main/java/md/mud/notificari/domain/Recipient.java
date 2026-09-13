@@ -56,8 +56,17 @@ public class Recipient implements Serializable {
     @Column(name = "archived_at")
     private Instant archivedAt;
 
+    /**
+     * Fara cache de colectie, dinadins: la salvarea unui destinatar randurile de
+     * canal se sterg si se rescriu, iar o stergere de copil nu invalideaza colectia
+     * cache-uita a parintelui. Cu cache, a doua editare a aceluiasi destinatar
+     * incerca sa initializeze colectia din cache si cadea cu
+     * "No row with the given identifier exists for RecipientChannel".
+     *
+     * Daca se readauga aici, trebuie readaugat si createCache(...".channelses") in
+     * CacheConfiguration - si rezolvata intai invalidarea.
+     */
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "recipient")
-    @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     @JsonIgnoreProperties(value = { "recipient" }, allowSetters = true)
     private Set<RecipientChannel> channelses = new HashSet<>();
 

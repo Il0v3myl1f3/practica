@@ -1,5 +1,6 @@
 package md.mud.notificari.service.messaging.dispatch;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -128,8 +129,9 @@ public class DeliveryExecutor {
                 if (policy.exhausted(attempt)) {
                     row.status(DeliveryStatus.FAILED).nextAttemptAt(null);
                 } else {
-                    row.status(DeliveryStatus.PENDING).nextAttemptAt(now.plus(policy.delayFor(attempt)));
-                    LOG.debug("Livrarea {} se reia dupa {} (incercarea {})", deliveryId, policy.delayFor(attempt), attempt);
+                    Duration delay = policy.delayFor(attempt, outcome.retryAfter());
+                    row.status(DeliveryStatus.PENDING).nextAttemptAt(now.plus(delay));
+                    LOG.debug("Livrarea {} se reia dupa {} (incercarea {})", deliveryId, delay, attempt);
                 }
             }
         }

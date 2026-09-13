@@ -36,6 +36,8 @@
         <spring-boot.version>${project.parent.version}</spring-boot.version>
         <archunit-junit5.version>1.4.2</archunit-junit5.version>
         <jhipster-framework.version>9.1.0</jhipster-framework.version>
+        <!-- Reducerea HTML-ului pentru Telegram. Nu e gestionat de spring-boot-dependencies, deci versiunea e explicita. -->
+        <jsoup.version>1.17.2</jsoup.version>
         <liquibase-plugin.driver/>
         <liquibase-plugin.hibernate-dialect/>
         <liquibase-plugin.password/>
@@ -241,6 +243,11 @@
         <dependency>
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>${jsoup.version}</version>
         </dependency>
         <dependency>
             <groupId>org.liquibase</groupId>

@@ -31,8 +31,10 @@ adrese reale, alese de tine.
 
 - `POST /api/authenticate` — login, întoarce JWT în câmpul `id_token`
 - `/api/app/**` — API-ul pe care îl folosește clientul Angular, modelat după
-  ecrane; printre altele `POST /api/app/messages/send` (pune mesajul în coadă) și
-  `GET /api/app/messages/{id}/status` (starea trimiterii)
+  ecrane; printre altele `POST /api/app/messages/send` (pune mesajul în coadă),
+  `GET /api/app/messages/{id}/status` (starea trimiterii) și
+  `GET /api/app/telegram/contacts` + `POST /api/app/telegram/link` (chat ID-urile
+  celor care au scris botului, și legarea lor la destinatari)
 - `/api/organizations`, `/api/recipients`, `/api/recipient-groups`,
   `/api/recipient-channels`, `/api/message-templates`, `/api/messages`,
   `/api/message-channels`, `/api/message-recipients`, `/api/message-attachments`
@@ -45,8 +47,9 @@ adrese reale, alese de tine.
 ## Trimiterea notificărilor
 
 Livrările trec printr-o coadă asincronă cu retry, iar providerul fiecărui canal
-(`mock` / `smtp`) se alege din `application.messaging.*`. Configurare, API,
-arhitectură și ghid de extindere: **[`docs/notificari.md`](docs/notificari.md)**.
+(`mock`, `smtp` pentru email, `telegram-bot` pentru Telegram) se alege din
+`application.messaging.*`. Configurare, API, arhitectură și ghid de extindere:
+**[`docs/notificari.md`](docs/notificari.md)**.
 
 ## Modelul de date
 

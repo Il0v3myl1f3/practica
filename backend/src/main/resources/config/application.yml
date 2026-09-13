@@ -198,8 +198,20 @@ application:
         provider: mock # mock | smtp
         batch-size: 25
         min-interval: 200ms
+      # Telegramul real se porneste tot dintr-o variabila de mediu:
+      #   setx MESSAGING_TELEGRAM_PROVIDER telegram-bot
+      #   setx TELEGRAM_BOT_TOKEN tokenul-de-la-BotFather
+      # Chat ID-urile se leaga din Destinatari -> Conecteaza Telegram: un bot nu
+      # poate scrie primul nimanui, deci omul trebuie sa-i dea /start intai.
       telegram:
-        provider: mock # mock (telegram-bot, cand exista clientul real)
+        provider: ${MESSAGING_TELEGRAM_PROVIDER:mock} # mock | telegram-bot
+        batch-size: 25
+        # ~20 mesaje/s, sub limita de ~30/s a Telegram.
+        min-interval: 50ms
+        options:
+          bot-token: ${TELEGRAM_BOT_TOKEN:}
+          # Se schimba doar pentru teste contra unui server fals.
+          base-url: ${TELEGRAM_BASE_URL:https://api.telegram.org}
       whatsapp:
         provider: mock # mock (whatsapp-cloud, cand exista clientul real)
     dispatcher:

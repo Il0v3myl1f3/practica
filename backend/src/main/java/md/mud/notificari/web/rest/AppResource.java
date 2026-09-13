@@ -14,9 +14,12 @@ import md.mud.notificari.service.app.AppDtos.RecipientUpsert;
 import md.mud.notificari.service.app.AppDtos.RecipientView;
 import md.mud.notificari.service.app.AppDtos.SendPayload;
 import md.mud.notificari.service.app.AppDtos.SendResult;
+import md.mud.notificari.service.app.AppDtos.TelegramDirectory;
+import md.mud.notificari.service.app.AppDtos.TelegramLink;
 import md.mud.notificari.service.app.AppDtos.TemplateView;
 import md.mud.notificari.service.app.AppService;
 import md.mud.notificari.service.app.SendCoordinator;
+import md.mud.notificari.service.app.TelegramLinkService;
 import md.mud.notificari.service.app.TemplateArchiveService;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -46,11 +49,13 @@ public class AppResource {
     private final AppService app;
     private final SendCoordinator sending;
     private final TemplateArchiveService archive;
+    private final TelegramLinkService telegram;
 
-    public AppResource(AppService app, SendCoordinator sending, TemplateArchiveService archive) {
+    public AppResource(AppService app, SendCoordinator sending, TemplateArchiveService archive, TelegramLinkService telegram) {
         this.app = app;
         this.sending = sending;
         this.archive = archive;
+        this.telegram = telegram;
     }
 
     // ------------------------------------------------------------- dashboard
@@ -91,6 +96,20 @@ public class AppResource {
     @GetMapping("/groups")
     public List<GroupView> groups() {
         return app.groups();
+    }
+
+    // -------------------------------------------------------------- telegram
+
+    /** Oamenii care au scris botului, cu chat ID-ul lor - de aici se leaga destinatarii. */
+    @GetMapping("/telegram/contacts")
+    public TelegramDirectory telegramContacts() {
+        return telegram.directory();
+    }
+
+    @PostMapping("/telegram/link")
+    public ResponseEntity<Void> linkTelegram(@RequestBody TelegramLink body) {
+        telegram.link(body);
+        return ResponseEntity.noContent().build();
     }
 
     // ------------------------------------------------------------- templates

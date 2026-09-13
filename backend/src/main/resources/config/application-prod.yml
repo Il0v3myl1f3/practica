@@ -97,3 +97,7 @@ application:
     channels:
       email:
         provider: ${MESSAGING_EMAIL_PROVIDER:smtp}
+      # Implicit mock si in producție: Telegramul cere un bot si chat ID-uri legate,
+      # deci se porneste explicit, cand e pregatit.
+      telegram:
+        provider: ${MESSAGING_TELEGRAM_PROVIDER:mock}

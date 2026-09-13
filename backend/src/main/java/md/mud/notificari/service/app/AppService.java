@@ -3,6 +3,7 @@ package md.mud.notificari.service.app;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -422,30 +423,45 @@ public class AppService {
     }
 
     private void syncChannels(Recipient r, RecipientUpsert in) {
+        // Randurile se rescriu din formular, dar "verified" nu se pierde daca adresa
+        // a ramas aceeasi: un chat Telegram legat din ecranul de conectare e verificat,
+        // iar o simpla editare de nume nu are de ce sa-l retrogradeze.
+        Map<Channel, RecipientChannel> before = r.getId() == null
+            ? Map.of()
+            : recipientChannels
+                .findByRecipientId(r.getId())
+                .stream()
+                .collect(Collectors.toMap(RecipientChannel::getChannel, c -> c, (a, b) -> a, () -> new EnumMap<>(Channel.class)));
         recipientChannels.deleteByRecipientId(r.getId());
         recipientChannels.save(
             new RecipientChannel().channel(Channel.EMAIL).address(r.getEmail()).active(true).verified(true).recipient(r)
         );
         if (in.telegramChatId() != null && !in.telegramChatId().isBlank()) {
+            String address = in.telegramChatId().trim();
             recipientChannels.save(
                 new RecipientChannel()
                     .channel(Channel.TELEGRAM)
-                    .address(in.telegramChatId().trim())
+                    .address(address)
                     .active(true)
-                    .verified(false)
+                    .verified(wasVerified(before.get(Channel.TELEGRAM), address))
                     .recipient(r)
             );
         }
         if (in.phoneNumber() != null && !in.phoneNumber().isBlank()) {
+            String address = in.phoneNumber().trim();
             recipientChannels.save(
                 new RecipientChannel()
                     .channel(Channel.WHATSAPP)
-                    .address(in.phoneNumber().trim())
+                    .address(address)
                     .active(true)
-                    .verified(false)
+                    .verified(wasVerified(before.get(Channel.WHATSAPP), address))
                     .recipient(r)
             );
         }
+    }
+
+    private static boolean wasVerified(RecipientChannel previous, String address) {
+        return previous != null && Boolean.TRUE.equals(previous.getVerified()) && address.equals(previous.getAddress());
     }
 
     private RecipientGroup resolveGroup(Organization org, String name) {
