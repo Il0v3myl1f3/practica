@@ -13,9 +13,13 @@ export class ToastService {
     this.timer = setTimeout(() => this.message.set(''), 2600);
   }
 
-  /** Erorile de la API vin ca {message}; altfel arătăm ceva inteligibil. */
+  /**
+   * `detail` e textul în română pus de EntityErrorException; `message` e doar cheia
+   * ("error.chatidexists"), bună de citit în log, nu de arătat omului. De aceea
+   * detail are prioritate, iar cheia rămâne ultima plasă de siguranță.
+   */
   error(err: unknown): void {
     const body = (err as { error?: { message?: string; detail?: string } })?.error;
-    this.show(body?.message ?? body?.detail ?? 'Ceva nu a mers. Încearcă din nou.');
+    this.show(body?.detail ?? body?.message ?? 'Ceva nu a mers. Încearcă din nou.');
   }
 }

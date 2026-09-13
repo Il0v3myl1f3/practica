@@ -28,6 +28,26 @@ export interface Group {
   count: number;
 }
 
+/**
+ * Cineva care a scris botului de Telegram. Un bot nu poate scrie primul, deci
+ * asta e singura sursă de chat ID-uri. `recipientId` e setat când chat ID-ul e
+ * deja legat la un destinatar.
+ */
+export interface TelegramContact {
+  chatId: string;
+  name: string;
+  username: string | null;
+  lastMessage: string | null;
+  lastAt: string | null;
+  recipientId: number | null;
+  recipientName: string | null;
+}
+
+export interface TelegramDirectory {
+  botUsername: string | null;
+  contacts: TelegramContact[];
+}
+
 export interface Template {
   id: number | null;
   name: string;

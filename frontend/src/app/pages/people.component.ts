@@ -5,10 +5,10 @@ import { Store } from '../core/store';
 import { ToastService } from '../core/toast.service';
 import { COL, EMAIL_RE, downloadCsv, findColumn, parseCsv } from '../core/csv';
 import { pagerItems, plural } from '../core/format';
-import { Recipient, RecipientUpsert } from '../core/models';
+import { Recipient, RecipientUpsert, TelegramContact } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
 import { SelectComponent, SelectOption } from '../shared/select.component';
-import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Search, Trash2, Upload } from '../shared/icons';
+import { Check, ChevronLeft, ChevronRight, Download, Pencil, Plus, RotateCcw, Search, Send, Trash2, Upload } from '../shared/icons';
 
 const PAGE = 10;
 const COLS = 'minmax(160px, 2fr) minmax(0, 1.4fr) 150px 110px 88px';
@@ -91,6 +91,9 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
           </button>
           <button type="button" class="btn btn-ghost sm" (click)="exportCsv()">
             <app-icon [icon]="I.Download" [size]="15" />Exportă CSV
+          </button>
+          <button type="button" class="btn btn-ghost sm" (click)="openTelegram()">
+            <app-icon [icon]="I.Send" [size]="15" />Conectează Telegram
           </button>
           <button type="button" class="btn btn-primary sm" (click)="openNew()">
             <app-icon [icon]="I.Plus" [size]="15" />Adaugă
@@ -188,6 +191,85 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
       </div>
     }
 
+    @if (telegramOpen()) {
+      <!-- Conectarea chat-urilor: un bot nu poate scrie primul, deci chat ID-ul vine
+           din mesajul trimis de om botului. -->
+      <div class="backdrop" (click)="closeTelegram($event)">
+        <div class="modal tg" (click)="$event.stopPropagation()">
+          <h3>Conectează Telegram</h3>
+          <p class="modal-sub">
+            Un bot nu poate scrie primul. Fiecare persoană deschide botul, apasă <b>Start</b>, și abia
+            apoi apare aici — cu chat ID-ul ei, pe care îl legi la destinatarul potrivit.
+          </p>
+
+          @if (botLink()) {
+            <p class="tg-link">
+              Linkul de trimis oamenilor:
+              <a [href]="botLink()" target="_blank" rel="noopener">{{ botLink() }}</a>
+            </p>
+          }
+
+          @if (tgError()) {
+            <div class="alert">{{ tgError() }}</div>
+          }
+
+          @if (tgLoading()) {
+            <div class="empty">Se citesc contactele botului…</div>
+          } @else if (!tgError()) {
+            <div class="tg-list">
+              @for (c of contacts(); track c.chatId) {
+                <div class="tg-row">
+                  <span class="tg-who">
+                    <span class="cell-strong">{{ c.name }}</span>
+                    <span class="cell-muted">{{ c.username ? '@' + c.username + ' · ' : '' }}{{ c.chatId }}</span>
+                  </span>
+                  @if (c.recipientId) {
+                    <span class="tg-done">
+                      <app-icon [icon]="I.Check" [size]="14" />{{ c.recipientName }}
+                    </span>
+                  } @else {
+                    <select
+                      class="input"
+                      [ngModel]="pick()[c.chatId] ?? ''"
+                      (ngModelChange)="choose(c.chatId, $event)"
+                    >
+                      <option value="">Alege destinatarul…</option>
+                      @for (p of store.recipients(); track p.id) {
+                        <option [value]="p.id">{{ p.name }} — {{ p.email }}</option>
+                      }
+                    </select>
+                    <button
+                      type="button"
+                      class="btn btn-primary sm"
+                      [disabled]="!pick()[c.chatId] || linking() === c.chatId"
+                      (click)="linkContact(c)"
+                    >
+                      Leagă
+                    </button>
+                  }
+                </div>
+              } @empty {
+                <div class="empty">Nimeni nu i-a scris botului încă.</div>
+              }
+            </div>
+          }
+
+          <p class="hint">
+            Telegram ține mesajele neconfirmate circa 24 de ore. Dacă o persoană nu mai apare în listă,
+            roagă-o să scrie din nou botului.
+          </p>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" (click)="loadTelegram()">
+              <app-icon [icon]="I.RotateCcw" [size]="15" />Reîncarcă
+            </button>
+            <span class="grow"></span>
+            <button type="button" class="btn btn-ghost" (click)="telegramOpen.set(false)">Închide</button>
+          </div>
+        </div>
+      </div>
+    }
+
     @if (toDelete(); as d) {
       <div class="backdrop">
         <div class="modal" style="max-width:440px">
@@ -224,6 +306,30 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
       .hint { margin: -6px 0 0; font-size: 12px; color: var(--muted); }
       .notes { margin-top: 4px; }
       .note { font-size: 13px; color: var(--warn-ink); }
+
+      .modal.tg { max-width: 620px; display: flex; flex-direction: column; gap: 12px; }
+      .tg-link { margin: 0; font-size: 13px; }
+      .tg-link a { color: var(--brand-ink); }
+      .tg-list { max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; }
+      .tg-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 2px;
+        border-bottom: 1px solid var(--line);
+      }
+      .tg-row:last-child { border-bottom: 0; }
+      .tg-who { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+      .tg-who > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .tg-row select { flex: 0 1 230px; min-width: 0; }
+      .tg-done {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ok-ink);
+      }
     `,
   ],
 })
@@ -235,7 +341,7 @@ export class PeopleComponent {
   readonly cols = COLS;
   readonly stagedCols = 'minmax(160px, 2fr) minmax(0, 1.4fr) 150px 88px';
   readonly plural = plural;
-  readonly I = { Search, Trash2, Upload, Download, Plus, Pencil, ChevronLeft, ChevronRight };
+  readonly I = { Search, Trash2, Upload, Download, Plus, Pencil, ChevronLeft, ChevronRight, Send, Check, RotateCcw };
 
   readonly q = signal('');
   readonly groupFilter = signal('');
@@ -249,6 +355,16 @@ export class PeopleComponent {
 
   readonly staged = signal<Staged[] | null>(null);
   readonly stagedNotes = signal<string[]>([]);
+
+  // --- conectarea chat-urilor de Telegram
+  readonly telegramOpen = signal(false);
+  readonly tgLoading = signal(false);
+  readonly tgError = signal('');
+  readonly contacts = signal<TelegramContact[]>([]);
+  readonly botUsername = signal<string | null>(null);
+  /** chatId -> id-ul destinatarului ales în select, cât timp nu s-a apăsat Leagă. */
+  readonly pick = signal<Record<string, string>>({});
+  readonly linking = signal<string | null>(null);
 
   constructor() {
     this.store.loadRecipients();
@@ -400,6 +516,60 @@ export class PeopleComponent {
     });
   }
 
+  // ------------------------------------------------------------ Telegram
+
+  botLink = computed(() => (this.botUsername() ? `https://t.me/${this.botUsername()}` : ''));
+
+  openTelegram(): void {
+    this.telegramOpen.set(true);
+    this.pick.set({});
+    this.loadTelegram();
+  }
+
+  closeTelegram(e: Event): void {
+    if (e.target === e.currentTarget) this.telegramOpen.set(false);
+  }
+
+  loadTelegram(): void {
+    this.tgLoading.set(true);
+    this.tgError.set('');
+    this.api.telegramContacts().subscribe({
+      next: d => {
+        this.botUsername.set(d.botUsername);
+        this.contacts.set(d.contacts ?? []);
+        this.tgLoading.set(false);
+      },
+      error: e => {
+        this.contacts.set([]);
+        this.tgError.set(errMessage(e, 'Contactele botului nu au putut fi citite.'));
+        this.tgLoading.set(false);
+      },
+    });
+  }
+
+  choose(chatId: string, recipientId: string): void {
+    this.pick.set({ ...this.pick(), [chatId]: recipientId });
+  }
+
+  linkContact(c: TelegramContact): void {
+    const recipientId = Number(this.pick()[c.chatId]);
+    if (!recipientId) return;
+    this.linking.set(c.chatId);
+    this.api.linkTelegram(c.chatId, recipientId).subscribe({
+      next: () => {
+        this.linking.set(null);
+        this.store.loadRecipients();
+        // Reîncărcăm lista, ca rândul să apară imediat ca legat.
+        this.loadTelegram();
+        this.toast.show('Chat Telegram legat.');
+      },
+      error: e => {
+        this.linking.set(null);
+        this.tgError.set(errMessage(e, 'Legarea nu a reușit.'));
+      },
+    });
+  }
+
   // ---------------------------------------------------------------- CSV
 
   exportCsv(): void {
@@ -509,6 +679,8 @@ function blank(): RecipientUpsert {
   return { firstName: '', lastName: '', email: '', group: '', phoneNumber: '', telegramChatId: '' };
 }
 
-function errMessage(e: unknown): string {
-  return (e as { error?: { message?: string } })?.error?.message ?? 'Salvarea nu a reușit.';
+/** `detail` e textul în română; `message` e doar cheia erorii (vezi ToastService). */
+function errMessage(e: unknown, fallback = 'Salvarea nu a reușit.'): string {
+  const body = (e as { error?: { message?: string; detail?: string } })?.error;
+  return body?.detail ?? body?.message ?? fallback;
 }

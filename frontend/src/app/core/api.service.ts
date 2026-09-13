@@ -11,6 +11,7 @@ import {
   RecipientUpsert,
   SendPayload,
   SendResult,
+  TelegramDirectory,
   Template,
 } from './models';
 
@@ -47,6 +48,15 @@ export class ApiService {
 
   groups(): Observable<Group[]> {
     return this.http.get<Group[]>(`${API}/api/app/groups`);
+  }
+
+  /** Contactele botului de Telegram. 409 dacă Telegramul real nu e pornit. */
+  telegramContacts(): Observable<TelegramDirectory> {
+    return this.http.get<TelegramDirectory>(`${API}/api/app/telegram/contacts`);
+  }
+
+  linkTelegram(chatId: string, recipientId: number): Observable<void> {
+    return this.http.post<void>(`${API}/api/app/telegram/link`, { chatId, recipientId });
   }
 
   templates(): Observable<Template[]> {
