@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { ApiService } from '../core/api.service';
 import { ComposeStore, Store } from '../core/store';
 import { ToastService } from '../core/toast.service';
-import { CHANNELS, Channel, channelTitle } from '../core/models';
+import { CHANNELS, channelTitle } from '../core/models';
 import { EditorComponent, plainText } from '../shared/editor.component';
 import { IconComponent } from '../shared/icon.component';
 import { Check, ImagePlus, X } from '../shared/icons';
@@ -51,9 +51,15 @@ import { Check, ImagePlus, X } from '../shared/icons';
       <aside class="side">
         <section class="shell pad">
           <div class="side-title">Canal de livrare</div>
-          <div class="channels">
+          <div class="channels" role="group" aria-label="Canal de livrare">
             @for (ch of channels; track ch.id) {
-              <button type="button" class="channel" [class.on]="c.channels().includes(ch.id)" (click)="pick($event, ch.id)">
+              <button
+                type="button"
+                class="channel"
+                [class.on]="c.channels().includes(ch.id)"
+                [attr.aria-pressed]="c.channels().includes(ch.id)"
+                (click)="c.toggleChannel(ch.id)"
+              >
                 <span>{{ ch.title }}</span>
                 @if (c.channels().includes(ch.id)) {
                   <app-icon class="mark" [icon]="I.Check" [size]="15" [stroke]="2.5" />
@@ -101,7 +107,10 @@ import { Check, ImagePlus, X } from '../shared/icons';
         font-weight: 500;
         cursor: pointer;
         text-align: left;
+        transition: background 150ms ease-out, border-color 150ms ease-out;
       }
+      .channel:hover:not(.on) { background: #f5f5f5; }
+      .channel:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
       .channel.on { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-ink); }
       .mark { font-size: 12px; font-weight: 700; color: var(--brand); }
       .hint { margin: 0; font-size: 12px; line-height: 18px; color: var(--muted); }
@@ -160,10 +169,10 @@ export class ComposeComponent {
     if (list.length > 1) {
       const names = list.map(channelTitle);
       const phrase = names.slice(0, -1).join(', ') + ' și ' + names[names.length - 1];
-      return `Mesajul va fi livrat prin ${phrase}, în paralel. Ține Shift și dă clic pentru mai multe canale.`;
+      return `Mesajul va fi livrat prin ${phrase}, în paralel. Dă clic pe un canal ca să-l scoți din listă.`;
     }
     const hint = CHANNELS.find(c => c.id === list[0])?.hint ?? '';
-    return `${hint} Ține Shift și dă clic pentru a livra pe mai multe canale.`;
+    return `${hint} Dă clic pe alt canal ca să livrezi și acolo.`;
   });
 
   imagesHint = computed(() => {
@@ -171,10 +180,6 @@ export class ComposeComponent {
     if (!n) return 'Nicio imagine adăugată. Se atașează la email; pe WhatsApp pleacă separat.';
     return `${n} ${n === 1 ? 'imagine adăugată' : 'imagini adăugate'}. Apasă × pe o miniatură pentru a o șterge.`;
   });
-
-  pick(e: MouseEvent, id: Channel): void {
-    this.c.toggleChannel(id, e.shiftKey);
-  }
 
   onFiles(e: Event): void {
     const input = e.target as HTMLInputElement;

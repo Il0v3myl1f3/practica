@@ -13,8 +13,7 @@ import md.mud.notificari.service.MailService;
 import md.mud.notificari.service.UserService;
 import md.mud.notificari.service.dto.AdminUserDTO;
 import md.mud.notificari.errors.BadRequestAlertException;
-import md.mud.notificari.errors.EmailAlreadyUsedException;
-import md.mud.notificari.errors.LoginAlreadyUsedException;
+import md.mud.notificari.errors.UserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -111,9 +110,9 @@ public class UserResource {
             throw new BadRequestAlertException("A new user cannot already have an ID", "userManagement", "idexists");
             // Lowercase the user login before comparing with database
         } else if (userRepository.findOneByLogin(userDTO.getLogin().toLowerCase()).isPresent()) {
-            throw new LoginAlreadyUsedException();
+            throw UserException.loginAlreadyUsed();
         } else if (userRepository.findOneByEmailIgnoreCase(userDTO.getEmail()).isPresent()) {
-            throw new EmailAlreadyUsedException();
+            throw UserException.emailAlreadyUsed();
         } else {
             User newUser = userService.createUser(userDTO);
             mailService.sendCreationEmail(newUser);
@@ -130,8 +129,7 @@ public class UserResource {
      *
      * @param userDTO the user to update.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated user.
-     * @throws EmailAlreadyUsedException {@code 400 (Bad Request)} if the email is already in use.
-     * @throws LoginAlreadyUsedException {@code 400 (Bad Request)} if the login is already in use.
+     * @throws UserException {@code 400 (Bad Request)} if the email or the login is already in use.
      */
     @PutMapping({ "/users", "/users/{login}" })
     @PreAuthorize("hasAuthority(\"" + AuthoritiesConstants.ADMIN + "\")")
@@ -142,11 +140,11 @@ public class UserResource {
         LOG.debug("REST request to update User : {}", userDTO);
         Optional<User> existingUser = userRepository.findOneByEmailIgnoreCase(userDTO.getEmail());
         if (existingUser.isPresent() && (!existingUser.orElseThrow().getId().equals(userDTO.getId()))) {
-            throw new EmailAlreadyUsedException();
+            throw UserException.emailAlreadyUsed();
         }
         existingUser = userRepository.findOneByLogin(userDTO.getLogin().toLowerCase());
         if (existingUser.isPresent() && (!existingUser.orElseThrow().getId().equals(userDTO.getId()))) {
-            throw new LoginAlreadyUsedException();
+            throw UserException.loginAlreadyUsed();
         }
         Optional<AdminUserDTO> updatedUser = userService.updateUser(userDTO);
 

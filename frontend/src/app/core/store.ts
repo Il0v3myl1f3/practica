@@ -94,14 +94,11 @@ export class ComposeStore {
     this.conflictMode.set('block');
   }
 
-  toggleChannel(id: Channel, additive: boolean): void {
+  /** Fiecare clic comuta canalul; ultimul canal ramas nu poate fi scos. */
+  toggleChannel(id: Channel): void {
     const cur = this.channels();
-    if (!additive) {
-      this.channels.set([id]);
-    } else {
-      const next = cur.includes(id) ? cur.filter(c => c !== id) : [...cur, id];
-      this.channels.set(next.length ? next : cur);
-    }
+    const next = cur.includes(id) ? cur.filter(c => c !== id) : [...cur, id];
+    this.channels.set(next.length ? next : cur);
     this.clearResolutions();
   }
 

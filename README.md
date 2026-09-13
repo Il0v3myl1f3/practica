@@ -31,9 +31,9 @@ docker compose -f src/main/docker/postgresql.yml down      # datele rămân
 docker compose -f src/main/docker/postgresql.yml down -v   # șterge și datele
 ```
 
-La prima pornire pe o bază goală, `DevDataSeeder` creează organizația, cele 4
-grupuri și cele 4 șabloane. **Destinatarii nu se populează** — lista pornește
-goală, ca să adaugi manual sau să imporți din CSV exact pe cine vrei să testezi,
+La prima pornire pe o bază goală, `DevDataSeeder` creează organizația și cele 4
+șabloane. **Destinatarii și grupurile nu se populează** — listele pornesc
+goale, ca să adaugi manual sau să imporți din CSV exact pe cine vrei să testezi,
 fără să trimiți din greșeală către adrese inventate.
 
 ## Modelul de date

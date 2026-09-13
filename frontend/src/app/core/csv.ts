@@ -78,6 +78,10 @@ export const COL = {
   first: /^(prenume|first ?name|given ?name)$/,
   email: /^(e-?mail|adresa e-?mail)$/,
   group: /^(grup|grupa|group|departament|department)$/,
+  // Coloana "canale" din export nu are tipar: e derivata din adresele de mai
+  // jos, iar findColumn ignora tacit orice coloana nerecunoscuta.
+  tg: /^(telegram|telegram ?chat ?id|chat ?id)$/,
+  phone: /^(telefon|telefon ?whatsapp|whatsapp|phone|mobil)$/,
   tplName: /^(nume|nume ?sablon|nume ?șablon|name|title|titlu)$/,
   tplDesc: /^(descriere|scop|description)$/,
   tplSubject: /^(subiect|subject)$/,

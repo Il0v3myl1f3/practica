@@ -227,17 +227,32 @@ public class AppService {
         recipients.delete(r);
     }
 
-    /** Bulk import: a row whose email already exists is skipped, not rejected. */
+    /**
+     * Bulk import: a row whose email already exists is skipped, not rejected.
+     *
+     * Un chat Telegram deja legat la altcineva nu costa insa toata linia: omul
+     * intra fara Telegram. Frontendul goleste celula inainte de a trimite, deci
+     * aici ajung doar cursele (doi utilizatori care importa in acelasi timp).
+     */
     public List<RecipientView> importRecipients(List<RecipientUpsert> rows) {
         List<RecipientView> added = new ArrayList<>();
         for (RecipientUpsert row : rows) {
             try {
-                added.add(createRecipient(row));
+                added.add(createRecipient(freeChatIdOnly(row)));
             } catch (IllegalArgumentException | RecipientException e) {
                 LOG.debug("Linie sarita la import: {}", e.getMessage());
             }
         }
         return added;
+    }
+
+    /** Chat ID-ul luat se sterge din linie inainte de a crea ceva, ca sa nu ramana un destinatar pe jumatate scris. */
+    private RecipientUpsert freeChatIdOnly(RecipientUpsert row) {
+        String chatId = row.telegramChatId() == null ? "" : row.telegramChatId().trim();
+        if (chatId.isEmpty() || chatIdOwner(chatId, null).isEmpty()) {
+            return row;
+        }
+        return new RecipientUpsert(row.firstName(), row.lastName(), row.email(), row.group(), row.phoneNumber(), null);
     }
 
     // ========================================================= templates CRUD
@@ -438,6 +453,9 @@ public class AppService {
         );
         if (in.telegramChatId() != null && !in.telegramChatId().isBlank()) {
             String address = in.telegramChatId().trim();
+            chatIdOwner(address, r.getId()).ifPresent(other -> {
+                throw RecipientException.chatIdAlreadyLinked(fullName(other));
+            });
             recipientChannels.save(
                 new RecipientChannel()
                     .channel(Channel.TELEGRAM)
@@ -458,6 +476,25 @@ public class AppService {
                     .recipient(r)
             );
         }
+    }
+
+    /**
+     * Destinatarul care are deja acest chat Telegram, daca e altul decat
+     * {@code selfId} ({@code null} inseamna "oricine conteaza").
+     *
+     * Acelasi chat nu poate fi al doua persoane: mesajul ar ajunge de doua ori
+     * la unul si deloc la celalalt. Regula exista la legarea din ecranul de
+     * Telegram ({@link TelegramLinkService#link}), dar lipsea pe calea
+     * formularului si a importului.
+     */
+    private Optional<Recipient> chatIdOwner(String chatId, Long selfId) {
+        return recipientChannels
+            .findAllForOrganizationAndChannel(orgId(), Channel.TELEGRAM)
+            .stream()
+            .filter(c -> chatId.equals(c.getAddress() == null ? null : c.getAddress().trim()))
+            .map(RecipientChannel::getRecipient)
+            .filter(other -> !other.getId().equals(selfId))
+            .findFirst();
     }
 
     private static boolean wasVerified(RecipientChannel previous, String address) {

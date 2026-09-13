@@ -17,6 +17,13 @@ interface Staged extends RecipientUpsert {
   key: number;
 }
 
+/** Linie citita din fisier, cat timp celula Telegram e inca text brut. */
+interface Draft extends Staged {
+  rawTg: string;
+}
+
+const CHAT_ID_RE = /^-?\d+$/;
+
 /** Modalul de editare serveste si lista reala, si randurile citite din fisier. */
 type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; key: number };
 
@@ -44,14 +51,19 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
         </div>
 
         <div class="tbody">
-          <div class="row head" [style.gridTemplateColumns]="stagedCols" [style.minWidth]="'640px'">
-            <span>Nume</span><span>Email</span><span>Grup</span><span></span>
+          <div class="row head" [style.gridTemplateColumns]="cols" [style.minWidth]="'740px'">
+            <span>Nume</span><span>Email</span><span>Grup</span><span>Canale</span><span></span>
           </div>
           @for (s of staged(); track s.key) {
-            <div class="row" [style.gridTemplateColumns]="stagedCols" [style.minWidth]="'640px'">
+            <div class="row" [style.gridTemplateColumns]="cols" [style.minWidth]="'740px'">
               <span class="cell-strong">{{ s.firstName }} {{ s.lastName }}</span>
               <span class="cell-muted">{{ s.email }}</span>
               <span>{{ s.group }}</span>
+              <span class="chans">
+                @for (c of stagedChannels(s); track c) {
+                  <span class="chan" [title]="c">{{ short(c) }}</span>
+                }
+              </span>
               <span class="cell-actions">
                 <button type="button" class="icon-btn" title="Corectează linia" (click)="openEditStaged(s)">
                   <app-icon [icon]="I.Pencil" />
@@ -68,37 +80,44 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
       </section>
     } @else {
       <section class="shell">
-        <div class="toolbar">
-          <label class="search-wrap">
-            <app-icon [icon]="I.Search" [size]="16" />
-            <input placeholder="Caută nume, email sau grup…" [ngModel]="q()" (ngModelChange)="q.set($event); page.set(0)" />
-          </label>
+        <div class="toolbar split">
+          <div class="toolbar-main">
+            <label class="search-wrap">
+              <app-icon [icon]="I.Search" [size]="16" />
+              <input placeholder="Caută nume, email sau grup…" [ngModel]="q()" (ngModelChange)="q.set($event); page.set(0)" />
+            </label>
 
-          <app-select
-            label="Grup"
-            [options]="groupOptions()"
-            [value]="groupFilter()"
-            (valueChange)="groupFilter.set($event); page.set(0)"
-          />
+            <app-select
+              label="Grup"
+              [options]="groupOptions()"
+              [value]="groupFilter()"
+              (valueChange)="groupFilter.set($event); page.set(0)"
+            />
 
-          @if (filtersActive()) {
-            <button type="button" class="btn btn-ghost sm" (click)="resetFilters()">Curăță filtrele</button>
-          }
+            @if (filtersActive()) {
+              <button type="button" class="btn btn-ghost sm" (click)="resetFilters()">Curăță filtrele</button>
+            }
 
-          <span class="grow"></span>
-          <button type="button" class="btn btn-ghost sm" (click)="file.click()">
-            <app-icon [icon]="I.Upload" [size]="15" />Importă CSV
-          </button>
-          <button type="button" class="btn btn-ghost sm" (click)="exportCsv()">
-            <app-icon [icon]="I.Download" [size]="15" />Exportă CSV
-          </button>
-          <button type="button" class="btn btn-ghost sm" (click)="openTelegram()">
-            <app-icon [icon]="I.Send" [size]="15" />Conectează Telegram
-          </button>
-          <button type="button" class="btn btn-primary sm" (click)="openNew()">
-            <app-icon [icon]="I.Plus" [size]="15" />Adaugă
-          </button>
-          <input #file type="file" accept=".csv,text/csv" hidden (change)="onFile($event)" />
+            <input #file type="file" accept=".csv,text/csv" hidden (change)="onFile($event)" />
+          </div>
+
+          <div class="toolbar-actions">
+            <button type="button" class="btn btn-ghost sm" (click)="openTelegram()">
+              <app-icon [icon]="I.Send" [size]="15" />Conectează Telegram
+            </button>
+            <button type="button" class="btn btn-primary sm" (click)="openNew()">
+              <app-icon [icon]="I.Plus" [size]="15" />Adaugă
+            </button>
+          </div>
+
+          <div class="seg" role="group" aria-label="Import și export">
+            <button type="button" class="seg-btn" title="Importă CSV" aria-label="Importă CSV" (click)="file.click()">
+              <app-icon [icon]="I.Upload" />
+            </button>
+            <button type="button" class="seg-btn" title="Exportă CSV" aria-label="Exportă CSV" (click)="exportCsv()">
+              <app-icon [icon]="I.Download" />
+            </button>
+          </div>
         </div>
 
         <div class="tbody">
@@ -339,7 +358,6 @@ export class PeopleComponent {
   private toast = inject(ToastService);
 
   readonly cols = COLS;
-  readonly stagedCols = 'minmax(160px, 2fr) minmax(0, 1.4fr) 150px 88px';
   readonly plural = plural;
   readonly I = { Search, Trash2, Upload, Download, Plus, Pencil, ChevronLeft, ChevronRight, Send, Check, RotateCcw };
 
@@ -481,6 +499,16 @@ export class PeopleComponent {
       if (clash) {
         return this.editError.set('Un alt destinatar are deja acest email.');
       }
+      // Acelasi chat Telegram la doi oameni ar duce mesajul de doua ori la unul.
+      const chatId = f.telegramChatId?.trim() ?? '';
+      if (chatId) {
+        const taken = this.store.recipients().find(p => p.telegramChatId?.trim() === chatId);
+        const takenInFile = (this.staged() ?? []).find(s => s.key !== target.key && s.telegramChatId?.trim() === chatId);
+        const owner = taken?.name ?? (takenInFile ? `${takenInFile.firstName} ${takenInFile.lastName}`.trim() : '');
+        if (owner) {
+          return this.editError.set(`Chat ID-ul ${chatId} e deja legat la ${owner}.`);
+        }
+      }
       this.staged.set((this.staged() ?? []).map(s => (s.key === target.key ? { ...s, ...f, key: s.key } : s)));
       this.editing.set(null);
       this.toast.show('Linie corectată.');
@@ -572,8 +600,18 @@ export class PeopleComponent {
 
   // ---------------------------------------------------------------- CSV
 
+  /**
+   * `telegram` si `telefon` sunt adresele reale ale canalelor: fara ele, un
+   * export urmat de un import ar pierde tot ce nu e email. `canale` e doar
+   * pentru citit in Excel — la import se ignora, fiindca se deduce din adrese.
+   */
   exportCsv(): void {
-    const rows = [['nume', 'prenume', 'email', 'grup'], ...this.store.recipients().map(p => [p.lastName, p.firstName, p.email, p.group])];
+    const rows = [
+      ['nume', 'prenume', 'email', 'grup', 'telegram', 'telefon', 'canale'],
+      ...this.store
+        .recipients()
+        .map(p => [p.lastName, p.firstName, p.email, p.group, p.telegramChatId ?? '', p.phoneNumber ?? '', p.channels.join(';')]),
+    ];
     downloadCsv(rows, 'destinatari');
     this.toast.show(`${this.store.recipients().length} destinatari exportați în CSV.`);
   }
@@ -586,69 +624,148 @@ export class PeopleComponent {
 
     const reader = new FileReader();
     reader.onerror = () => this.toast.show('Fișierul nu a putut fi citit.');
-    reader.onload = () => {
-      const rows = parseCsv(String(reader.result ?? ''));
-      if (rows.length < 2) return this.toast.show('Fișierul este gol sau are doar antetul.');
-
-      const head = rows[0];
-      const idx = {
-        last: findColumn(head, COL.last),
-        first: findColumn(head, COL.first),
-        email: findColumn(head, COL.email),
-        group: findColumn(head, COL.group),
-      };
-      const missing = (['last', 'first', 'email', 'group'] as const)
-        .filter(k => idx[k] < 0)
-        .map(k => ({ last: 'nume', first: 'prenume', email: 'email', group: 'grup' })[k]);
-      if (missing.length) {
-        return this.toast.show(`Lipsesc coloanele obligatorii: ${missing.join(', ')}.`);
-      }
-
-      const existing = new Set(this.store.recipients().map(p => p.email.toLowerCase()));
-      const seen = new Set<string>();
-      const added: Staged[] = [];
-      const invalid: string[] = [];
-      let duplicates = 0;
-
-      rows.slice(1).forEach((r, i) => {
-        const get = (k: keyof typeof idx) => (r[idx[k]] ?? '').trim();
-        const last = get('last');
-        const first = get('first');
-        const email = get('email');
-        const group = get('group');
-        const line = i + 2;
-        if (!last || !first || !email || !group) {
-          invalid.push(`Linia ${line}: câmpuri lipsă`);
-          return;
-        }
-        if (!EMAIL_RE.test(email)) {
-          invalid.push(`Linia ${line}: email invalid (${email})`);
-          return;
-        }
-        const key = email.toLowerCase();
-        if (existing.has(key) || seen.has(key)) {
-          duplicates++;
-          return;
-        }
-        seen.add(key);
-        added.push({ key: line, firstName: first, lastName: last, email, group });
-      });
-
-      if (!added.length) {
-        return this.toast.show(
-          `Nicio linie validă. ${duplicates ? duplicates + ' duplicate. ' : ''}${invalid.length ? invalid.length + ' respinse.' : ''}`,
-        );
-      }
-
-      const notes: string[] = [];
-      if (duplicates) notes.push(`${duplicates} linii sărite — emailul există deja în listă.`);
-      if (invalid.length) {
-        notes.push(`${invalid.length} linii respinse: ${invalid.slice(0, 3).join('; ')}${invalid.length > 3 ? ' …' : ''}`);
-      }
-      this.stagedNotes.set(notes);
-      this.staged.set(added);
-    };
+    reader.onload = () => this.readRows(String(reader.result ?? ''));
     reader.readAsText(f, 'utf-8');
+  }
+
+  /** Canalele pe care le va primi o linie din import, deduse din adresele ei. */
+  stagedChannels(s: Staged): string[] {
+    const out = ['EMAIL'];
+    if (s.telegramChatId?.trim()) out.push('TELEGRAM');
+    if (s.phoneNumber?.trim()) out.push('WHATSAPP');
+    return out;
+  }
+
+  /** Pasul 1: citirea fisierului. Celula Telegram ramane bruta, se rezolva mai jos. */
+  private readRows(text: string): void {
+    const rows = parseCsv(text);
+    if (rows.length < 2) return this.toast.show('Fișierul este gol sau are doar antetul.');
+
+    const head = rows[0];
+    const idx = {
+      last: findColumn(head, COL.last),
+      first: findColumn(head, COL.first),
+      email: findColumn(head, COL.email),
+      group: findColumn(head, COL.group),
+      tg: findColumn(head, COL.tg),
+      phone: findColumn(head, COL.phone),
+    };
+    const missing = (['last', 'first', 'email', 'group'] as const)
+      .filter(k => idx[k] < 0)
+      .map(k => ({ last: 'nume', first: 'prenume', email: 'email', group: 'grup' })[k]);
+    if (missing.length) {
+      return this.toast.show(`Lipsesc coloanele obligatorii: ${missing.join(', ')}.`);
+    }
+
+    const existing = new Set(this.store.recipients().map(p => p.email.toLowerCase()));
+    const seen = new Set<string>();
+    const added: Draft[] = [];
+    const invalid: string[] = [];
+    let duplicates = 0;
+
+    rows.slice(1).forEach((r, i) => {
+      // Coloanele de canale sunt optionale: lipsa lor inseamna celula goala.
+      const get = (k: keyof typeof idx) => (idx[k] < 0 ? '' : (r[idx[k]] ?? '').trim());
+      const last = get('last');
+      const first = get('first');
+      const email = get('email');
+      const group = get('group');
+      const line = i + 2;
+      if (!last || !first || !email || !group) {
+        invalid.push(`Linia ${line}: câmpuri lipsă`);
+        return;
+      }
+      if (!EMAIL_RE.test(email)) {
+        invalid.push(`Linia ${line}: email invalid (${email})`);
+        return;
+      }
+      const key = email.toLowerCase();
+      if (existing.has(key) || seen.has(key)) {
+        duplicates++;
+        return;
+      }
+      seen.add(key);
+      added.push({
+        key: line,
+        firstName: first,
+        lastName: last,
+        email,
+        group,
+        phoneNumber: get('phone'),
+        telegramChatId: '',
+        rawTg: get('tg'),
+      });
+    });
+
+    if (!added.length) {
+      return this.toast.show(
+        `Nicio linie validă. ${duplicates ? duplicates + ' duplicate. ' : ''}${invalid.length ? invalid.length + ' respinse.' : ''}`,
+      );
+    }
+
+    const notes: string[] = [];
+    if (duplicates) notes.push(`${duplicates} linii sărite — emailul există deja în listă.`);
+    if (invalid.length) {
+      notes.push(`${invalid.length} linii respinse: ${invalid.slice(0, 3).join('; ')}${invalid.length > 3 ? ' …' : ''}`);
+    }
+    this.resolveTelegram(added, notes);
+  }
+
+  /**
+   * Pasul 2: celulele Telegram devin chat ID-uri. Bot API-ul nu accepta
+   * `@username`, deci un username trebuie cautat in contactele botului — de
+   * aici apelul HTTP. Chat ID-urile numerice nu au nevoie de el, asa ca un
+   * export reimportat merge si cu botul oprit.
+   */
+  private resolveTelegram(drafts: Draft[], notes: string[]): void {
+    const pending = drafts.filter(d => d.rawTg && !CHAT_ID_RE.test(d.rawTg));
+    if (!pending.length) {
+      return this.stageDrafts(drafts, notes, []);
+    }
+    this.api.telegramContacts().subscribe({
+      next: d => this.stageDrafts(drafts, notes, d.contacts ?? []),
+      error: () => {
+        notes.push(`Telegram nu e disponibil — ${plural(pending.length, 'linie importată', 'linii importate')} fără chat.`);
+        // Golim celulele nerezolvabile, ca sa nu mai fie raportate inca o data.
+        pending.forEach(d => (d.rawTg = ''));
+        this.stageDrafts(drafts, notes, []);
+      },
+    });
+  }
+
+  /**
+   * Pasul 3: fiecare chat ID ajunge la un singur destinatar. Doi oameni pe
+   * acelasi chat ar insemna acelasi mesaj de doua ori, deci al doilea intra
+   * fara Telegram — persoana nu se pierde pentru o coloana.
+   */
+  private stageDrafts(drafts: Draft[], notes: string[], contacts: TelegramContact[]): void {
+    const taken = new Map<string, string>();
+    for (const p of this.store.recipients()) {
+      if (p.telegramChatId?.trim()) taken.set(p.telegramChatId.trim(), p.name);
+    }
+
+    const dropped: string[] = [];
+    const staged = drafts.map(({ rawTg, ...row }) => {
+      const who = `${row.firstName} ${row.lastName}`.trim();
+      const chatId = resolveChatId(rawTg, contacts);
+      if (rawTg && !chatId) {
+        dropped.push(`Linia ${row.key}: „${rawTg}" nu se regăsește în contactele botului`);
+      } else if (chatId && taken.has(chatId)) {
+        dropped.push(`Linia ${row.key}: chat ID-ul ${chatId} e deja legat la ${taken.get(chatId)} — ${who} se importă fără Telegram`);
+      } else if (chatId) {
+        taken.set(chatId, who);
+        return { ...row, telegramChatId: chatId };
+      }
+      return { ...row, telegramChatId: '' };
+    });
+
+    if (dropped.length) {
+      notes.push(
+        `${plural(dropped.length, 'linie', 'linii')} fără Telegram: ${dropped.slice(0, 3).join('; ')}${dropped.length > 3 ? ' …' : ''}`,
+      );
+    }
+    this.stagedNotes.set(notes);
+    this.staged.set(staged);
   }
 
   dropStaged(s: Staged): void {
@@ -677,6 +794,21 @@ export class PeopleComponent {
 
 function blank(): RecipientUpsert {
   return { firstName: '', lastName: '', email: '', group: '', phoneNumber: '', telegramChatId: '' };
+}
+
+/**
+ * Chat ID-ul numeric se ia ca atare; un `@username` sau un nume se caută în
+ * contactele botului. Un nume care apare de două ori acolo e ambiguu, deci se
+ * refuză — mai bine o linie fără Telegram decât mesajul la altcineva.
+ */
+function resolveChatId(raw: string, contacts: TelegramContact[]): string {
+  const value = raw.trim();
+  if (!value) return '';
+  if (CHAT_ID_RE.test(value)) return value;
+  const needle = value.replace(/^@/, '').toLowerCase();
+  const byUsername = contacts.filter(c => c.username?.toLowerCase() === needle);
+  const matches = byUsername.length ? byUsername : contacts.filter(c => c.name.trim().toLowerCase() === needle);
+  return matches.length === 1 ? matches[0].chatId : '';
 }
 
 /** `detail` e textul în română; `message` e doar cheia erorii (vezi ToastService). */

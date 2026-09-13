@@ -109,6 +109,36 @@ textarea, input, button, select { font-family: inherit; }
 .icon-btn:hover { background: var(--line-soft); }
 .icon-btn.active { background: var(--brand-soft); color: var(--brand-ink); }
 
+/* Grup segmentat de actiuni-icon: doua butoane intr-un singur chenar,
+   despartite de o linie. Folosit pentru perechea import / export. */
+.seg {
+  display: inline-flex;
+  align-items: stretch;
+  flex: none;
+  height: 40px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.seg-btn {
+  width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+.seg-btn + .seg-btn { border-left: 1px solid var(--line); }
+.seg-btn:hover:not(:disabled) { background: #f5f5f5; }
+.seg-btn:active:not(:disabled) { background: var(--line-soft); }
+.seg-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.seg-btn:disabled { color: var(--faint); cursor: not-allowed; }
+
 /* ------------------------------------------------------------------- inputs */
 
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -173,6 +203,26 @@ textarea, input, button, select { font-family: inherit; }
   border-bottom: 1px solid var(--line);
   border-radius: 11px 11px 0 0;
 }
+
+/* Bara in trei zone: filtre (se rup intre ele) | actiuni | grup import/export.
+   Grid-ul garanteaza ca ultimele doua zone raman pe primul rand, la dreapta,
+   oricat s-ar rupe zona de filtre. */
+.toolbar.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+  column-gap: 16px;
+  row-gap: 0;
+}
+.toolbar.split > .toolbar-main,
+.toolbar.split > .toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  min-width: 0;
+}
+.toolbar.split > .toolbar-actions { justify-content: flex-end; }
 
 .tbody { overflow-x: auto; overflow-y: hidden; }
 

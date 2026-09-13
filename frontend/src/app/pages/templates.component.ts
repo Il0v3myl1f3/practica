@@ -19,18 +19,29 @@ const COLS = 'minmax(200px, 1fr) 200px';
   imports: [FormsModule, IconComponent],
   template: `
     <section class="shell">
-      <div class="toolbar">
-        <label class="search-wrap">
-          <app-icon [icon]="I.Search" [size]="16" />
-          <input placeholder="Caută șablon…" [ngModel]="q()" (ngModelChange)="q.set($event)" />
-        </label>
-        <span class="grow"></span>
-        <button type="button" class="btn btn-ghost sm" (click)="file.click()"><app-icon [icon]="I.Upload" [size]="15" />Importă ZIP</button>
-        <button type="button" class="btn btn-ghost sm" (click)="exportZip()"><app-icon [icon]="I.Download" [size]="15" />Exportă ZIP</button>
-        <button type="button" class="btn btn-primary sm" (click)="router.navigate(['/sabloane/nou'])">
-          <app-icon [icon]="I.Plus" [size]="15" />Șablon nou
-        </button>
-        <input #file type="file" accept=".zip,application/zip" hidden (change)="onFile($event)" />
+      <div class="toolbar split">
+        <div class="toolbar-main">
+          <label class="search-wrap">
+            <app-icon [icon]="I.Search" [size]="16" />
+            <input placeholder="Caută șablon…" [ngModel]="q()" (ngModelChange)="q.set($event)" />
+          </label>
+          <input #file type="file" accept=".zip,application/zip" hidden (change)="onFile($event)" />
+        </div>
+
+        <div class="toolbar-actions">
+          <button type="button" class="btn btn-primary sm" (click)="router.navigate(['/sabloane/nou'])">
+            <app-icon [icon]="I.Plus" [size]="15" />Șablon nou
+          </button>
+        </div>
+
+        <div class="seg" role="group" aria-label="Import și export">
+          <button type="button" class="seg-btn" title="Importă ZIP" aria-label="Importă ZIP" (click)="file.click()">
+            <app-icon [icon]="I.Upload" />
+          </button>
+          <button type="button" class="seg-btn" title="Exportă ZIP" aria-label="Exportă ZIP" (click)="exportZip()">
+            <app-icon [icon]="I.Download" />
+          </button>
+        </div>
       </div>
 
       <div class="tbody">
@@ -64,7 +75,6 @@ const COLS = 'minmax(200px, 1fr) 200px';
   `,
   styles: [
     `
-      .grow { flex: 1 1 auto; }
       .desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
     `,
   ],

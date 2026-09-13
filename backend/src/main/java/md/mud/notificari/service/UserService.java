@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import md.mud.notificari.config.Constants;
 import md.mud.notificari.domain.Authority;
 import md.mud.notificari.domain.User;
+import md.mud.notificari.errors.UserException;
 import md.mud.notificari.repository.AuthorityRepository;
 import md.mud.notificari.repository.UserRepository;
 import md.mud.notificari.security.AuthoritiesConstants;
@@ -95,13 +96,13 @@ public class UserService {
         userRepository.findOneByLogin(userDTO.getLogin().toLowerCase()).ifPresent(existingUser -> {
             boolean removed = removeNonActivatedUser(existingUser);
             if (!removed) {
-                throw new UsernameAlreadyUsedException();
+                throw UserException.loginAlreadyUsed();
             }
         });
         userRepository.findOneByEmailIgnoreCase(userDTO.getEmail()).ifPresent(existingUser -> {
             boolean removed = removeNonActivatedUser(existingUser);
             if (!removed) {
-                throw new EmailAlreadyUsedException();
+                throw UserException.emailAlreadyUsed();
             }
         });
         User newUser = new User();
@@ -253,7 +254,7 @@ public class UserService {
             .ifPresent(user -> {
                 String currentEncryptedPassword = user.getPassword();
                 if (!passwordEncoder.matches(currentClearTextPassword, currentEncryptedPassword)) {
-                    throw new InvalidPasswordException();
+                    throw UserException.invalidPassword();
                 }
                 String encryptedPassword = passwordEncoder.encode(newPassword);
                 user.setPassword(encryptedPassword);
