@@ -269,6 +269,9 @@ export class EditorComponent {
   /** Selectia ca offset-uri de caracter in editor, nu ca noduri: execCommand rescrie
    *  nodurile din selectie, iar un Range salvat ar ramane agatat de cele vechi. */
   private sel: [number, number] | null = null;
+  /** Range-ul viu, sursa principala: stie si pozitiile pe care offset-urile de caracter
+   *  nu le pot distinge (un rand nou gol are acelasi offset ca finalul celui precedent). */
+  private liveRange: Range | null = null;
   private lastPushed = ' ';
 
   constructor() {
@@ -319,6 +322,7 @@ export class EditorComponent {
     before.setEnd(r.startContainer, r.startOffset);
     const start = before.toString().length;
     this.sel = [start, start + r.toString().length];
+    this.liveRange = r.cloneRange();
   }
 
   private readState(): void {
@@ -349,9 +353,19 @@ export class EditorComponent {
     // Chip-urile se strang inainte: execCommand rescrie nodurile din selectie.
     const chips = this.chipsInSelection();
     // Starea dorita se citeste inainte de comanda, ca sa urmam aceeasi logica de
-    // comutare ca browserul. Cand selectia e doar chip-ul, execCommand nu face
-    // nimic si doar asta ne mai spune ce voia utilizatorul.
-    const on = TOGGLES.includes(cmd) ? !document.queryCommandState(cmd) : false;
+    // comutare ca browserul. Cand selectia n-are niciun caracter editabil - e in
+    // intregime in interiorul unui chip, posibil dupa un dublu-click pe text -
+    // queryCommandState nu are ce sa inspecteze si raporteaza mereu false: bold-ul
+    // s-ar aplica mereu, fara sa se mai poata scoate. In cazul asta citim starea
+    // direct din chip-uri, nu din browser.
+    const sel = window.getSelection();
+    const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+    const chipOnly = !!range && !range.collapsed && chips.length > 0 && !this.hasEditableText(range);
+    const on = TOGGLES.includes(cmd)
+      ? chipOnly
+        ? !chips.every(chip => this.chipHasFormat(chip, cmd))
+        : !document.queryCommandState(cmd)
+      : false;
     try {
       document.execCommand('styleWithCSS', false, 'true');
     } catch {
@@ -418,10 +432,43 @@ export class EditorComponent {
     return Array.from(chips).filter(chip => range.intersectsNode(chip));
   }
 
+  /**
+   * Selectia n-are niciun caracter din afara chip-urilor. Umblam prin nodurile de
+   * text VII ale editorului, nu printr-un clon - range.cloneContents() pe un chip
+   * contenteditable=false partial selectat (ex. dublu-click pe "nume" din
+   * "{{nume}}") scoate textul fara sa mai pastreze si span-ul data-var din jur,
+   * deci parentElement ar iesi null si am citi gresit "e editabil".
+   */
+  private hasEditableText(range: Range): boolean {
+    const walker = document.createTreeWalker(this.host().nativeElement, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (range.intersectsNode(n) && !(n.parentElement)?.closest('[data-var]')) return true;
+    }
+    return false;
+  }
+
+  /** Starea curenta a unui chip pentru comenzile de comutare - oglinda lui styleChip. */
+  private chipHasFormat(chip: HTMLElement, cmd: string): boolean {
+    switch (cmd) {
+      case 'bold':
+        return chip.style.fontWeight === 'bold' || Number(chip.style.fontWeight) >= 700;
+      case 'italic':
+        return chip.style.fontStyle === 'italic';
+      case 'underline':
+        return chip.style.textDecorationLine === 'underline';
+      default:
+        return false;
+    }
+  }
+
   private styleChip(chip: HTMLElement, cmd: string, on: boolean, val?: string): void {
     switch (cmd) {
       case 'bold':
-        chip.style.fontWeight = on ? '700' : '400';
+        // Cuvant-cheie, nu numar: unele randatoare de email (Outlook/Word) ignora
+        // font-weight numeric. Pe "off" stergem proprietatea in loc s-o fortam la o
+        // valoare fixa, ca sa revina la cele 600 implicite din [data-var], nu mai subtire.
+        if (on) chip.style.fontWeight = 'bold';
+        else chip.style.removeProperty('font-weight');
         break;
       case 'italic':
         chip.style.fontStyle = on ? 'italic' : 'normal';
@@ -488,7 +535,16 @@ export class EditorComponent {
     el.focus();
     const sel = window.getSelection();
     if (!sel) return;
-    const r = this.rangeAt(this.sel);
+    // Offset-urile intra in joc doar cand nodul range-ului viu a fost scos din document
+    // de o rescriere - altfel range-ul viu e mai precis, si se actualizeaza singur.
+    const live = this.liveRange;
+    // execCommand poate rescrie exact nodurile pe care le tine range-ul viu: acesta
+    // ramane tehnic "in el" (el.contains trece), dar capetele i se prabusesc intr-un
+    // punct fara sens. O selectie care nu era goala nu poate deveni goala doar pentru
+    // ca s-a schimbat formatarea - cand se intampla asta, offset-urile de caracter
+    // raman singura sursa de adevar.
+    const corrupted = !!live && !!this.sel && this.sel[0] !== this.sel[1] && live.collapsed;
+    const r = live && !corrupted && el.contains(live.commonAncestorContainer) ? live.cloneRange() : this.rangeAt(this.sel);
     sel.removeAllRanges();
     sel.addRange(r);
   }
