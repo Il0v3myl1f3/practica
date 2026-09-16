@@ -18,6 +18,23 @@ export function templateToHtml(body: string): string {
     .replace(/\{\{\s*(nume|prenume|grup|email)\s*\}\}/g, (_, k) => varChip(k));
 }
 
+/**
+ * Parseaza HTML-ul editorului intr-un div, cu un spatiu adaugat la fiecare
+ * <br> si la inceputul/finalul fiecarui <div>/<p>/<li> - altfel .textContent
+ * lipeste doua paragrafe alaturate fara nimic intre ele (ex. "timp.Dacă").
+ * Prima linie nu e invelita in niciun tag (doar cele adaugate dupa un Enter),
+ * deci separatorul trebuie sa vina si la deschidere, nu doar la inchidere.
+ */
+function parseForText(html: string): HTMLDivElement {
+  const spaced = (html ?? '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<(div|p|li)(\s[^>]*)?>/gi, ' <$1$2>')
+    .replace(/<\/(div|p|li)>/gi, ' </$1>');
+  const d = document.createElement('div');
+  d.innerHTML = spaced;
+  return d;
+}
+
 const SIZES = [
   { title: 'Text mic', size: '14px' },
   { title: 'Text normal', size: '16px' },
@@ -296,7 +313,25 @@ export class EditorComponent {
 
   onInput(): void {
     this.autoChip();
+    this.cleanupZwsp();
     this.push();
+  }
+
+  /**
+   * Un chip sters cu Backspace/Delete lasa cele doua ZWSP puse la inserare (unul
+   * de fiecare parte) lipite unul de altul, fara niciun chip intre ele - nu mai
+   * au niciun rol. normalize() intai, ca sa vedem si perechile impartite intre
+   * doua noduri text vecine intr-un singur nod continuu.
+   */
+  private cleanupZwsp(): void {
+    const el = this.host().nativeElement;
+    el.normalize();
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const text = (node as Text).nodeValue ?? '';
+      if (/​{2,}/.test(text)) (node as Text).nodeValue = text.replace(/​{2,}/g, '​');
+    }
   }
 
   private push(): void {
@@ -373,6 +408,10 @@ export class EditorComponent {
     }
     document.execCommand(cmd, false, val);
     chips.forEach(chip => this.styleChip(chip, cmd, on, val));
+    // execCommand poate desparte exact la marginea selectiei (splitText): nodul vechi
+    // ramane valid dar scurtat, deci liveRange ajunge sa indice o granita gresita fara
+    // sa para "corupt" (nu devine collapsed). Fortam reconstructia din offsete.
+    this.liveRange = null;
     this.menu.set(null);
     this.reselect();
     this.readState();
@@ -401,6 +440,8 @@ export class EditorComponent {
       // Chip-urile sunt contenteditable=false, deci nu mostenesc marimea: le-o punem
       // inline. Le cautam din DOM dupa inserare, deci referintele sunt sigur vii.
       span.querySelectorAll<HTMLElement>('[data-var]').forEach(chip => (chip.style.fontSize = px));
+      // Acelasi motiv ca in exec(): range-ul a rescris nodurile, liveRange nu mai e de incredere.
+      this.liveRange = null;
     }
     this.menu.set(null);
     this.reselect();
@@ -622,8 +663,7 @@ export class EditorComponent {
   }
 
   stats(): string {
-    const d = document.createElement('div');
-    d.innerHTML = this.value() ?? '';
+    const d = parseForText(this.value() ?? '');
     const vars = d.querySelectorAll('[data-var]').length;
     d.querySelectorAll('[data-var]').forEach(x => x.remove());
     const txt = (d.textContent ?? '').replace(/​/g, '').trim();
@@ -634,7 +674,6 @@ export class EditorComponent {
 
 /** Textul curat, fara chip-uri si fara HTML — pentru validarea "e gol?". */
 export function plainText(html: string): string {
-  const d = document.createElement('div');
-  d.innerHTML = html ?? '';
+  const d = parseForText(html);
   return (d.textContent ?? '').replace(/​/g, '').trim();
 }
