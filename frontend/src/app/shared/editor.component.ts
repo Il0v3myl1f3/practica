@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, model, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, model, signal, viewChild } from '@angular/core';
 import { VARS } from '../core/models';
 import { IconComponent } from './icon.component';
 import { Baseline, Bold, Braces, ChevronDown, Eraser, Italic, List, ListOrdered, Underline } from './icons';
@@ -27,6 +27,9 @@ const SIZES = [
 
 /** Comenzile care comuta o stare, nu seteaza o valoare. */
 const TOGGLES = ['bold', 'italic', 'underline'];
+
+/** Comenzile a caror stare curenta se aprinde in bara. */
+const STATEFUL = ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList'];
 
 /** Proprietatile pe care editorul le scrie inline pe chip-uri, in ordinea CSS. */
 const MANAGED = ['font-size', 'color', 'font-weight', 'font-style', 'text-decoration-line'];
@@ -63,13 +66,31 @@ const COLORS = [
 
         <span class="sep"></span>
 
-        <button type="button" class="icon-btn" title="Îngroșat (Ctrl+B)" (mousedown)="exec($event, 'bold')">
+        <button
+          type="button"
+          class="icon-btn"
+          title="Îngroșat (Ctrl+B)"
+          [class.active]="activeCmds().includes('bold')"
+          (mousedown)="exec($event, 'bold')"
+        >
           <app-icon [icon]="I.Bold" [size]="16" />
         </button>
-        <button type="button" class="icon-btn" title="Cursiv (Ctrl+I)" (mousedown)="exec($event, 'italic')">
+        <button
+          type="button"
+          class="icon-btn"
+          title="Cursiv (Ctrl+I)"
+          [class.active]="activeCmds().includes('italic')"
+          (mousedown)="exec($event, 'italic')"
+        >
           <app-icon [icon]="I.Italic" [size]="16" />
         </button>
-        <button type="button" class="icon-btn" title="Subliniat (Ctrl+U)" (mousedown)="exec($event, 'underline')">
+        <button
+          type="button"
+          class="icon-btn"
+          title="Subliniat (Ctrl+U)"
+          [class.active]="activeCmds().includes('underline')"
+          (mousedown)="exec($event, 'underline')"
+        >
           <app-icon [icon]="I.Underline" [size]="16" />
         </button>
 
@@ -90,10 +111,22 @@ const COLORS = [
 
         <span class="sep"></span>
 
-        <button type="button" class="icon-btn" title="Listă cu buline" (mousedown)="exec($event, 'insertUnorderedList')">
+        <button
+          type="button"
+          class="icon-btn"
+          title="Listă cu buline"
+          [class.active]="activeCmds().includes('insertUnorderedList')"
+          (mousedown)="exec($event, 'insertUnorderedList')"
+        >
           <app-icon [icon]="I.List" [size]="16" />
         </button>
-        <button type="button" class="icon-btn" title="Listă numerotată" (mousedown)="exec($event, 'insertOrderedList')">
+        <button
+          type="button"
+          class="icon-btn"
+          title="Listă numerotată"
+          [class.active]="activeCmds().includes('insertOrderedList')"
+          (mousedown)="exec($event, 'insertOrderedList')"
+        >
           <app-icon [icon]="I.ListOrdered" [size]="16" />
         </button>
         <button type="button" class="icon-btn" title="Curăță formatarea" (mousedown)="exec($event, 'removeFormat')">
@@ -124,8 +157,8 @@ const COLORS = [
         class="canvas"
         contenteditable="true"
         (input)="onInput()"
-        (keyup)="saveRange()"
-        (mouseup)="saveRange()"
+        (keyup)="onSelect()"
+        (mouseup)="onSelect()"
       ></div>
 
       <div class="stats">
@@ -204,6 +237,8 @@ const COLORS = [
         outline: none;
         overflow-y: auto;
         max-height: 46vh;
+        /* Fara asta spatiul tastat langa un chip sau la final e colapsat, deci invizibil. */
+        white-space: pre-wrap;
       }
       .stats {
         display: flex;
@@ -224,12 +259,16 @@ export class EditorComponent {
   private host = viewChild.required<ElementRef<HTMLDivElement>>('host');
 
   readonly menu = model<'size' | 'color' | 'vars' | null>(null);
+  /** Comenzile active pe selectia curenta, ca sa se aprinda butoanele din bara. */
+  readonly activeCmds = signal('');
   readonly I = { Bold, Italic, Underline, List, ListOrdered, Eraser, Baseline, Braces, ChevronDown };
   readonly sizes = SIZES;
   readonly colors = COLORS;
   readonly vars = VARS;
 
-  private range: Range | null = null;
+  /** Selectia ca offset-uri de caracter in editor, nu ca noduri: execCommand rescrie
+   *  nodurile din selectie, iar un Range salvat ar ramane agatat de cele vechi. */
+  private sel: [number, number] | null = null;
   private lastPushed = ' ';
 
   constructor() {
@@ -263,13 +302,31 @@ export class EditorComponent {
     this.value.set(html);
   }
 
+  /** Cursorul/selectia s-a mutat: retinem pozitia si aprindem butoanele potrivite. */
+  onSelect(): void {
+    this.saveRange();
+    this.readState();
+  }
+
   saveRange(): void {
     const el = this.host().nativeElement;
     const sel = window.getSelection();
     if (!sel || !sel.rangeCount) return;
-    if (el.contains(sel.anchorNode)) {
-      this.range = sel.getRangeAt(0).cloneRange();
-    }
+    if (!el.contains(sel.anchorNode)) return;
+    const r = sel.getRangeAt(0);
+    const before = document.createRange();
+    before.selectNodeContents(el);
+    before.setEnd(r.startContainer, r.startOffset);
+    const start = before.toString().length;
+    this.sel = [start, start + r.toString().length];
+  }
+
+  private readState(): void {
+    const el = this.host().nativeElement;
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !el.contains(sel.anchorNode)) return;
+    const next = STATEFUL.filter(cmd => document.queryCommandState(cmd)).join(' ');
+    if (next !== this.activeCmds()) this.activeCmds.set(next);
   }
 
   toggle(e: Event, which: 'size' | 'color' | 'vars'): void {
@@ -303,29 +360,48 @@ export class EditorComponent {
     document.execCommand(cmd, false, val);
     chips.forEach(chip => this.styleChip(chip, cmd, on, val));
     this.menu.set(null);
+    this.reselect();
+    this.readState();
     this.push();
   }
 
-  /** execCommand('fontSize') accepta doar 1-7; rescriem span-urile la px reali. */
+  /**
+   * execCommand('fontSize') accepta doar 1-7, deci oricum i-am rescrie rezultatul - iar
+   * pe drum normalizeaza spatiile si sterge nodul dintre doua chip-uri, lipindu-le.
+   * Impachetam selectia noi insine: Range API atinge exclusiv nodurile selectate.
+   */
   applySize(e: Event, px: string): void {
     e.preventDefault();
     this.restore();
-    const chips = this.chipsInSelection();
-    document.execCommand('fontSize', false, '7');
-    const el = this.host().nativeElement;
-    el.querySelectorAll('font[size="7"], span[style*="xxx-large"]').forEach(node => {
-      if (node.tagName === 'FONT') {
-        const span = document.createElement('span');
-        span.style.fontSize = px;
-        span.innerHTML = node.innerHTML;
-        node.replaceWith(span);
-      } else {
-        (node as HTMLElement).style.fontSize = px;
-      }
-    });
-    chips.forEach(chip => (chip.style.fontSize = px));
+    const sel = window.getSelection();
+    const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+    if (range && !range.collapsed) {
+      this.snapOut(range);
+      const span = document.createElement('span');
+      span.style.fontSize = px;
+      span.append(range.extractContents());
+      // Marimile dinauntru ar bate-o pe cea noua (castiga elementul cel mai apropiat):
+      // le stergem, iar chip-urile si-o iau inapoi mai jos.
+      span.querySelectorAll<HTMLElement>('[style*="font-size"]').forEach(n => n.style.removeProperty('font-size'));
+      range.insertNode(span);
+      // Chip-urile sunt contenteditable=false, deci nu mostenesc marimea: le-o punem
+      // inline. Le cautam din DOM dupa inserare, deci referintele sunt sigur vii.
+      span.querySelectorAll<HTMLElement>('[data-var]').forEach(chip => (chip.style.fontSize = px));
+    }
     this.menu.set(null);
+    this.reselect();
     this.push();
+  }
+
+  /** Chip-urile sunt atomice: capetele range-ului ies in afara lor, ca extractContents
+   *  sa nu taie o pastila in doua. */
+  private snapOut(r: Range): void {
+    const chipOf = (n: Node): HTMLElement | null =>
+      (n.nodeType === Node.ELEMENT_NODE ? (n as Element) : n.parentElement)?.closest<HTMLElement>('[data-var]') ?? null;
+    const start = chipOf(r.startContainer);
+    if (start) r.setStartBefore(start);
+    const end = chipOf(r.endContainer);
+    if (end) r.setEndAfter(end);
   }
 
   /**
@@ -370,10 +446,11 @@ export class EditorComponent {
     e.preventDefault();
     this.restore();
     const before = new Set(this.host().nativeElement.querySelectorAll('[data-var]'));
-    document.execCommand('insertHTML', false, varChip(key) + '&#8203;');
+    // ZWSP de-o parte si de alta: intre doua chip-uri lipite trebuie sa existe o
+    // pozitie de cursor, altfel nu se poate tasta nimic acolo.
+    document.execCommand('insertHTML', false, '&#8203;' + varChip(key) + '&#8203;');
     const added = Array.from(this.host().nativeElement.querySelectorAll<HTMLElement>('[data-var]')).find(c => !before.has(c));
     if (added) this.adoptContext(added);
-    this.range = null;
     this.saveRange();
     this.menu.set(null);
     this.push();
@@ -397,19 +474,58 @@ export class EditorComponent {
     });
   }
 
+  /**
+   * Reasaza selectia dupa o comanda care a rescris nodurile, ca urmatoarea apasare
+   * sa lucreze pe acelasi text. La cursor colapsat n-o atingem: a rescrie selectia
+   * ar sterge stilul pe care execCommand tocmai l-a pregatit pentru ce se tasteaza.
+   */
+  private reselect(): void {
+    if (this.sel && this.sel[0] !== this.sel[1]) this.restore();
+  }
+
   private restore(): void {
     const el = this.host().nativeElement;
     el.focus();
     const sel = window.getSelection();
     if (!sel) return;
-    let r = this.range;
-    if (!r || !el.contains(r.commonAncestorContainer)) {
-      r = document.createRange();
-      r.selectNodeContents(el);
-      r.collapse(false);
-    }
+    const r = this.rangeAt(this.sel);
     sel.removeAllRanges();
     sel.addRange(r);
+  }
+
+  /**
+   * Range-ul care acopera intervalul de caractere [start, end] din editor. Cauta
+   * capetele mergand prin nodurile de text, deci nu-l deranjeaza ca execCommand a
+   * inlocuit intre timp elementele din jur.
+   */
+  private rangeAt(offsets: [number, number] | null): Range {
+    const el = this.host().nativeElement;
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    if (!offsets) {
+      r.collapse(false);
+      return r;
+    }
+    const [start, end] = offsets;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let seen = 0;
+    let node: Node | null;
+    let open = false;
+    while ((node = walker.nextNode())) {
+      const len = (node.nodeValue ?? '').length;
+      if (!open && seen + len >= start) {
+        r.setStart(node, start - seen);
+        open = true;
+      }
+      if (open && seen + len >= end) {
+        r.setEnd(node, end - seen);
+        return r;
+      }
+      seen += len;
+    }
+    // Textul s-a scurtat sub offset-urile salvate: cadem pe finalul continutului.
+    if (!open) r.collapse(false);
+    return r;
   }
 
   /** Text tastat manual {{nume}} devine automat chip, ca la inserarea din bara. */
