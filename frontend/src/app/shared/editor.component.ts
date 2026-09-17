@@ -45,6 +45,17 @@ const SIZES = [
 /** Comenzile care comuta o stare, nu seteaza o valoare. */
 const TOGGLES = ['bold', 'italic', 'underline'];
 
+/** Comenzile aplicate manual prin Range (toggleFormat), nu prin execCommand - vezi exec(). */
+const MANUAL = ['bold', 'italic', 'underline', 'foreColor'];
+
+/** Proprietatea CSS pe care o scrie fiecare comanda din MANUAL. */
+const PROP: Record<string, string> = {
+  bold: 'font-weight',
+  italic: 'font-style',
+  underline: 'text-decoration-line',
+  foreColor: 'color',
+};
+
 /** Comenzile a caror stare curenta se aprinde in bara. */
 const STATEFUL = ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList'];
 
@@ -385,37 +396,130 @@ export class EditorComponent {
   exec(e: Event, cmd: string, val?: string): void {
     e.preventDefault();
     this.restore();
-    // Chip-urile se strang inainte: execCommand rescrie nodurile din selectie.
+    // Chip-urile se strang inainte: si execCommand, si toggleFormat rescriu nodurile din selectie.
     const chips = this.chipsInSelection();
-    // Starea dorita se citeste inainte de comanda, ca sa urmam aceeasi logica de
-    // comutare ca browserul. Cand selectia n-are niciun caracter editabil - e in
-    // intregime in interiorul unui chip, posibil dupa un dublu-click pe text -
-    // queryCommandState nu are ce sa inspecteze si raporteaza mereu false: bold-ul
-    // s-ar aplica mereu, fara sa se mai poata scoate. In cazul asta citim starea
-    // direct din chip-uri, nu din browser.
     const sel = window.getSelection();
     const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
-    const chipOnly = !!range && !range.collapsed && chips.length > 0 && !this.hasEditableText(range);
-    const on = TOGGLES.includes(cmd)
-      ? chipOnly
-        ? !chips.every(chip => this.chipHasFormat(chip, cmd))
-        : !document.queryCommandState(cmd)
-      : false;
-    try {
-      document.execCommand('styleWithCSS', false, 'true');
-    } catch {
-      /* browserul nu suporta, formatarea merge oricum */
+    // Starea dorita se citeste inainte de comanda, ca sa urmam aceeasi logica de comutare
+    // ca un toggle normal: daca tot ce-i selectat e deja formatat, se scoate; altfel se pune.
+    const on = TOGGLES.includes(cmd) ? !this.allFormatted(range, chips, cmd) : false;
+    if (range && !range.collapsed && MANUAL.includes(cmd)) {
+      // Firefox (Gecko): execCommand('bold'/...) pe o selectie care contine un chip
+      // contenteditable=false NU formateaza doar in jurul lui - aduna tot textul editabil
+      // din selectie intr-un singur span nou si muta chip-urile dupa el, stricand ordinea
+      // (confirmat cu innerHTML inainte/dupa, direct din Firefox). Range API (extractContents/
+      // insertNode), folosit deja de applySize(), nu are conceptul asta - muta exact nodurile
+      // din Range, in ordinea lor originala, indiferent de contenteditable.
+      // foreColor nu e toggle (TOGGLES nu-l contine, deci `on` de mai sus e mereu false) -
+      // pentru el toggleFormat trebuie mereu sa impacheteze/aplice culoarea, niciodata sa o scoata.
+      this.toggleFormat(range, cmd, TOGGLES.includes(cmd) ? on : true, val);
+    } else if (range) {
+      // Selectie goala (doar cursor, ex. "apasa Bold, apoi scrie") sau comenzi ramase pe
+      // execCommand (liste, removeFormat) - stilul de scriere "in asteptare" la cursor e nativ
+      // browserului, nu are sens sa-l reimplementam.
+      try {
+        document.execCommand('styleWithCSS', false, 'true');
+      } catch {
+        /* browserul nu suporta, formatarea merge oricum */
+      }
+      document.execCommand(cmd, false, val);
     }
-    document.execCommand(cmd, false, val);
     chips.forEach(chip => this.styleChip(chip, cmd, on, val));
-    // execCommand poate desparte exact la marginea selectiei (splitText): nodul vechi
-    // ramane valid dar scurtat, deci liveRange ajunge sa indice o granita gresita fara
-    // sa para "corupt" (nu devine collapsed). Fortam reconstructia din offsete.
+    // Range-ul a rescris nodurile (split/extract/insert): nodul vechi al liveRange-ului poate fi
+    // scurtat sau scos din document, fara sa para "corupt". Fortam reconstructia din offsete.
     this.liveRange = null;
     this.menu.set(null);
     this.reselect();
     this.readState();
     this.push();
+  }
+
+  /**
+   * Inlocuieste execCommand(cmd, ...) pentru Bold/Italic/Underline/Culoare pe o selectie
+   * nevida: acelasi tipar ca applySize() - extractContents()/insertNode() muta exact
+   * nodurile din Range, pastrandu-le ordinea, fara "curatarea" facuta de execCommand in
+   * Firefox care rearanja chip-urile.
+   */
+  private toggleFormat(range: Range, cmd: string, on: boolean, val?: string): void {
+    this.snapOut(range);
+    const frag = range.extractContents();
+    if (on) {
+      const span = document.createElement('span');
+      this.styleChip(span, cmd, true, val);
+      // Un descendent cu aceeasi proprietate setata explicit (ex. font-style:normal ramas
+      // dintr-un toggle anterior) ar bate valoarea noua a wrapper-ului, oricat de "afara"
+      // ar fi acesta - o proprietate setata direct pe element bate mereu una mostenita.
+      frag.querySelectorAll<HTMLElement>('*').forEach(el => el.style.removeProperty(PROP[cmd]));
+      span.append(frag);
+      range.insertNode(span);
+    } else {
+      frag.querySelectorAll<HTMLElement>('*').forEach(el => {
+        if (this.hasFormat(el, cmd)) this.styleChip(el, cmd, false);
+      });
+      range.insertNode(frag);
+    }
+    // Cand range-ul incepe/se termina exact la granita unui nod (nu in interiorul lui),
+    // extractContents() poate lasa artefacte la acea granita: noduri text goale ("") -
+    // normalize() le sterge si lipeste perechile de text vecine - sau, mai rar, un <span>
+    // clon complet gol. Niciunul din ele nu are vreun rol in acest editor.
+    const el = this.host().nativeElement;
+    el.querySelectorAll<HTMLElement>('span').forEach(span => {
+      if (!span.textContent && !span.querySelector('[data-var]')) {
+        span.remove();
+      } else if (span.getAttribute('style') === '' && span.attributes.length === 1) {
+        // Un <span style=""> fara alt atribut nu (mai) formateaza nimic - doar un invelis
+        // ramas dupa ce styleChip() i-a golit ultima proprietate. Toggle-uri repetate ar
+        // acumula tot mai multe din astea, imbricate; il scoatem, pastrandu-i continutul.
+        span.replaceWith(...Array.from(span.childNodes));
+      }
+    });
+    // Cand range-ul incepe/se termina exact la granita unui nod (nu in interiorul lui),
+    // extractContents() poate lasa si noduri text goale ("") la acea granita - normalize()
+    // le sterge si lipeste perechile de text vecine (inclusiv cele create de unwrap-ul de mai sus).
+    el.normalize();
+  }
+
+  /**
+   * Selectia curenta are deja formatarea `cmd` peste tot - pe chip-uri si pe textul editabil
+   * deopotriva. Inlocuieste document.queryCommandState(cmd): calculam noi starea, in loc sa
+   * ne bazam pe browser, ca sa nu depindem de execCommand nici macar pentru citit starea.
+   */
+  private allFormatted(range: Range | null, chips: HTMLElement[], cmd: string): boolean {
+    if (!range || range.collapsed) return false;
+    if (!chips.every(chip => this.hasFormat(chip, cmd))) return false;
+    const el = this.host().nativeElement;
+    // Range.intersectsNode()/compareBoundaryPoints() sunt "generoase": un nod care doar
+    // atinge granita range-ului (ex. un text gol lasat de extractContents la granita, sau
+    // textul de dinaintea inceputului selectiei) poate iesi "inclus" din cauza modului cum
+    // selectNode() compara pozitii relativ la parinte, nu la caractere. Recalculam offsetele
+    // de caracter ale range-ului, la fel ca saveRange()/rangeAt(), si verificam suprapunere
+    // aritmetica - acelasi sistem de coordonate, deja dovedit corect in tot restul fisierului.
+    const before = document.createRange();
+    before.selectNodeContents(el);
+    before.setEnd(range.startContainer, range.startOffset);
+    const start = before.toString().length;
+    const end = start + range.toString().length;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let seen = 0;
+    let any = false;
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const len = (n.nodeValue ?? '').length;
+      const overlaps = seen < end && seen + len > start;
+      seen += len;
+      if (!overlaps || (n.parentElement)?.closest('[data-var]')) continue;
+      any = true;
+      if (!this.isFormatted(n.parentElement, cmd)) return false;
+    }
+    return any || chips.length > 0;
+  }
+
+  /** Urca prin parinti pana la canvas, cautand un ancestor cu formatarea `cmd` pe el. */
+  private isFormatted(el: Element | null, cmd: string): boolean {
+    const host = this.host().nativeElement;
+    for (let node = el; node && node !== host; node = node.parentElement) {
+      if (node instanceof HTMLElement && this.hasFormat(node, cmd)) return true;
+    }
+    return false;
   }
 
   /**
@@ -473,30 +577,15 @@ export class EditorComponent {
     return Array.from(chips).filter(chip => range.intersectsNode(chip));
   }
 
-  /**
-   * Selectia n-are niciun caracter din afara chip-urilor. Umblam prin nodurile de
-   * text VII ale editorului, nu printr-un clon - range.cloneContents() pe un chip
-   * contenteditable=false partial selectat (ex. dublu-click pe "nume" din
-   * "{{nume}}") scoate textul fara sa mai pastreze si span-ul data-var din jur,
-   * deci parentElement ar iesi null si am citi gresit "e editabil".
-   */
-  private hasEditableText(range: Range): boolean {
-    const walker = document.createTreeWalker(this.host().nativeElement, NodeFilter.SHOW_TEXT);
-    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-      if (range.intersectsNode(n) && !(n.parentElement)?.closest('[data-var]')) return true;
-    }
-    return false;
-  }
-
-  /** Starea curenta a unui chip pentru comenzile de comutare - oglinda lui styleChip. */
-  private chipHasFormat(chip: HTMLElement, cmd: string): boolean {
+  /** Starea curenta a unui element (chip sau span de formatare) - oglinda lui styleChip. */
+  private hasFormat(el: HTMLElement, cmd: string): boolean {
     switch (cmd) {
       case 'bold':
-        return chip.style.fontWeight === 'bold' || Number(chip.style.fontWeight) >= 700;
+        return el.style.fontWeight === 'bold' || Number(el.style.fontWeight) >= 700;
       case 'italic':
-        return chip.style.fontStyle === 'italic';
+        return el.style.fontStyle === 'italic';
       case 'underline':
-        return chip.style.textDecorationLine === 'underline';
+        return el.style.textDecorationLine === 'underline';
       default:
         return false;
     }
