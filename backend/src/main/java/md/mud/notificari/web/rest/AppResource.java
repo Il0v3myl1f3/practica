@@ -8,6 +8,7 @@ import java.util.Map;
 import md.mud.notificari.service.app.AppDtos.ComposePayload;
 import md.mud.notificari.service.app.AppDtos.DiscordDirectory;
 import md.mud.notificari.service.app.AppDtos.DiscordLink;
+import md.mud.notificari.service.app.AppDtos.GroupUpsert;
 import md.mud.notificari.service.app.AppDtos.GroupView;
 import md.mud.notificari.service.app.AppDtos.MessageDetail;
 import md.mud.notificari.service.app.AppDtos.MessageView;
@@ -107,6 +108,22 @@ public class AppResource {
     @GetMapping("/groups")
     public List<GroupView> groups() {
         return app.groups();
+    }
+
+    @PostMapping("/groups")
+    public GroupView createGroup(@RequestBody GroupUpsert body) {
+        return app.createGroup(body);
+    }
+
+    @PutMapping("/groups/{id}")
+    public GroupView updateGroup(@PathVariable Long id, @RequestBody GroupUpsert body) {
+        return app.updateGroup(id, body);
+    }
+
+    @DeleteMapping("/groups/{id}")
+    public ResponseEntity<Void> deleteGroup(@PathVariable Long id) {
+        app.deleteGroup(id);
+        return ResponseEntity.noContent().build();
     }
 
     // -------------------------------------------------------------- telegram

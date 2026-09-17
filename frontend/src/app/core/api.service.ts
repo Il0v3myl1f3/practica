@@ -5,6 +5,7 @@ import {
   ComposePayload,
   DiscordDirectory,
   Group,
+  GroupUpsert,
   MessageDetail,
   MessageView,
   Overview,
@@ -49,6 +50,18 @@ export class ApiService {
 
   groups(): Observable<Group[]> {
     return this.http.get<Group[]>(`${API}/api/app/groups`);
+  }
+
+  createGroup(body: GroupUpsert): Observable<Group> {
+    return this.http.post<Group>(`${API}/api/app/groups`, body);
+  }
+
+  updateGroup(id: number, body: GroupUpsert): Observable<Group> {
+    return this.http.put<Group>(`${API}/api/app/groups/${id}`, body);
+  }
+
+  deleteGroup(id: number): Observable<void> {
+    return this.http.delete<void>(`${API}/api/app/groups/${id}`);
   }
 
   /** Contactele botului de Telegram. 409 dacă Telegramul real nu e pornit. */

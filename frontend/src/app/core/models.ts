@@ -28,6 +28,10 @@ export interface Group {
   count: number;
 }
 
+export interface GroupUpsert {
+  name: string;
+}
+
 /**
  * Cineva care a scris botului de Telegram. Un bot nu poate scrie primul, deci
  * asta e singura sursă de chat ID-uri. `recipientId` e setat când chat ID-ul e

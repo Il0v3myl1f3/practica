@@ -1,7 +1,7 @@
 import { Component, ElementRef, HostListener, model, signal, viewChild } from '@angular/core';
 import { VARS } from '../core/models';
 import { IconComponent } from './icon.component';
-import { Baseline, Bold, Braces, ChevronDown, Eraser, Italic, List, ListOrdered, Underline } from './icons';
+import { Baseline, Bold, Braces, ChevronDown, Eraser, Italic, Link, List, ListOrdered, Underline } from './icons';
 
 export function varChip(key: string): string {
   return (
@@ -137,6 +137,36 @@ const COLORS = [
           }
         </div>
 
+        <div class="menu-wrap" data-menu>
+          <button
+            type="button"
+            class="icon-btn"
+            title="Inserează link"
+            [class.active]="menu() === 'link'"
+            (mousedown)="openLink($event)"
+          >
+            <app-icon [icon]="I.Link" [size]="16" />
+          </button>
+          @if (menu() === 'link') {
+            <div class="menu link-menu">
+              <input
+                type="url"
+                class="link-input"
+                placeholder="https://exemplu.ro"
+                [value]="linkUrl()"
+                (input)="linkUrl.set($any($event.target).value)"
+                (keydown.enter)="applyLink($event)"
+              />
+              <div class="link-actions">
+                <button type="button" class="menu-item" [disabled]="!linkUrl().trim()" (mousedown)="applyLink($event)">Salvează</button>
+                @if (editingLink()) {
+                  <button type="button" class="menu-item" (mousedown)="removeLink($event)">Elimină link</button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
         <span class="sep"></span>
 
         <button
@@ -239,6 +269,18 @@ const COLORS = [
         box-shadow: var(--shadow-menu);
       }
       .menu.wide { min-width: 260px; }
+      .link-menu { min-width: 240px; gap: 8px; }
+      .link-input {
+        height: 32px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        font-size: 13px;
+        color: var(--ink);
+      }
+      .link-actions { display: flex; gap: 4px; }
+      .link-actions .menu-item { flex: 1; justify-content: center; }
+      .link-actions .menu-item:disabled { color: var(--muted); cursor: not-allowed; }
       .menu-item {
         display: flex;
         align-items: center;
@@ -287,10 +329,13 @@ export class EditorComponent {
   readonly value = model<string>('');
   private host = viewChild.required<ElementRef<HTMLDivElement>>('host');
 
-  readonly menu = model<'size' | 'color' | 'vars' | null>(null);
+  readonly menu = model<'size' | 'color' | 'vars' | 'link' | null>(null);
   /** Comenzile active pe selectia curenta, ca sa se aprinda butoanele din bara. */
   readonly activeCmds = signal('');
-  readonly I = { Bold, Italic, Underline, List, ListOrdered, Eraser, Baseline, Braces, ChevronDown };
+  /** URL-ul din campul meniului de link, si daca selectia curenta e deja un link existent. */
+  readonly linkUrl = signal('');
+  readonly editingLink = signal(false);
+  readonly I = { Bold, Italic, Underline, List, ListOrdered, Eraser, Baseline, Braces, ChevronDown, Link };
   readonly sizes = SIZES;
   readonly colors = COLORS;
   readonly vars = VARS;
@@ -660,6 +705,86 @@ export class EditorComponent {
       this.liveRange = null;
     }
     this.menu.set(null);
+    this.reselect();
+    this.push();
+  }
+
+  /** Linkul (daca exista) care contine nodul unde e cursorul/inceputul selectiei. */
+  private linkAtSelection(): HTMLAnchorElement | null {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return null;
+    const el = this.host().nativeElement;
+    const node = sel.anchorNode;
+    if (!node || !el.contains(node)) return null;
+    const from = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+    return from?.closest<HTMLAnchorElement>('a[href]') ?? null;
+  }
+
+  /** Deschide meniul de link, precompletat cu URL-ul existent daca selectia e deja un link. */
+  openLink(e: Event): void {
+    e.preventDefault();
+    this.saveRange();
+    if (this.menu() === 'link') {
+      this.menu.set(null);
+      return;
+    }
+    const a = this.linkAtSelection();
+    this.linkUrl.set(a?.getAttribute('href') ?? '');
+    this.editingLink.set(!!a);
+    this.menu.set('link');
+  }
+
+  /**
+   * Impacheteaza selectia intr-un <a>, la fel ca applySize() - Range API, nu execCommand,
+   * ca sa nu rearanjeze chip-urile prinse in selectie (acelasi motiv ca in exec()/toggleFormat()).
+   * Fara text selectat, doar actualizam href-ul unui link existent la cursor.
+   */
+  applyLink(e: Event): void {
+    e.preventDefault();
+    const url = this.linkUrl().trim();
+    if (!url) return;
+    const href = /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`;
+    this.restore();
+    const sel = window.getSelection();
+    const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+    if (!range) return;
+    if (range.collapsed) {
+      const a = this.linkAtSelection();
+      if (a) a.href = href;
+    } else {
+      this.snapOut(range);
+      const frag = range.extractContents();
+      // Un link nu poate contine alt link - daca selectia se suprapune partial cu unul
+      // existent, scoatem invelisul vechi, pastrandu-i continutul.
+      frag.querySelectorAll('a').forEach(old => old.replaceWith(...Array.from(old.childNodes)));
+      const a = document.createElement('a');
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.append(frag);
+      range.insertNode(a);
+      this.host().nativeElement.normalize();
+    }
+    this.liveRange = null;
+    this.menu.set(null);
+    this.linkUrl.set('');
+    this.reselect();
+    this.readState();
+    this.push();
+  }
+
+  /** Scoate link-ul de la cursor/selectie, pastrandu-i continutul. */
+  removeLink(e: Event): void {
+    e.preventDefault();
+    this.restore();
+    const a = this.linkAtSelection();
+    if (a) {
+      a.replaceWith(...Array.from(a.childNodes));
+      this.host().nativeElement.normalize();
+    }
+    this.liveRange = null;
+    this.menu.set(null);
+    this.linkUrl.set('');
     this.reselect();
     this.push();
   }

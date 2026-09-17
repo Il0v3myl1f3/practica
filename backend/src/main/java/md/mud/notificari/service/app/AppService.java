@@ -21,6 +21,7 @@ import md.mud.notificari.domain.RecipientGroup;
 import md.mud.notificari.domain.enumeration.Channel;
 import md.mud.notificari.domain.enumeration.DeliveryStatus;
 import md.mud.notificari.domain.enumeration.MessageStatus;
+import md.mud.notificari.errors.GroupException;
 import md.mud.notificari.errors.MessageException;
 import md.mud.notificari.errors.MessageTemplateException;
 import md.mud.notificari.errors.RecipientException;
@@ -34,6 +35,7 @@ import md.mud.notificari.repository.app.AppRecipientGroupRepository;
 import md.mud.notificari.repository.app.AppRecipientRepository;
 import md.mud.notificari.service.app.AppDtos.AttachmentPayload;
 import md.mud.notificari.service.app.AppDtos.ComposePayload;
+import md.mud.notificari.service.app.AppDtos.GroupUpsert;
 import md.mud.notificari.service.app.AppDtos.GroupView;
 import md.mud.notificari.service.app.AppDtos.MessageDetail;
 import md.mud.notificari.service.app.AppDtos.MessageView;
@@ -261,6 +263,47 @@ public class AppService {
     private String freeAddress(Channel channel, String address) {
         String trimmed = address == null ? "" : address.trim();
         return trimmed.isEmpty() || addressOwner(channel, trimmed, null).isEmpty() ? address : null;
+    }
+
+    // ============================================================ groups CRUD
+
+    public GroupView createGroup(GroupUpsert in) {
+        Organization org = tenant.currentOrganization();
+        String name = required(in.name(), "Numele grupului");
+        if (groups.findByOrganizationIdAndNameIgnoreCase(org.getId(), name).isPresent()) {
+            throw GroupException.nameAlreadyUsed();
+        }
+        RecipientGroup g = groups.save(new RecipientGroup().name(name).organization(org));
+        return new GroupView(g.getId(), g.getName(), 0);
+    }
+
+    public GroupView updateGroup(Long id, GroupUpsert in) {
+        Long org = orgId();
+        RecipientGroup g = groups.findByIdAndOrganizationId(id, org).orElseThrow(() -> GroupException.notFound(id));
+        String name = required(in.name(), "Numele grupului");
+        groups
+            .findByOrganizationIdAndNameIgnoreCase(org, name)
+            .filter(other -> !other.getId().equals(id))
+            .ifPresent(other -> {
+                throw GroupException.nameAlreadyUsed();
+            });
+        g.name(name);
+        groups.save(g);
+        return new GroupView(g.getId(), g.getName(), recipients.countByRecipientGroupId(id));
+    }
+
+    /**
+     * FK-ul de pe Recipient e obligatoriu (optional = false): un grup cu destinatari nu poate
+     * fi sters fara sa-i strice pe cei ramasi fara grup. Numaram si arhivatii, nu doar cei vii -
+     * tot tin FK-ul spre grup.
+     */
+    public void deleteGroup(Long id) {
+        RecipientGroup g = groups.findByIdAndOrganizationId(id, orgId()).orElseThrow(() -> GroupException.notFound(id));
+        long count = recipients.countByRecipientGroupId(id);
+        if (count > 0) {
+            throw GroupException.hasRecipients(count);
+        }
+        groups.delete(g);
     }
 
     // ========================================================= templates CRUD

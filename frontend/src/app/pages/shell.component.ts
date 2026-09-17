@@ -15,6 +15,7 @@ import {
   Plus,
   Send,
   Users,
+  UsersRound,
 } from '../shared/icons';
 
 const FLOW = ['/mesaj/sablon', '/mesaj/compune', '/mesaj/destinatari'];
@@ -24,6 +25,7 @@ const TITLES: Record<string, string> = {
   '/trimise': 'Mesaje trimise',
   '/ciorne': 'Ciorne',
   '/destinatari': 'Destinatari',
+  '/grupuri': 'Grupuri',
   '/sabloane': 'Șabloane',
   '/sabloane/nou': 'Șablon nou',
   '/mesaj/sablon': 'Mesaj nou',
@@ -74,6 +76,12 @@ const TITLES: Record<string, string> = {
             <app-icon class="ico" [icon]="I.Users" />
             @if (railOpen()) {
               <span class="lbl">Destinatari</span><span class="badge">{{ store.recipients().length }}</span>
+            }
+          </a>
+          <a class="nav" routerLink="/grupuri" [class.on]="is('/grupuri')" title="Grupuri">
+            <app-icon class="ico" [icon]="I.UsersRound" />
+            @if (railOpen()) {
+              <span class="lbl">Grupuri</span><span class="badge">{{ store.groups().length }}</span>
             }
           </a>
           <a class="nav" routerLink="/sabloane" [class.on]="is('/sabloane')" title="Șabloane">
@@ -327,7 +335,7 @@ export class ShellComponent {
   private compose = inject(ComposeStore);
   private router = inject(Router);
 
-  readonly I = { LayoutGrid, Plus, Send, FileText, Users, LayoutTemplate, PanelLeft, LogOut, Check };
+  readonly I = { LayoutGrid, Plus, Send, FileText, Users, UsersRound, LayoutTemplate, PanelLeft, LogOut, Check };
 
   readonly railOpen = signal(true);
   readonly steps = [

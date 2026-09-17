@@ -1,5 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Observable } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { Store } from '../core/store';
 import { ToastService } from '../core/toast.service';
@@ -8,7 +9,23 @@ import { pagerItems, plural } from '../core/format';
 import { DiscordDirectory, DiscordMember, Recipient, RecipientUpsert, TelegramContact } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
 import { SelectComponent, SelectOption } from '../shared/select.component';
-import { Check, ChevronLeft, ChevronRight, Download, Pencil, Plus, RotateCcw, Search, Send, Trash2, Upload } from '../shared/icons';
+import {
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Ellipsis,
+  Pencil,
+  Plug,
+  Plus,
+  RotateCcw,
+  Search,
+  Send,
+  Trash2,
+  Upload,
+  X,
+} from '../shared/icons';
 
 const PAGE = 10;
 const COLS = 'minmax(160px, 2fr) minmax(0, 1.4fr) 150px 110px 88px';
@@ -81,8 +98,8 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
       </section>
     } @else {
       <section class="shell">
-        <div class="toolbar split">
-          <div class="toolbar-main">
+        <div class="toolbar people-toolbar">
+          <div class="tb-row">
             <label class="search-wrap">
               <app-icon [icon]="I.Search" [size]="16" />
               <input placeholder="Caută nume, email sau grup…" [ngModel]="q()" (ngModelChange)="q.set($event); page.set(0)" />
@@ -94,34 +111,53 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
               [value]="groupFilter()"
               (valueChange)="groupFilter.set($event); page.set(0)"
             />
+          </div>
+
+          <div class="tb-row">
+            <div class="menu-wrap" data-menu>
+              <button type="button" class="btn btn-ghost sm" (click)="toggleMenu('channel')">
+                <app-icon [icon]="I.Plug" [size]="15" />Conectează canal<app-icon [icon]="I.ChevronDown" [size]="13" />
+              </button>
+              @if (openMenu() === 'channel') {
+                <div class="menu">
+                  <button type="button" class="menu-item" (click)="openMenu.set(null); openTelegram()">
+                    <app-icon [icon]="I.Send" [size]="15" />Conectează Telegram
+                  </button>
+                  <button type="button" class="menu-item" (click)="openMenu.set(null); openDiscord()">
+                    <app-icon [icon]="I.Send" [size]="15" />Conectează Discord
+                  </button>
+                </div>
+              }
+            </div>
+
+            <div class="menu-wrap" data-menu>
+              <button type="button" class="icon-btn" title="Mai multe" (click)="toggleMenu('more')">
+                <app-icon [icon]="I.Ellipsis" [size]="16" />
+              </button>
+              @if (openMenu() === 'more') {
+                <div class="menu">
+                  <button type="button" class="menu-item" (click)="openMenu.set(null); file.click()">
+                    <app-icon [icon]="I.Upload" [size]="15" />Importă CSV
+                  </button>
+                  <button type="button" class="menu-item" (click)="openMenu.set(null); exportCsv()">
+                    <app-icon [icon]="I.Download" [size]="15" />Exportă CSV
+                  </button>
+                </div>
+              }
+            </div>
 
             @if (filtersActive()) {
               <button type="button" class="btn btn-ghost sm" (click)="resetFilters()">Curăță filtrele</button>
             }
 
-            <input #file type="file" accept=".csv,text/csv" hidden (change)="onFile($event)" />
-          </div>
+            <span class="grow"></span>
 
-          <div class="toolbar-actions">
-            <button type="button" class="btn btn-ghost sm" (click)="openTelegram()">
-              <app-icon [icon]="I.Send" [size]="15" />Conectează Telegram
-            </button>
-            <button type="button" class="btn btn-ghost sm" (click)="openDiscord()">
-              <app-icon [icon]="I.Send" [size]="15" />Conectează Discord
-            </button>
             <button type="button" class="btn btn-primary sm" (click)="openNew()">
-              <app-icon [icon]="I.Plus" [size]="15" />Adaugă
+              <app-icon [icon]="I.Plus" [size]="15" />Adaugă contact
             </button>
           </div>
 
-          <div class="seg" role="group" aria-label="Import și export">
-            <button type="button" class="seg-btn" title="Importă CSV" aria-label="Importă CSV" (click)="file.click()">
-              <app-icon [icon]="I.Upload" />
-            </button>
-            <button type="button" class="seg-btn" title="Exportă CSV" aria-label="Exportă CSV" (click)="exportCsv()">
-              <app-icon [icon]="I.Download" />
-            </button>
-          </div>
+          <input #file type="file" accept=".csv,text/csv" hidden (change)="onFile($event)" />
         </div>
 
         <div class="tbody">
@@ -184,12 +220,10 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
             <label class="field"><span>Email</span><input class="input" type="email" [(ngModel)]="form.email" /></label>
             <label class="field">
               <span>Grup</span>
-              <input class="input" list="grp-list" [(ngModel)]="form.group" placeholder="Marketing" />
-              <datalist id="grp-list">
-                @for (g of store.groups(); track g.id) {
-                  <option [value]="g.name"></option>
-                }
-              </datalist>
+              <button type="button" class="input group-trigger" (click)="openGroupPicker()">
+                <span class="group-trigger-value">{{ form.group || 'Alege un grup' }}</span>
+                <app-icon [icon]="I.ChevronDown" [size]="15" />
+              </button>
             </label>
             <div class="two">
               <label class="field">
@@ -209,6 +243,42 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
           <div class="modal-actions">
             <button type="button" class="btn btn-ghost" (click)="editing.set(null)">Anulează</button>
             <button type="button" class="btn btn-primary" (click)="save()">Salvează</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (groupPickerOpen()) {
+      <div class="backdrop" (click)="closeGroupPicker($event)">
+        <div class="modal" style="max-width:420px" (click)="$event.stopPropagation()">
+          <h3>Alege un grup</h3>
+          <div class="form">
+            <label class="field">
+              <span>Caută sau scrie un grup nou</span>
+              <input
+                class="input"
+                [ngModel]="groupSearch()"
+                (ngModelChange)="groupSearch.set($event)"
+                placeholder="Marketing"
+                autocomplete="off"
+              />
+            </label>
+            <div class="group-list">
+              @for (g of groupPickerOptions(); track g) {
+                <button type="button" class="menu-item" [class.on]="g === form.group" (click)="pickGroup(g)">{{ g }}</button>
+              }
+              @if (groupSearchIsNew()) {
+                <button type="button" class="menu-item" (click)="pickGroup(groupSearch().trim())">
+                  <app-icon [icon]="I.Plus" [size]="14" />Creează „{{ groupSearch().trim() }}”
+                </button>
+              }
+              @if (!groupPickerOptions().length && !groupSearchIsNew()) {
+                <div class="empty">Niciun grup încă.</div>
+              }
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" (click)="groupPickerOpen.set(false)">Închide</button>
           </div>
         </div>
       </div>
@@ -246,10 +316,16 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
                     <span class="cell-strong">{{ c.name }}</span>
                     <span class="cell-muted">{{ c.username ? '@' + c.username + ' · ' : '' }}{{ c.chatId }}</span>
                   </span>
-                  @if (c.recipientId) {
+                  @if (c.recipientId && editingChat() !== c.chatId) {
                     <span class="tg-done">
                       <app-icon [icon]="I.Check" [size]="14" />{{ c.recipientName }}
                     </span>
+                    <button type="button" class="icon-btn" title="Schimbă destinatarul" (click)="startRelinkTelegram(c)">
+                      <app-icon [icon]="I.Pencil" [size]="14" />
+                    </button>
+                    <button type="button" class="icon-btn" title="Dezleagă" (click)="unlinkTelegram(c)">
+                      <app-icon [icon]="I.X" [size]="14" />
+                    </button>
                   } @else {
                     <select
                       class="input"
@@ -265,10 +341,13 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
                       type="button"
                       class="btn btn-primary sm"
                       [disabled]="!pick()[c.chatId] || linking() === c.chatId"
-                      (click)="linkContact(c)"
+                      (click)="c.recipientId ? relinkTelegram(c) : linkContact(c)"
                     >
                       Leagă
                     </button>
+                    @if (c.recipientId) {
+                      <button type="button" class="btn btn-ghost sm" (click)="editingChat.set(null)">Anulează</button>
+                    }
                   }
                 </div>
               } @empty {
@@ -327,10 +406,16 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
                     <span class="cell-strong">{{ m.name }}</span>
                     <span class="cell-muted">{{ m.username ? '@' + m.username + ' · ' : '' }}{{ m.userId }}</span>
                   </span>
-                  @if (m.recipientId) {
+                  @if (m.recipientId && editingMember() !== m.userId) {
                     <span class="tg-done">
                       <app-icon [icon]="I.Check" [size]="14" />{{ m.recipientName }}
                     </span>
+                    <button type="button" class="icon-btn" title="Schimbă destinatarul" (click)="startRelinkDiscord(m)">
+                      <app-icon [icon]="I.Pencil" [size]="14" />
+                    </button>
+                    <button type="button" class="icon-btn" title="Dezleagă" (click)="unlinkDiscord(m)">
+                      <app-icon [icon]="I.X" [size]="14" />
+                    </button>
                   } @else {
                     <select
                       class="input"
@@ -346,10 +431,13 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
                       type="button"
                       class="btn btn-primary sm"
                       [disabled]="!dcPick()[m.userId] || dcLinking() === m.userId"
-                      (click)="linkDiscordMember(m)"
+                      (click)="m.recipientId ? relinkDiscord(m) : linkDiscordMember(m)"
                     >
                       Leagă
                     </button>
+                    @if (m.recipientId) {
+                      <button type="button" class="btn btn-ghost sm" (click)="editingMember.set(null)">Anulează</button>
+                    }
                   }
                 </div>
               } @empty {
@@ -391,6 +479,66 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
   styles: [
     `
       .grow { flex: 1 1 auto; min-width: 0; }
+      .people-toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
+      /* flex-wrap: wrap aici producea un artefact real in Chromium: cand search-wrap
+         (flex-grow:1) umple exact spatiul ramas, fara slack, motorul de layout rupe
+         randul pe 2 linii "invizibile" (aceeasi pozitie Y, dar inaltime dubla), lasand
+         un gol sub el - reprodus si eliminat confirmat cu flex-wrap: nowrap. Randurile
+         astea au mereu exact 2 elemente, nu au nevoie sa se rupa pe linii. */
+      .tb-row { display: flex; align-items: center; gap: 8px 12px; flex-wrap: nowrap; }
+      .menu-wrap { position: relative; }
+      .menu {
+        position: absolute;
+        z-index: 30;
+        top: calc(100% + 4px);
+        left: 0;
+        min-width: 210px;
+        max-height: 240px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px;
+        background: var(--surface);
+        border-radius: var(--r-lg);
+        box-shadow: var(--shadow-menu);
+      }
+      .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 6px 10px;
+        border: none;
+        border-radius: var(--r-md);
+        background: var(--surface);
+        color: var(--ink-2);
+        font-size: 13px;
+        text-align: left;
+        cursor: pointer;
+      }
+      .menu-item:hover { background: var(--line-soft); }
+      .menu-item.on { background: var(--brand-soft); color: var(--brand-ink); }
+      .group-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        cursor: pointer;
+        text-align: left;
+        color: var(--ink);
+      }
+      .group-trigger-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .group-list {
+        max-height: 260px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        padding: 6px;
+      }
       .chans { display: flex; gap: 4px; }
       .chan {
         width: 22px;
@@ -444,15 +592,36 @@ export class PeopleComponent {
 
   readonly cols = COLS;
   readonly plural = plural;
-  readonly I = { Search, Trash2, Upload, Download, Plus, Pencil, ChevronLeft, ChevronRight, Send, Check, RotateCcw };
+  readonly I = {
+    Search,
+    Trash2,
+    Upload,
+    Download,
+    Plus,
+    Pencil,
+    ChevronLeft,
+    ChevronRight,
+    ChevronDown,
+    Send,
+    Check,
+    RotateCcw,
+    Plug,
+    Ellipsis,
+    X,
+  };
 
   readonly q = signal('');
   readonly groupFilter = signal('');
   readonly page = signal(0);
+  /** Meniul deschis din bara: legarea canalelor sau import/export. */
+  readonly openMenu = signal<'channel' | 'more' | null>(null);
 
   readonly editing = signal<EditTarget | null>(null);
   readonly editError = signal('');
   form: RecipientUpsert = blank();
+  /** Modalul de alegere a grupului (nu datalist nativ - nestilizabil cross-browser). */
+  readonly groupPickerOpen = signal(false);
+  readonly groupSearch = signal('');
 
   readonly toDelete = signal<Recipient | null>(null);
 
@@ -468,6 +637,8 @@ export class PeopleComponent {
   /** chatId -> id-ul destinatarului ales în select, cât timp nu s-a apăsat Leagă. */
   readonly pick = signal<Record<string, string>>({});
   readonly linking = signal<string | null>(null);
+  /** chatId-ul aflat in modul "schimbă destinatarul" - readus la select in loc de bifa verde. */
+  readonly editingChat = signal<string | null>(null);
 
   // --- conectarea membrilor de Discord
   readonly discordOpen = signal(false);
@@ -479,6 +650,8 @@ export class PeopleComponent {
   /** userId -> id-ul destinatarului ales în select, cât timp nu s-a apăsat Leagă. */
   readonly dcPick = signal<Record<string, string>>({});
   readonly dcLinking = signal<string | null>(null);
+  /** userId-ul aflat in modul "schimbă destinatarul" - readus la select in loc de bifa verde. */
+  readonly editingMember = signal<string | null>(null);
 
   constructor() {
     this.store.loadRecipients();
@@ -524,6 +697,46 @@ export class PeopleComponent {
     this.page.set(0);
   }
 
+  toggleMenu(which: 'channel' | 'more'): void {
+    this.openMenu.set(this.openMenu() === which ? null : which);
+  }
+
+  @HostListener('document:mousedown', ['$event'])
+  onDocDown(e: MouseEvent): void {
+    const t = e.target as HTMLElement;
+    if (this.openMenu() && !t.closest?.('[data-menu]')) {
+      this.openMenu.set(null);
+    }
+  }
+
+  /** Grupurile care se potrivesc cu ce s-a scris in cautare; toate daca e goala. */
+  groupPickerOptions = computed(() => {
+    const q = this.groupSearch().trim().toLowerCase();
+    const names = this.store.groupNames();
+    return q ? names.filter(n => n.toLowerCase().includes(q)) : names;
+  });
+
+  /** Textul din cautare nu se potriveste cu niciun grup existent - se poate crea unul nou cu el. */
+  groupSearchIsNew = computed(() => {
+    const q = this.groupSearch().trim();
+    return !!q && !this.store.groupNames().some(n => n.toLowerCase() === q.toLowerCase());
+  });
+
+  openGroupPicker(): void {
+    this.groupSearch.set(this.form.group ?? '');
+    this.groupPickerOpen.set(true);
+  }
+
+  closeGroupPicker(e: Event): void {
+    if (e.target === e.currentTarget) this.groupPickerOpen.set(false);
+  }
+
+  pickGroup(name: string): void {
+    if (!name) return;
+    this.form.group = name;
+    this.groupPickerOpen.set(false);
+  }
+
   // ------------------------------------------------------------ editare
 
   editTitle = computed(() => {
@@ -537,6 +750,7 @@ export class PeopleComponent {
     this.form = blank();
     this.form.group = this.store.groupNames()[0] ?? '';
     this.editError.set('');
+    this.groupPickerOpen.set(false);
     this.editing.set({ scope: 'people', id: null });
   }
 
@@ -550,6 +764,7 @@ export class PeopleComponent {
       discordUserId: s.discordUserId ?? '',
     };
     this.editError.set('');
+    this.groupPickerOpen.set(false);
     this.editing.set({ scope: 'staged', key: s.key });
   }
 
@@ -563,6 +778,7 @@ export class PeopleComponent {
       discordUserId: p.discordUserId ?? '',
     };
     this.editError.set('');
+    this.groupPickerOpen.set(false);
     this.editing.set({ scope: 'people', id: p.id });
   }
 
@@ -704,6 +920,66 @@ export class PeopleComponent {
     });
   }
 
+  /** Reia un chat deja legat, cu selectul readus la vedere in locul bifei verzi. */
+  startRelinkTelegram(c: TelegramContact): void {
+    this.pick.set({ ...this.pick(), [c.chatId]: c.recipientId ? String(c.recipientId) : '' });
+    this.editingChat.set(c.chatId);
+  }
+
+  /**
+   * Chat-ul e deja legat la alt destinatar (cel curent) - link() refuza un chat
+   * deja legat, asa ca scoatem intai vechea legatura, apoi legam noul destinatar.
+   */
+  relinkTelegram(c: TelegramContact): void {
+    const newId = Number(this.pick()[c.chatId]);
+    if (!newId) return;
+    this.linking.set(c.chatId);
+    const finish = () => {
+      this.api.linkTelegram(c.chatId, newId).subscribe({
+        next: () => {
+          this.linking.set(null);
+          this.editingChat.set(null);
+          this.store.loadRecipients();
+          this.loadTelegram();
+          this.toast.show('Chat Telegram legat.');
+        },
+        error: e => {
+          this.linking.set(null);
+          this.tgError.set(errMessage(e, 'Legarea nu a reușit.'));
+        },
+      });
+    };
+    if (c.recipientId && c.recipientId !== newId) {
+      const unlink$ = this.unlinkChannel(c.recipientId, 'telegramChatId');
+      if (unlink$) {
+        unlink$.subscribe({ next: finish, error: finish });
+        return;
+      }
+    }
+    finish();
+  }
+
+  /** Scoate legatura Telegram a destinatarului curent, ca chat-ul sa ramana liber. */
+  unlinkTelegram(c: TelegramContact): void {
+    if (!c.recipientId) return;
+    const unlink$ = this.unlinkChannel(c.recipientId, 'telegramChatId');
+    if (!unlink$) return;
+    this.linking.set(c.chatId);
+    unlink$.subscribe({
+      next: () => {
+        this.linking.set(null);
+        this.editingChat.set(null);
+        this.store.loadRecipients();
+        this.loadTelegram();
+        this.toast.show('Legătura Telegram a fost scoasă.');
+      },
+      error: e => {
+        this.linking.set(null);
+        this.tgError.set(errMessage(e, 'Dezlegarea nu a reușit.'));
+      },
+    });
+  }
+
   // ------------------------------------------------------------- Discord
 
   openDiscord(): void {
@@ -754,6 +1030,81 @@ export class PeopleComponent {
         this.dcLinking.set(null);
         this.dcError.set(errMessage(e, 'Legarea nu a reușit.'));
       },
+    });
+  }
+
+  /** Reia un cont deja legat, cu selectul readus la vedere in locul bifei verzi. */
+  startRelinkDiscord(m: DiscordMember): void {
+    this.dcPick.set({ ...this.dcPick(), [m.userId]: m.recipientId ? String(m.recipientId) : '' });
+    this.editingMember.set(m.userId);
+  }
+
+  /** Acelasi motiv ca relinkTelegram: scoatem vechea legatura inainte de a lega alt destinatar. */
+  relinkDiscord(m: DiscordMember): void {
+    const newId = Number(this.dcPick()[m.userId]);
+    if (!newId) return;
+    this.dcLinking.set(m.userId);
+    const finish = () => {
+      this.api.linkDiscord(m.userId, newId).subscribe({
+        next: () => {
+          this.dcLinking.set(null);
+          this.editingMember.set(null);
+          this.store.loadRecipients();
+          this.loadDiscord();
+          this.toast.show('Cont Discord legat.');
+        },
+        error: e => {
+          this.dcLinking.set(null);
+          this.dcError.set(errMessage(e, 'Legarea nu a reușit.'));
+        },
+      });
+    };
+    if (m.recipientId && m.recipientId !== newId) {
+      const unlink$ = this.unlinkChannel(m.recipientId, 'discordUserId');
+      if (unlink$) {
+        unlink$.subscribe({ next: finish, error: finish });
+        return;
+      }
+    }
+    finish();
+  }
+
+  /** Scoate legatura Discord a destinatarului curent, ca contul sa ramana liber. */
+  unlinkDiscord(m: DiscordMember): void {
+    if (!m.recipientId) return;
+    const unlink$ = this.unlinkChannel(m.recipientId, 'discordUserId');
+    if (!unlink$) return;
+    this.dcLinking.set(m.userId);
+    unlink$.subscribe({
+      next: () => {
+        this.dcLinking.set(null);
+        this.editingMember.set(null);
+        this.store.loadRecipients();
+        this.loadDiscord();
+        this.toast.show('Legătura Discord a fost scoasă.');
+      },
+      error: e => {
+        this.dcLinking.set(null);
+        this.dcError.set(errMessage(e, 'Dezlegarea nu a reușit.'));
+      },
+    });
+  }
+
+  /**
+   * Goleste un singur canal al unui destinatar existent, ca adresa lui sa poata
+   * fi reasignata altcuiva - updateRecipient rescrie toate canalele din payload,
+   * asa ca pornim de la destinatarul curent si golim doar campul cerut.
+   */
+  private unlinkChannel(recipientId: number, field: 'telegramChatId' | 'discordUserId'): Observable<Recipient> | null {
+    const r = this.store.recipients().find(p => p.id === recipientId);
+    if (!r) return null;
+    return this.api.updateRecipient(recipientId, {
+      firstName: r.firstName,
+      lastName: r.lastName,
+      email: r.email,
+      group: r.group,
+      telegramChatId: field === 'telegramChatId' ? '' : (r.telegramChatId ?? ''),
+      discordUserId: field === 'discordUserId' ? '' : (r.discordUserId ?? ''),
     });
   }
 

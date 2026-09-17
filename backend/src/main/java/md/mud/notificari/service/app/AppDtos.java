@@ -95,6 +95,8 @@ public final class AppDtos {
         String discordUserId
     ) {}
 
+    public record GroupUpsert(String name) {}
+
     public record AttachmentPayload(String fileName, String contentType, String dataBase64) {}
 
     public record ComposePayload(

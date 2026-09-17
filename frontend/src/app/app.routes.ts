@@ -14,6 +14,7 @@ export const routes: Routes = [
       { path: 'trimise/:id', loadComponent: () => import('./pages/sent-detail.component').then(m => m.SentDetailComponent) },
       { path: 'ciorne', loadComponent: () => import('./pages/drafts.component').then(m => m.DraftsComponent) },
       { path: 'destinatari', loadComponent: () => import('./pages/people.component').then(m => m.PeopleComponent) },
+      { path: 'grupuri', loadComponent: () => import('./pages/groups.component').then(m => m.GroupsComponent) },
       { path: 'sabloane', loadComponent: () => import('./pages/templates.component').then(m => m.TemplatesComponent) },
       { path: 'sabloane/nou', loadComponent: () => import('./pages/template-new.component').then(m => m.TemplateNewComponent) },
       {

@@ -26,4 +26,7 @@ public interface AppRecipientRepository extends JpaRepository<Recipient, Long> {
     List<Recipient> findByOrganizationIdAndArchivedAtIsNullAndIdIn(Long organizationId, List<Long> ids);
 
     long countByOrganizationIdAndArchivedAtIsNull(Long organizationId);
+
+    /** Include si arhivatii: tot tin FK-ul spre grup, l-ar rupe daca grupul e sters sub ei. */
+    long countByRecipientGroupId(Long recipientGroupId);
 }

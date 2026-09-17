@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AppRecipientGroupRepository extends JpaRepository<RecipientGroup, Long> {
     List<RecipientGroup> findByOrganizationIdOrderByNameAsc(Long organizationId);
 
+    Optional<RecipientGroup> findByIdAndOrganizationId(Long id, Long organizationId);
+
     Optional<RecipientGroup> findByOrganizationIdAndNameIgnoreCase(Long organizationId, String name);
 
     long countByOrganizationId(Long organizationId);
