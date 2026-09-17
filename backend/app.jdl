@@ -26,7 +26,7 @@ application {
 // --------------------------------------------------------------------- enums
 
 enum Channel {
-  EMAIL, TELEGRAM, WHATSAPP
+  EMAIL, TELEGRAM, DISCORD
 }
 
 /** DRAFT = ciorna. PARTIAL/FAILED se calculeaza din MessageRecipient. */
@@ -182,14 +182,22 @@ filter Recipient, Message
 //     disponibile (unreachable exclusi automat) / override manual per persoana.
 //  7. Substitutia variabilelor {{nume}} {{prenume}} {{grup}} {{email}} se face
 //     per destinatar, la trimitere.
-//  8. Specific canal: Telegram si WhatsApp nu au subiect - acesta devine prima
-//     linie a mesajului; la WhatsApp imaginile pleaca separat.
+//  8. Specific canal: Telegram si Discord nu au subiect - acesta devine
+//     prima linie a mesajului.
 //     Telegram (implementat): RecipientChannel.address e chat_id-ul numeric, nu
 //     @username, si se obtine doar dupa ce omul scrie botului (un bot nu poate
 //     scrie primul) - vezi ecranul de conectare. HTML-ul se reduce la subsetul
 //     acceptat (b i u s a code pre blockquote), mesajul se taie la 4096 de
 //     caractere, atasamentele pleaca separat prin sendDocument, imaginile inline
 //     nu pleaca deloc.
+//     Discord (implementat): RecipientChannel.address e user id-ul numeric
+//     Discord (snowflake), luat din ecranul de conectare (lista membrilor
+//     serverului) sau scris manual. Botul trimite DM, nu poate scrie primul pe
+//     altcineva decat pe cineva de pe acelasi server. HTML-ul devine Markdown
+//     Discord (subsetul acceptat: bold, italic, underline, strikethrough, link,
+//     code, bloc de cod, citat, liste), mesajul se taie la 2000 de caractere,
+//     atasamentele pleaca separat, in loturi de maxim 10, imaginile inline nu
+//     pleaca deloc.
 //  9. Agregare status Message din MessageRecipient: cat mai exista PENDING sau
 //     SENDING -> QUEUED; apoi niciun FAILED -> SENT, niciun succes -> FAILED,
 //     amestecat -> PARTIAL. Succes = SENT sau DELIVERED: SENT e starea scrisa de

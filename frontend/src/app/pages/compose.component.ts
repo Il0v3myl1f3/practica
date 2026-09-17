@@ -26,7 +26,7 @@ import { Check, ImagePlus, X } from '../shared/icons';
           <app-editor [value]="c.bodyHtml()" (valueChange)="c.bodyHtml.set($event)" />
           <p class="hint">
             Variabilele inserate se înlocuiesc cu datele fiecărui destinatar la trimitere. Formatarea se aplică la
-            livrarea prin email; pe Telegram și WhatsApp textul pleacă simplu.
+            livrarea prin email; pe Telegram și Discord textul pleacă simplu.
           </p>
         </div>
 
@@ -177,7 +177,7 @@ export class ComposeComponent {
 
   imagesHint = computed(() => {
     const n = this.c.attachments().length;
-    if (!n) return 'Nicio imagine adăugată. Se atașează la email; pe WhatsApp pleacă separat.';
+    if (!n) return 'Nicio imagine adăugată. Se atașează la email; pe Discord pleacă separat.';
     return `${n} ${n === 1 ? 'imagine adăugată' : 'imagini adăugate'}. Apasă × pe o miniatură pentru a o șterge.`;
   });
 

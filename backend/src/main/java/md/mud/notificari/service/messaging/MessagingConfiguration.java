@@ -26,8 +26,8 @@ public class MessagingConfiguration {
     }
 
     @Bean
-    public ChannelSender mockWhatsAppSender(ApplicationProperties properties) {
-        return mock(Channel.WHATSAPP, properties);
+    public ChannelSender mockDiscordSender(ApplicationProperties properties) {
+        return mock(Channel.DISCORD, properties);
     }
 
     private static ChannelSender mock(Channel channel, ApplicationProperties properties) {

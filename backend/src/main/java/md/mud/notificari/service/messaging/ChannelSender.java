@@ -7,7 +7,7 @@ import md.mud.notificari.domain.enumeration.Channel;
  * pentru acelasi canal (de exemplu "smtp" si "mock" pentru EMAIL); alegerea se
  * face din configuratie, la pornire, de catre {@link ChannelSenderRegistry}.
  *
- * Un client real de Telegram sau WhatsApp inseamna o clasa noua care implementeaza
+ * Un client real de Telegram sau Discord inseamna o clasa noua care implementeaza
  * interfata asta plus doua linii in yaml. Nimic din AppService sau din dispecer
  * nu trebuie atins.
  */

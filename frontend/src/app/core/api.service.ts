@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   ComposePayload,
+  DiscordDirectory,
   Group,
   MessageDetail,
   MessageView,
@@ -57,6 +58,15 @@ export class ApiService {
 
   linkTelegram(chatId: string, recipientId: number): Observable<void> {
     return this.http.post<void>(`${API}/api/app/telegram/link`, { chatId, recipientId });
+  }
+
+  /** Membrii serverului Discord. 409 dacă Discordul real nu e pornit. */
+  discordMembers(): Observable<DiscordDirectory> {
+    return this.http.get<DiscordDirectory>(`${API}/api/app/discord/members`);
+  }
+
+  linkDiscord(userId: string, recipientId: number): Observable<void> {
+    return this.http.post<void>(`${API}/api/app/discord/link`, { userId, recipientId });
   }
 
   templates(): Observable<Template[]> {

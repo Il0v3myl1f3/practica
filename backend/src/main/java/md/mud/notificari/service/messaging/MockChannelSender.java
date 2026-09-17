@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
  * nimic din aplicatie. Exista pentru fiecare canal, inclusiv EMAIL, si se alege
  * cu {@code application.messaging.channels.<canal>.provider: mock}.
  *
- * Telegram si WhatsApp nu au subiect (regula 8 din app.jdl), asa ca subiectul
+ * Telegram si Discord nu au subiect (regula 8 din app.jdl), asa ca subiectul
  * devine prima linie a corpului - aceeasi conventie pe care va trebui sa o
  * pastreze si un client real.
  *

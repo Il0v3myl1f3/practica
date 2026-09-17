@@ -238,7 +238,7 @@ public class AppService {
         List<RecipientView> added = new ArrayList<>();
         for (RecipientUpsert row : rows) {
             try {
-                added.add(createRecipient(freeChatIdOnly(row)));
+                added.add(createRecipient(freeTakenAddresses(row)));
             } catch (IllegalArgumentException | RecipientException e) {
                 LOG.debug("Linie sarita la import: {}", e.getMessage());
             }
@@ -246,13 +246,21 @@ public class AppService {
         return added;
     }
 
-    /** Chat ID-ul luat se sterge din linie inainte de a crea ceva, ca sa nu ramana un destinatar pe jumatate scris. */
-    private RecipientUpsert freeChatIdOnly(RecipientUpsert row) {
-        String chatId = row.telegramChatId() == null ? "" : row.telegramChatId().trim();
-        if (chatId.isEmpty() || chatIdOwner(chatId, null).isEmpty()) {
-            return row;
-        }
-        return new RecipientUpsert(row.firstName(), row.lastName(), row.email(), row.group(), row.phoneNumber(), null);
+    /** Adresele deja luate se sterg din linie inainte de a crea ceva, ca sa nu ramana un destinatar pe jumatate scris. */
+    private RecipientUpsert freeTakenAddresses(RecipientUpsert row) {
+        return new RecipientUpsert(
+            row.firstName(),
+            row.lastName(),
+            row.email(),
+            row.group(),
+            freeAddress(Channel.TELEGRAM, row.telegramChatId()),
+            freeAddress(Channel.DISCORD, row.discordUserId())
+        );
+    }
+
+    private String freeAddress(Channel channel, String address) {
+        String trimmed = address == null ? "" : address.trim();
+        return trimmed.isEmpty() || addressOwner(channel, trimmed, null).isEmpty() ? address : null;
     }
 
     // ========================================================= templates CRUD
@@ -453,7 +461,7 @@ public class AppService {
         );
         if (in.telegramChatId() != null && !in.telegramChatId().isBlank()) {
             String address = in.telegramChatId().trim();
-            chatIdOwner(address, r.getId()).ifPresent(other -> {
+            addressOwner(Channel.TELEGRAM, address, r.getId()).ifPresent(other -> {
                 throw RecipientException.chatIdAlreadyLinked(fullName(other));
             });
             recipientChannels.save(
@@ -465,33 +473,36 @@ public class AppService {
                     .recipient(r)
             );
         }
-        if (in.phoneNumber() != null && !in.phoneNumber().isBlank()) {
-            String address = in.phoneNumber().trim();
+        if (in.discordUserId() != null && !in.discordUserId().isBlank()) {
+            String address = in.discordUserId().trim();
+            addressOwner(Channel.DISCORD, address, r.getId()).ifPresent(other -> {
+                throw RecipientException.discordIdAlreadyLinked(fullName(other));
+            });
             recipientChannels.save(
                 new RecipientChannel()
-                    .channel(Channel.WHATSAPP)
+                    .channel(Channel.DISCORD)
                     .address(address)
                     .active(true)
-                    .verified(wasVerified(before.get(Channel.WHATSAPP), address))
+                    .verified(wasVerified(before.get(Channel.DISCORD), address))
                     .recipient(r)
             );
         }
     }
 
     /**
-     * Destinatarul care are deja acest chat Telegram, daca e altul decat
+     * Destinatarul care are deja aceasta adresa pe acest canal, daca e altul decat
      * {@code selfId} ({@code null} inseamna "oricine conteaza").
      *
-     * Acelasi chat nu poate fi al doua persoane: mesajul ar ajunge de doua ori
-     * la unul si deloc la celalalt. Regula exista la legarea din ecranul de
-     * Telegram ({@link TelegramLinkService#link}), dar lipsea pe calea
-     * formularului si a importului.
+     * Aceeasi adresa nu poate fi a doua persoane: mesajul ar ajunge de doua ori
+     * la una si deloc la cealalta. Regula exista si la legarea din ecranele de
+     * conectare ({@link TelegramLinkService#link}, {@link DiscordLinkService#link}),
+     * dar lipsea pe calea formularului si a importului.
      */
-    private Optional<Recipient> chatIdOwner(String chatId, Long selfId) {
+    private Optional<Recipient> addressOwner(Channel channel, String address, Long selfId) {
         return recipientChannels
-            .findAllForOrganizationAndChannel(orgId(), Channel.TELEGRAM)
+            .findAllForOrganizationAndChannel(orgId(), channel)
             .stream()
-            .filter(c -> chatId.equals(c.getAddress() == null ? null : c.getAddress().trim()))
+            .filter(c -> address.equals(c.getAddress() == null ? null : c.getAddress().trim()))
             .map(RecipientChannel::getRecipient)
             .filter(other -> !other.getId().equals(selfId))
             .findFirst();
@@ -557,9 +568,9 @@ public class AppService {
             fullName(r),
             r.getEmail(),
             r.getRecipientGroup() == null ? null : r.getRecipientGroup().getName(),
-            addressOf(r, Channel.WHATSAPP),
             addressOf(r, Channel.TELEGRAM),
-            chans
+            chans,
+            addressOf(r, Channel.DISCORD)
         );
     }
 

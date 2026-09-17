@@ -212,8 +212,20 @@ application:
           bot-token: ${TELEGRAM_BOT_TOKEN:}
           # Se schimba doar pentru teste contra unui server fals.
           base-url: ${TELEGRAM_BASE_URL:https://api.telegram.org}
-      whatsapp:
-        provider: mock # mock (whatsapp-cloud, cand exista clientul real)
+      # Discordul real se porneste tot dintr-o variabila de mediu:
+      #   setx MESSAGING_DISCORD_PROVIDER discord-bot
+      #   setx DISCORD_BOT_TOKEN tokenul botului din Developer Portal
+      #   setx DISCORD_GUILD_ID id-ul serverului pe care e invitat botul
+      # User ID-urile se leaga din Destinatari -> Conecteaza Discord: botul poate
+      # trimite DM doar cuiva de pe acelasi server.
+      discord:
+        provider: ${MESSAGING_DISCORD_PROVIDER:mock} # mock | discord-bot
+        batch-size: 25
+        min-interval: 100ms
+        options:
+          bot-token: ${DISCORD_BOT_TOKEN:}
+          guild-id: ${DISCORD_GUILD_ID:}
+          base-url: ${DISCORD_BASE_URL:https://discord.com/api/v10}
     dispatcher:
       poll-interval: 5s
       # Cat poate sta o livrare SENDING inainte sa fie considerata abandonata.

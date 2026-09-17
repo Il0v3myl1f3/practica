@@ -101,3 +101,6 @@ application:
       # deci se porneste explicit, cand e pregatit.
       telegram:
         provider: ${MESSAGING_TELEGRAM_PROVIDER:mock}
+      # La fel ca Telegramul: cere un bot invitat pe server si user ID-uri legate.
+      discord:
+        provider: ${MESSAGING_DISCORD_PROVIDER:mock}

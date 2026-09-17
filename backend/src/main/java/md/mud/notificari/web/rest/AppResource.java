@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import md.mud.notificari.service.app.AppDtos.ComposePayload;
+import md.mud.notificari.service.app.AppDtos.DiscordDirectory;
+import md.mud.notificari.service.app.AppDtos.DiscordLink;
 import md.mud.notificari.service.app.AppDtos.GroupView;
 import md.mud.notificari.service.app.AppDtos.MessageDetail;
 import md.mud.notificari.service.app.AppDtos.MessageView;
@@ -18,6 +20,7 @@ import md.mud.notificari.service.app.AppDtos.TelegramDirectory;
 import md.mud.notificari.service.app.AppDtos.TelegramLink;
 import md.mud.notificari.service.app.AppDtos.TemplateView;
 import md.mud.notificari.service.app.AppService;
+import md.mud.notificari.service.app.DiscordLinkService;
 import md.mud.notificari.service.app.SendCoordinator;
 import md.mud.notificari.service.app.TelegramLinkService;
 import md.mud.notificari.service.app.TemplateArchiveService;
@@ -50,12 +53,20 @@ public class AppResource {
     private final SendCoordinator sending;
     private final TemplateArchiveService archive;
     private final TelegramLinkService telegram;
+    private final DiscordLinkService discord;
 
-    public AppResource(AppService app, SendCoordinator sending, TemplateArchiveService archive, TelegramLinkService telegram) {
+    public AppResource(
+        AppService app,
+        SendCoordinator sending,
+        TemplateArchiveService archive,
+        TelegramLinkService telegram,
+        DiscordLinkService discord
+    ) {
         this.app = app;
         this.sending = sending;
         this.archive = archive;
         this.telegram = telegram;
+        this.discord = discord;
     }
 
     // ------------------------------------------------------------- dashboard
@@ -109,6 +120,20 @@ public class AppResource {
     @PostMapping("/telegram/link")
     public ResponseEntity<Void> linkTelegram(@RequestBody TelegramLink body) {
         telegram.link(body);
+        return ResponseEntity.noContent().build();
+    }
+
+    // --------------------------------------------------------------- discord
+
+    /** Membrii serverului, cu user id-ul lor - de aici se leaga destinatarii. */
+    @GetMapping("/discord/members")
+    public DiscordDirectory discordMembers() {
+        return discord.directory();
+    }
+
+    @PostMapping("/discord/link")
+    public ResponseEntity<Void> linkDiscord(@RequestBody DiscordLink body) {
+        discord.link(body);
         return ResponseEntity.noContent().build();
     }
 

@@ -96,7 +96,7 @@ application:
     channels:
       email: { provider: mock }
       telegram: { provider: mock }
-      whatsapp: { provider: mock }
+      discord: { provider: mock }
     dispatcher:
       # Un esec e definitiv: testele nu au de ce sa astepte un backoff.
       max-attempts: 1

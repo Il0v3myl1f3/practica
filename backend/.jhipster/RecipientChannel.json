@@ -10,7 +10,7 @@
       "fieldName": "channel",
       "fieldType": "Channel",
       "fieldValidateRules": ["required"],
-      "fieldValues": "EMAIL,TELEGRAM,WHATSAPP"
+      "fieldValues": "EMAIL,TELEGRAM,DISCORD"
     },
     {
       "fieldName": "address",

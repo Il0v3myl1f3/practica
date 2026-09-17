@@ -185,8 +185,9 @@ const COLORS = [
         class="canvas"
         contenteditable="true"
         (input)="onInput()"
+        (keydown)="onKeyDown($event)"
         (keyup)="onSelect()"
-        (mouseup)="onSelect()"
+        (mouseup)="onSelect($event)"
       ></div>
 
       <div class="stats">
@@ -351,10 +352,121 @@ export class EditorComponent {
     this.value.set(html);
   }
 
-  /** Cursorul/selectia s-a mutat: retinem pozitia si aprindem butoanele potrivite. */
-  onSelect(): void {
+  /**
+   * Cursorul/selectia s-a mutat: retinem pozitia si aprindem butoanele potrivite.
+   * Daca a ajuns in interiorul unui chip (Firefox permite uneori un click direct
+   * inauntru, spre deosebire de Chrome), il scoatem imediat pe partea cea mai
+   * apropiata de unde s-a dat clic.
+   */
+  onSelect(e?: MouseEvent): void {
+    const chip = this.chipAtCaret();
+    if (chip) {
+      const rect = chip.getBoundingClientRect();
+      this.exitChip(chip, e && e.clientX < rect.left + rect.width / 2 ? -1 : 1);
+    }
     this.saveRange();
     this.readState();
+  }
+
+  /**
+   * Firefox nu trateaza mereu contenteditable=false ca un bloc atomic la
+   * navigarea cu sageata: cursorul poate ajunge in interiorul span-ului
+   * chip-ului si ramane blocat acolo, fara sa mai iasa cu nicio apasare (nu se
+   * reproduce in Chromium). Doua plase de siguranta: daca cursorul e deja in
+   * interiorul unui chip (indiferent cum a ajuns acolo - click, stare veche),
+   * il scoatem direct; altfel, daca urmeaza sa intre intr-un chip lipit de
+   * cursor, sarim noi peste el inainte sa apuce browserul sa incerce. Fara asta,
+   * chiar si acolo unde chip-ul e tratat atomic (Chrome), fiecare ZWSP din jurul
+   * lui costa o apasare separata care nu misca nimic vizual.
+   */
+  onKeyDown(e: KeyboardEvent): void {
+    if (e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !sel.isCollapsed) return;
+    const el = this.host().nativeElement;
+    if (!el.contains(sel.anchorNode)) return;
+    const dir: 1 | -1 = e.key === 'ArrowRight' ? 1 : -1;
+    const chip = this.chipAtCaret() ?? this.adjacentChip(sel.getRangeAt(0), dir);
+    if (!chip) return;
+    e.preventDefault();
+    this.exitChip(chip, dir);
+    this.saveRange();
+  }
+
+  /** Chip-ul care contine cursorul, daca acesta a ajuns in interiorul lui. */
+  private chipAtCaret(): HTMLElement | null {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !sel.isCollapsed) return null;
+    const el = this.host().nativeElement;
+    const node = sel.anchorNode;
+    if (!node || !el.contains(node)) return null;
+    const from = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+    return from?.closest<HTMLElement>('[data-var]') ?? null;
+  }
+
+  /**
+   * Chip-ul spre care s-ar indrepta cursorul, sarind peste ZWSP-urile de umplutura din
+   * cale (invizibile, nu conteaza pentru navigare - doua chip-uri inserate unul dupa
+   * altul lasa cate un ZWSP separat de fiecare parte, nu unul singur). Fara saltul
+   * asta, fiecare ZWSP dintre chip-uri alaturate ar costa o apasare separata care nu
+   * misca nimic vizual, chiar daca fiecare chip in sine e deja atomic pentru cursor.
+   */
+  private adjacentChip(range: Range, dir: 1 | -1): HTMLElement | null {
+    let container: Node = range.startContainer;
+    let idx = range.startOffset;
+    for (let guard = 0; guard < 6; guard++) {
+      let sib: ChildNode | null;
+      if (container.nodeType === Node.TEXT_NODE) {
+        const value = container.nodeValue ?? '';
+        // Ce mai ramane de parcurs in acest nod, in directia de mers, pana la capat -
+        // fie tot nodul (doi chip-uri alaturate, separate doar de ZWSP), fie coada lui
+        // lipita de text real ("Salut " + ZWSP, un singur nod). Daca partea ramasa e
+        // numai ZWSP, n-are "mijloc" vizual - o tratam ca fiind deja la marginea
+        // dinspre chip, indiferent de cate ZWSP mai sunt de "trecut" pana acolo, ca sa
+        // nu coste o apasare separata doar pentru ele inainte de saltul peste chip.
+        const rest = dir === -1 ? value.slice(0, idx) : value.slice(idx);
+        const atEdge = /^​*$/.test(rest);
+        if (!atEdge) return null;
+        sib = dir === -1 ? container.previousSibling : container.nextSibling;
+      } else {
+        sib = container.childNodes[dir === -1 ? idx - 1 : idx] ?? null;
+      }
+      if (!sib) return null;
+      if (sib instanceof HTMLElement && sib.hasAttribute('data-var')) return sib;
+      if (sib.nodeType === Node.TEXT_NODE && /^​*$/.test(sib.nodeValue ?? '')) {
+        const parent = sib.parentNode as Node;
+        idx = Array.prototype.indexOf.call(parent.childNodes, sib) + (dir === -1 ? 0 : 1);
+        container = parent;
+        continue;
+      }
+      return null;
+    }
+    return null;
+  }
+
+  /**
+   * Muta cursorul chiar inainte sau chiar dupa chip, in afara lui. Preferam sa
+   * aterizam in ZWSP-ul vecin (nod text) in loc de direct la marginea
+   * elementului: Firefox deseneaza un chenar de "selectie" in jurul unui
+   * contenteditable=false cand Range-ul se opreste chiar la marginea lui, in
+   * loc de un caret normal - un nod text vecin evita complet acel desen.
+   */
+  private exitChip(chip: HTMLElement, dir: 1 | -1): void {
+    const sel = window.getSelection();
+    if (!sel) return;
+    const r = document.createRange();
+    const sib = dir === 1 ? chip.nextSibling : chip.previousSibling;
+    if (sib && sib.nodeType === Node.TEXT_NODE) {
+      r.setStart(sib, dir === 1 ? 0 : (sib as Text).length);
+    } else if (dir === 1) {
+      r.setStartAfter(chip);
+    } else {
+      r.setStartBefore(chip);
+    }
+    r.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(r);
   }
 
   saveRange(): void {

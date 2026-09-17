@@ -5,7 +5,7 @@ import { Store } from '../core/store';
 import { ToastService } from '../core/toast.service';
 import { COL, EMAIL_RE, downloadCsv, findColumn, parseCsv } from '../core/csv';
 import { pagerItems, plural } from '../core/format';
-import { Recipient, RecipientUpsert, TelegramContact } from '../core/models';
+import { DiscordDirectory, DiscordMember, Recipient, RecipientUpsert, TelegramContact } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
 import { SelectComponent, SelectOption } from '../shared/select.component';
 import { Check, ChevronLeft, ChevronRight, Download, Pencil, Plus, RotateCcw, Search, Send, Trash2, Upload } from '../shared/icons';
@@ -17,9 +17,10 @@ interface Staged extends RecipientUpsert {
   key: number;
 }
 
-/** Linie citita din fisier, cat timp celula Telegram e inca text brut. */
+/** Linie citita din fisier, cat timp celulele Telegram si Discord sunt inca text brut. */
 interface Draft extends Staged {
   rawTg: string;
+  rawDiscord: string;
 }
 
 const CHAT_ID_RE = /^-?\d+$/;
@@ -105,6 +106,9 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
             <button type="button" class="btn btn-ghost sm" (click)="openTelegram()">
               <app-icon [icon]="I.Send" [size]="15" />Conectează Telegram
             </button>
+            <button type="button" class="btn btn-ghost sm" (click)="openDiscord()">
+              <app-icon [icon]="I.Send" [size]="15" />Conectează Discord
+            </button>
             <button type="button" class="btn btn-primary sm" (click)="openNew()">
               <app-icon [icon]="I.Plus" [size]="15" />Adaugă
             </button>
@@ -189,12 +193,12 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
             </label>
             <div class="two">
               <label class="field">
-                <span>Telefon WhatsApp</span>
-                <input class="input" [(ngModel)]="form.phoneNumber" placeholder="+373…" />
-              </label>
-              <label class="field">
                 <span>Telegram chat ID</span>
                 <input class="input" [(ngModel)]="form.telegramChatId" placeholder="opțional" />
+              </label>
+              <label class="field">
+                <span>Discord user ID</span>
+                <input class="input" [(ngModel)]="form.discordUserId" placeholder="opțional" />
               </label>
             </div>
             <p class="hint">Canalele fără adresă completată nu apar la selecția destinatarilor.</p>
@@ -284,6 +288,87 @@ type EditTarget = { scope: 'people'; id: number | null } | { scope: 'staged'; ke
             </button>
             <span class="grow"></span>
             <button type="button" class="btn btn-ghost" (click)="telegramOpen.set(false)">Închide</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (discordOpen()) {
+      <!-- Structura si clasele CSS (tg-*) sunt cele de la modalul Telegram de mai sus. -->
+      <div class="backdrop" (click)="closeDiscord($event)">
+        <div class="modal tg" (click)="$event.stopPropagation()">
+          <h3>Conectează Discord</h3>
+          <p class="modal-sub">
+            Botul listează membrii serverului. Alege destinatarul pentru fiecare membru și apasă
+            <b>Leagă</b>.
+          </p>
+
+          @if (guildName()) {
+            <p class="tg-link">Server: <b>{{ guildName() }}</b></p>
+          }
+          @if (inviteUrl()) {
+            <p class="tg-link">
+              Linkul de invitare pe server:
+              <a [href]="inviteUrl()" target="_blank" rel="noopener">{{ inviteUrl() }}</a>
+            </p>
+          }
+
+          @if (dcError()) {
+            <div class="alert">{{ dcError() }}</div>
+          }
+
+          @if (dcLoading()) {
+            <div class="empty">Se citesc membrii serverului…</div>
+          } @else if (!dcError()) {
+            <div class="tg-list">
+              @for (m of members(); track m.userId) {
+                <div class="tg-row">
+                  <span class="tg-who">
+                    <span class="cell-strong">{{ m.name }}</span>
+                    <span class="cell-muted">{{ m.username ? '@' + m.username + ' · ' : '' }}{{ m.userId }}</span>
+                  </span>
+                  @if (m.recipientId) {
+                    <span class="tg-done">
+                      <app-icon [icon]="I.Check" [size]="14" />{{ m.recipientName }}
+                    </span>
+                  } @else {
+                    <select
+                      class="input"
+                      [ngModel]="dcPick()[m.userId] ?? ''"
+                      (ngModelChange)="chooseDiscord(m.userId, $event)"
+                    >
+                      <option value="">Alege destinatarul…</option>
+                      @for (p of store.recipients(); track p.id) {
+                        <option [value]="p.id">{{ p.name }} — {{ p.email }}</option>
+                      }
+                    </select>
+                    <button
+                      type="button"
+                      class="btn btn-primary sm"
+                      [disabled]="!dcPick()[m.userId] || dcLinking() === m.userId"
+                      (click)="linkDiscordMember(m)"
+                    >
+                      Leagă
+                    </button>
+                  }
+                </div>
+              } @empty {
+                <div class="empty">Niciun membru pe server încă.</div>
+              }
+            </div>
+          }
+
+          <p class="hint">
+            Botul poate trimite mesaje private doar cuiva care e pe același server cu el și nu a
+            dezactivat DM-urile de la membrii serverului.
+          </p>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" (click)="loadDiscord()">
+              <app-icon [icon]="I.RotateCcw" [size]="15" />Reîncarcă
+            </button>
+            <span class="grow"></span>
+            <button type="button" class="btn btn-ghost" (click)="discordOpen.set(false)">Închide</button>
           </div>
         </div>
       </div>
@@ -384,6 +469,17 @@ export class PeopleComponent {
   readonly pick = signal<Record<string, string>>({});
   readonly linking = signal<string | null>(null);
 
+  // --- conectarea membrilor de Discord
+  readonly discordOpen = signal(false);
+  readonly dcLoading = signal(false);
+  readonly dcError = signal('');
+  readonly members = signal<DiscordMember[]>([]);
+  readonly guildName = signal<string | null>(null);
+  readonly inviteUrl = signal<string | null>(null);
+  /** userId -> id-ul destinatarului ales în select, cât timp nu s-a apăsat Leagă. */
+  readonly dcPick = signal<Record<string, string>>({});
+  readonly dcLinking = signal<string | null>(null);
+
   constructor() {
     this.store.loadRecipients();
     this.store.loadGroups();
@@ -419,7 +515,7 @@ export class PeopleComponent {
   ]);
 
   short(c: string): string {
-    return { EMAIL: '@', TELEGRAM: 'TG', WHATSAPP: 'WA' }[c] ?? c[0];
+    return { EMAIL: '@', TELEGRAM: 'TG', DISCORD: 'DC' }[c] ?? c[0];
   }
 
   resetFilters(): void {
@@ -450,8 +546,8 @@ export class PeopleComponent {
       lastName: s.lastName,
       email: s.email,
       group: s.group,
-      phoneNumber: s.phoneNumber ?? '',
       telegramChatId: s.telegramChatId ?? '',
+      discordUserId: s.discordUserId ?? '',
     };
     this.editError.set('');
     this.editing.set({ scope: 'staged', key: s.key });
@@ -463,8 +559,8 @@ export class PeopleComponent {
       lastName: p.lastName,
       email: p.email,
       group: p.group,
-      phoneNumber: p.phoneNumber ?? '',
       telegramChatId: p.telegramChatId ?? '',
+      discordUserId: p.discordUserId ?? '',
     };
     this.editError.set('');
     this.editing.set({ scope: 'people', id: p.id });
@@ -507,6 +603,16 @@ export class PeopleComponent {
         const owner = taken?.name ?? (takenInFile ? `${takenInFile.firstName} ${takenInFile.lastName}`.trim() : '');
         if (owner) {
           return this.editError.set(`Chat ID-ul ${chatId} e deja legat la ${owner}.`);
+        }
+      }
+      // Acelasi userId Discord la doi oameni ar duce mesajul de doua ori la unul.
+      const discordId = f.discordUserId?.trim() ?? '';
+      if (discordId) {
+        const taken = this.store.recipients().find(p => p.discordUserId?.trim() === discordId);
+        const takenInFile = (this.staged() ?? []).find(s => s.key !== target.key && s.discordUserId?.trim() === discordId);
+        const owner = taken?.name ?? (takenInFile ? `${takenInFile.firstName} ${takenInFile.lastName}`.trim() : '');
+        if (owner) {
+          return this.editError.set(`Discord user ID-ul ${discordId} e deja legat la ${owner}.`);
         }
       }
       this.staged.set((this.staged() ?? []).map(s => (s.key === target.key ? { ...s, ...f, key: s.key } : s)));
@@ -598,6 +704,59 @@ export class PeopleComponent {
     });
   }
 
+  // ------------------------------------------------------------- Discord
+
+  openDiscord(): void {
+    this.discordOpen.set(true);
+    this.dcPick.set({});
+    this.loadDiscord();
+  }
+
+  closeDiscord(e: Event): void {
+    if (e.target === e.currentTarget) this.discordOpen.set(false);
+  }
+
+  loadDiscord(): void {
+    this.dcLoading.set(true);
+    this.dcError.set('');
+    this.api.discordMembers().subscribe({
+      next: (d: DiscordDirectory) => {
+        this.guildName.set(d.guildName);
+        this.inviteUrl.set(d.inviteUrl);
+        this.members.set(d.members ?? []);
+        this.dcLoading.set(false);
+      },
+      error: e => {
+        this.members.set([]);
+        this.dcError.set(errMessage(e, 'Membrii serverului nu au putut fi citiți.'));
+        this.dcLoading.set(false);
+      },
+    });
+  }
+
+  chooseDiscord(userId: string, recipientId: string): void {
+    this.dcPick.set({ ...this.dcPick(), [userId]: recipientId });
+  }
+
+  linkDiscordMember(m: DiscordMember): void {
+    const recipientId = Number(this.dcPick()[m.userId]);
+    if (!recipientId) return;
+    this.dcLinking.set(m.userId);
+    this.api.linkDiscord(m.userId, recipientId).subscribe({
+      next: () => {
+        this.dcLinking.set(null);
+        this.store.loadRecipients();
+        // Reîncărcăm lista, ca rândul să apară imediat ca legat.
+        this.loadDiscord();
+        this.toast.show('Cont Discord legat.');
+      },
+      error: e => {
+        this.dcLinking.set(null);
+        this.dcError.set(errMessage(e, 'Legarea nu a reușit.'));
+      },
+    });
+  }
+
   // ---------------------------------------------------------------- CSV
 
   /**
@@ -607,10 +766,18 @@ export class PeopleComponent {
    */
   exportCsv(): void {
     const rows = [
-      ['nume', 'prenume', 'email', 'grup', 'telegram', 'telefon', 'canale'],
+      ['nume', 'prenume', 'email', 'grup', 'telegram', 'discord', 'canale'],
       ...this.store
         .recipients()
-        .map(p => [p.lastName, p.firstName, p.email, p.group, p.telegramChatId ?? '', p.phoneNumber ?? '', p.channels.join(';')]),
+        .map(p => [
+          p.lastName,
+          p.firstName,
+          p.email,
+          p.group,
+          p.telegramChatId ?? '',
+          p.discordUserId ?? '',
+          p.channels.join(';'),
+        ]),
     ];
     downloadCsv(rows, 'destinatari');
     this.toast.show(`${this.store.recipients().length} destinatari exportați în CSV.`);
@@ -632,7 +799,7 @@ export class PeopleComponent {
   stagedChannels(s: Staged): string[] {
     const out = ['EMAIL'];
     if (s.telegramChatId?.trim()) out.push('TELEGRAM');
-    if (s.phoneNumber?.trim()) out.push('WHATSAPP');
+    if (s.discordUserId?.trim()) out.push('DISCORD');
     return out;
   }
 
@@ -648,7 +815,7 @@ export class PeopleComponent {
       email: findColumn(head, COL.email),
       group: findColumn(head, COL.group),
       tg: findColumn(head, COL.tg),
-      phone: findColumn(head, COL.phone),
+      discord: findColumn(head, COL.discord),
     };
     const missing = (['last', 'first', 'email', 'group'] as const)
       .filter(k => idx[k] < 0)
@@ -691,9 +858,10 @@ export class PeopleComponent {
         lastName: last,
         email,
         group,
-        phoneNumber: get('phone'),
         telegramChatId: '',
         rawTg: get('tg'),
+        discordUserId: '',
+        rawDiscord: get('discord'),
       });
     });
 
@@ -720,33 +888,55 @@ export class PeopleComponent {
   private resolveTelegram(drafts: Draft[], notes: string[]): void {
     const pending = drafts.filter(d => d.rawTg && !CHAT_ID_RE.test(d.rawTg));
     if (!pending.length) {
-      return this.stageDrafts(drafts, notes, []);
+      return this.resolveDiscord(drafts, notes, []);
     }
     this.api.telegramContacts().subscribe({
-      next: d => this.stageDrafts(drafts, notes, d.contacts ?? []),
+      next: d => this.resolveDiscord(drafts, notes, d.contacts ?? []),
       error: () => {
         notes.push(`Telegram nu e disponibil — ${plural(pending.length, 'linie importată', 'linii importate')} fără chat.`);
         // Golim celulele nerezolvabile, ca sa nu mai fie raportate inca o data.
         pending.forEach(d => (d.rawTg = ''));
-        this.stageDrafts(drafts, notes, []);
+        this.resolveDiscord(drafts, notes, []);
+      },
+    });
+  }
+
+  /** Pasul 3: la fel ca resolveTelegram, dar cu membrii serverului Discord. */
+  private resolveDiscord(drafts: Draft[], notes: string[], contacts: TelegramContact[]): void {
+    const pending = drafts.filter(d => d.rawDiscord && !CHAT_ID_RE.test(d.rawDiscord));
+    if (!pending.length) {
+      return this.stageDrafts(drafts, notes, contacts, []);
+    }
+    this.api.discordMembers().subscribe({
+      next: d => this.stageDrafts(drafts, notes, contacts, d.members ?? []),
+      error: () => {
+        notes.push(`Discord nu e disponibil — ${plural(pending.length, 'linie importată', 'linii importate')} fără Discord.`);
+        pending.forEach(d => (d.rawDiscord = ''));
+        this.stageDrafts(drafts, notes, contacts, []);
       },
     });
   }
 
   /**
-   * Pasul 3: fiecare chat ID ajunge la un singur destinatar. Doi oameni pe
-   * acelasi chat ar insemna acelasi mesaj de doua ori, deci al doilea intra
-   * fara Telegram — persoana nu se pierde pentru o coloana.
+   * Pasul 4: fiecare chat ID / userId ajunge la un singur destinatar. Doi
+   * oameni pe acelasi chat/cont ar insemna acelasi mesaj de doua ori, deci al
+   * doilea intra fara acel canal — persoana nu se pierde pentru o coloana.
    */
-  private stageDrafts(drafts: Draft[], notes: string[], contacts: TelegramContact[]): void {
+  private stageDrafts(drafts: Draft[], notes: string[], contacts: TelegramContact[], members: DiscordMember[]): void {
     const taken = new Map<string, string>();
     for (const p of this.store.recipients()) {
       if (p.telegramChatId?.trim()) taken.set(p.telegramChatId.trim(), p.name);
     }
+    const takenDiscord = new Map<string, string>();
+    for (const p of this.store.recipients()) {
+      if (p.discordUserId?.trim()) takenDiscord.set(p.discordUserId.trim(), p.name);
+    }
 
     const dropped: string[] = [];
-    const staged = drafts.map(({ rawTg, ...row }) => {
+    const staged = drafts.map(({ rawTg, rawDiscord, ...row }) => {
       const who = `${row.firstName} ${row.lastName}`.trim();
+
+      let telegramChatId = '';
       const chatId = resolveChatId(rawTg, contacts);
       if (rawTg && !chatId) {
         dropped.push(`Linia ${row.key}: „${rawTg}" nu se regăsește în contactele botului`);
@@ -754,15 +944,27 @@ export class PeopleComponent {
         dropped.push(`Linia ${row.key}: chat ID-ul ${chatId} e deja legat la ${taken.get(chatId)} — ${who} se importă fără Telegram`);
       } else if (chatId) {
         taken.set(chatId, who);
-        return { ...row, telegramChatId: chatId };
+        telegramChatId = chatId;
       }
-      return { ...row, telegramChatId: '' };
+
+      let discordUserId = '';
+      const discordId = resolveDiscordId(rawDiscord, members);
+      if (rawDiscord && !discordId) {
+        dropped.push(`Linia ${row.key}: „${rawDiscord}" nu se regăsește în membrii serverului`);
+      } else if (discordId && takenDiscord.has(discordId)) {
+        dropped.push(
+          `Linia ${row.key}: contul Discord ${discordId} e deja legat la ${takenDiscord.get(discordId)} — ${who} se importă fără Discord`,
+        );
+      } else if (discordId) {
+        takenDiscord.set(discordId, who);
+        discordUserId = discordId;
+      }
+
+      return { ...row, telegramChatId, discordUserId };
     });
 
     if (dropped.length) {
-      notes.push(
-        `${plural(dropped.length, 'linie', 'linii')} fără Telegram: ${dropped.slice(0, 3).join('; ')}${dropped.length > 3 ? ' …' : ''}`,
-      );
+      notes.push(`${plural(dropped.length, 'linie', 'linii')} fără un canal: ${dropped.slice(0, 3).join('; ')}${dropped.length > 3 ? ' …' : ''}`);
     }
     this.stagedNotes.set(notes);
     this.staged.set(staged);
@@ -793,7 +995,7 @@ export class PeopleComponent {
 }
 
 function blank(): RecipientUpsert {
-  return { firstName: '', lastName: '', email: '', group: '', phoneNumber: '', telegramChatId: '' };
+  return { firstName: '', lastName: '', email: '', group: '', telegramChatId: '', discordUserId: '' };
 }
 
 /**
@@ -809,6 +1011,17 @@ function resolveChatId(raw: string, contacts: TelegramContact[]): string {
   const byUsername = contacts.filter(c => c.username?.toLowerCase() === needle);
   const matches = byUsername.length ? byUsername : contacts.filter(c => c.name.trim().toLowerCase() === needle);
   return matches.length === 1 ? matches[0].chatId : '';
+}
+
+/** Aceeasi logica ca resolveChatId, dar pe lista membrilor serverului Discord. */
+function resolveDiscordId(raw: string, members: DiscordMember[]): string {
+  const value = raw.trim();
+  if (!value) return '';
+  if (CHAT_ID_RE.test(value)) return value;
+  const needle = value.replace(/^@/, '').toLowerCase();
+  const byUsername = members.filter(m => m.username?.toLowerCase() === needle);
+  const matches = byUsername.length ? byUsername : members.filter(m => m.name.trim().toLowerCase() === needle);
+  return matches.length === 1 ? matches[0].userId : '';
 }
 
 /** `detail` e textul în română; `message` e doar cheia erorii (vezi ToastService). */

@@ -18,9 +18,9 @@ public final class AppDtos {
         String name,
         String email,
         String group,
-        String phoneNumber,
         String telegramChatId,
-        List<String> channels
+        List<String> channels,
+        String discordUserId
     ) {}
 
     public record GroupView(Long id, String name, long count) {}
@@ -91,8 +91,8 @@ public final class AppDtos {
         String lastName,
         String email,
         String group,
-        String phoneNumber,
-        String telegramChatId
+        String telegramChatId,
+        String discordUserId
     ) {}
 
     public record AttachmentPayload(String fileName, String contentType, String dataBase64) {}
@@ -116,4 +116,15 @@ public final class AppDtos {
     ) {}
 
     public record TelegramLink(String chatId, Long recipientId) {}
+
+    /**
+     * Membrii serverului Discord, pentru ecranul de conectare. {@code inviteUrl} e
+     * linkul de invitare al botului, construit din id-ul lui; {@code recipientId} e
+     * nenul cand user id-ul e deja legat la un destinatar.
+     */
+    public record DiscordDirectory(String guildName, String inviteUrl, List<DiscordMember> members) {}
+
+    public record DiscordMember(String userId, String name, String username, Long recipientId, String recipientName) {}
+
+    public record DiscordLink(String userId, Long recipientId) {}
 }

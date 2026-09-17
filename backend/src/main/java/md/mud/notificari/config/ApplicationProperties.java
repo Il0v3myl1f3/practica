@@ -113,7 +113,7 @@ public class ApplicationProperties {
 
         /**
          * Setari specifice providerului (token, url, numar de telefon...). E aici
-         * ca un client real de Telegram sau WhatsApp sa se configureze fara sa mai
+         * ca un client real de Telegram sau Discord sa se configureze fara sa mai
          * fie nevoie de un camp nou in clasa asta.
          */
         private final Map<String, String> options = new LinkedHashMap<>();

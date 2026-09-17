@@ -6,5 +6,5 @@ package md.mud.notificari.domain.enumeration;
 public enum Channel {
     EMAIL,
     TELEGRAM,
-    WHATSAPP,
+    DISCORD,
 }

@@ -15,7 +15,7 @@ import { AuthService } from '../core/auth.service';
           <div class="name">Notificări MUD</div>
         </div>
         <div>
-          <h1>Trimite anunțuri interne pe email, Telegram și WhatsApp, dintr-un singur loc.</h1>
+          <h1>Trimite anunțuri interne pe email, Telegram și Discord, dintr-un singur loc.</h1>
           <p>Șabloane reutilizabile, selecție manuală a destinatarilor și istoric complet al trimiterilor.</p>
         </div>
       </aside>

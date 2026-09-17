@@ -51,7 +51,7 @@ Starea canalelor astăzi:
 |---|---|---|
 | `EMAIL` | `smtp`, `mock` | **poate trimite real**, prin SMTP |
 | `TELEGRAM` | `telegram-bot`, `mock` | **poate trimite real**, prin Bot API |
-| `WHATSAPP` | `mock` | doar simulat — clientul real nu există încă |
+| `DISCORD` | `discord-bot`, `mock` | **poate trimite real**, mesaj privat (DM) prin Discord API |
 
 Mock-ul nu e un artificiu de dezvoltare pe care să-l ștergi: e un provider de
 sine stătător, disponibil pentru **toate** canalele, inclusiv email. Trece tot
@@ -77,15 +77,15 @@ Toate cheile stau sub `application.messaging` în
 | `enabled` | `true` | `false` → trimiterea e **refuzată** (409). Dispecerul stă. |
 | `async` | `true` | `false` → se trimite inline, în cererea HTTP. |
 
-### 2.2 Per canal — `channels.email.*`, `channels.telegram.*`, `channels.whatsapp.*`
+### 2.2 Per canal — `channels.email.*`, `channels.telegram.*`, `channels.discord.*`
 
 | Cheie | Implicit | Ce face |
 |---|---|---|
-| `provider` | `mock` | Id-ul providerului: `mock`, `smtp` (email), `telegram-bot` (Telegram). Trebuie să existe un `ChannelSender` cu acest `providerId()`, altfel aplicația nu pornește. |
+| `provider` | `mock` | Id-ul providerului: `mock`, `smtp` (email), `telegram-bot` (Telegram), `discord-bot` (Discord). Trebuie să existe un `ChannelSender` cu acest `providerId()`, altfel aplicația nu pornește. |
 | `batch-size` | `25` | Câte livrări ia dispecerul pe acest canal, la fiecare tick. |
-| `min-interval` | `0` (dar `200ms` pentru email în `application.yml`) | Pauză între două trimiteri consecutive pe canal. Limitare de rată simplă. |
+| `min-interval` | `0` (dar `200ms` pentru email, `100ms` pentru Discord în `application.yml`) | Pauză între două trimiteri consecutive pe canal. Limitare de rată simplă. |
 | `mock-failure-rate` | `0` | Doar pentru `provider: mock`: fracțiunea de trimiteri care eșuează, ca să poți exersa retry-ul. |
-| `options.*` | — | Hartă liberă de setări specifice providerului. Pentru `telegram-bot`: `bot-token` și `base-url`. Un client nou nu cere câmpuri noi în `ApplicationProperties`. |
+| `options.*` | — | Hartă liberă de setări specifice providerului. Pentru `telegram-bot`: `bot-token` și `base-url`. Pentru `discord-bot`: `bot-token`, `guild-id` și `base-url`. Un client nou nu cere câmpuri noi în `ApplicationProperties`. |
 
 ### 2.3 Dispecer — `dispatcher.*`
 
@@ -134,7 +134,7 @@ export MAIL_PASSWORD=parola-de-aplicatie
 Apoi repornești aplicația. La pornire, logul spune ce e activ:
 
 ```
-ChannelSenderRegistry : Canale de trimitere: EMAIL -> smtp · TELEGRAM -> mock · WHATSAPP -> mock
+ChannelSenderRegistry : Canale de trimitere: EMAIL -> smtp · TELEGRAM -> mock · DISCORD -> mock
 ```
 
 **Dacă pui `provider: smtp` fără `MAIL_USERNAME`, aplicația refuză să pornească**,
@@ -190,16 +190,76 @@ clară decât o listă goală care pare să spună „nimeni nu a scris".
 | `options.base-url` | `https://api.telegram.org` | Se schimbă doar pentru teste contra unui server fals. |
 | `min-interval` | `50ms` în `application.yml` | ~20 mesaje/s, sub limita de ~30/s a Telegram. |
 
-### 2.7 Implicitele pe profil
+### 2.7 Pornirea Discordului real
 
-| Profil | Email | Telegram | `async` |
-|---|---|---|---|
-| `dev` (`application-dev.yml`) | `${MESSAGING_EMAIL_PROVIDER:mock}` | `${MESSAGING_TELEGRAM_PROVIDER:mock}` | `true` |
-| `prod` (`application-prod.yml`) | `${MESSAGING_EMAIL_PROVIDER:smtp}` | `${MESSAGING_TELEGRAM_PROVIDER:mock}` | `true` |
-| teste (`src/test/resources/config/application.yml`) | `mock` | `mock` | `false` |
+Trei variabile, plus doi pași care **nu sunt de configurare**: invitarea botului
+pe server și legarea user ID-urilor.
 
-Telegramul rămâne pe `mock` chiar și în `prod`: cere un bot și chat ID-uri legate,
-deci se pornește explicit, când e pregătit.
+```bash
+# Windows
+setx MESSAGING_DISCORD_PROVIDER discord-bot
+setx DISCORD_BOT_TOKEN token-ul-botului   # din Developer Portal -> Bot -> Reset Token
+setx DISCORD_GUILD_ID id-ul-serverului    # Developer Mode -> click dreapta pe server -> Copy Server ID
+```
+
+```bash
+# Linux / macOS
+export MESSAGING_DISCORD_PROVIDER=discord-bot
+export DISCORD_BOT_TOKEN=token-ul-botului
+export DISCORD_GUILD_ID=id-ul-serverului
+```
+
+Ca la Telegram: `provider: discord-bot` fără token **oprește pornirea**, cu mesajul
+care spune ce lipsește.
+
+Pașii dintr-un Developer Portal Discord curat:
+
+1. [discord.com/developers/applications](https://discord.com/developers/applications)
+   → **New Application** → tab **Bot** → **Reset Token** (copiezi tokenul, apare o
+   singură dată).
+2. Tot pe tabul **Bot**: bifezi **Server Members Intent** — fără el,
+   `GET /guilds/{id}/members` întoarce o listă goală sau eroare.
+3. Tab **OAuth2 → URL Generator**: scope `bot`, permisiuni `0` (Send Messages nu e
+   nevoie explicit — DM-urile nu cer permisiuni de canal), copiezi URL-ul generat și
+   îl deschizi ca să inviți botul pe server.
+4. În Discord (client, nu Developer Portal): **User Settings → Advanced → Developer
+   Mode**, apoi click-dreapta pe server → **Copy Server ID** — ăsta e `DISCORD_GUILD_ID`.
+5. Rulezi comenzile `setx`/`export` de mai sus și repornești aplicația.
+
+**Pasul care surprinde, ca la Telegram: botul nu poate scrie primul cuiva de pe
+alt server.** Discord permite DM doar între utilizatori care au un server comun cu
+botul (regula de platformă, cod de eroare `50007` altfel). Deci fiecare destinatar
+trebuie să fie deja pe serverul respectiv.
+
+Fluxul, din UI: **Destinatari → Conectează Discord**. Ecranul arată numele
+serverului, linkul de invitare al botului (pentru cine încă nu e pe server) și
+lista membrilor (fără boți), cu un select pentru a lega fiecare membru la un
+destinatar. Un user ID poate fi și scris manual, în formular sau în CSV, fără să
+treci prin ecran — utile pentru cine ți-a dat ID-ul direct.
+
+Legarea scrie `RecipientChannel(DISCORD, address = user_id, verified = true)`.
+
+Endpointurile din spate (vezi §3.7) răspund **409 `error.discordnotactive`** cât
+timp providerul activ pentru DISCORD nu e `discord-bot`, sau cât timp
+`DISCORD_GUILD_ID` e gol.
+
+| Opțiune | Implicit | Ce face |
+|---|---|---|
+| `options.bot-token` | `${DISCORD_BOT_TOKEN:}` | Tokenul botului, din Developer Portal. Ajunge în header-ul `Authorization`, nu se loghează niciodată. |
+| `options.guild-id` | `${DISCORD_GUILD_ID:}` | Serverul ai cărui membri sunt candidați la legare. |
+| `options.base-url` | `https://discord.com/api/v10` | Se schimbă doar pentru teste contra unui server fals. |
+| `min-interval` | `100ms` în `application.yml` | Limitare de rată simplă, sub limita globală de rată a Discord API. |
+
+### 2.8 Implicitele pe profil
+
+| Profil | Email | Telegram | Discord | `async` |
+|---|---|---|---|---|
+| `dev` (`application-dev.yml`) | `${MESSAGING_EMAIL_PROVIDER:mock}` | `${MESSAGING_TELEGRAM_PROVIDER:mock}` | `${MESSAGING_DISCORD_PROVIDER:mock}` | `true` |
+| `prod` (`application-prod.yml`) | `${MESSAGING_EMAIL_PROVIDER:smtp}` | `${MESSAGING_TELEGRAM_PROVIDER:mock}` | `${MESSAGING_DISCORD_PROVIDER:mock}` | `true` |
+| teste (`src/test/resources/config/application.yml`) | `mock` | `mock` | `mock` | `false` |
+
+Telegramul și Discordul rămân pe `mock` chiar și în `prod`: fiecare cere un bot și
+adrese legate, deci se pornesc explicit, când sunt pregătite.
 
 Un clone proaspăt, fără nicio variabilă de mediu, pornește și nu trimite nimic real.
 
@@ -207,28 +267,28 @@ Testele rulează pe `async: false` din două motive: răspunsul conține statusu
 final (deci aserțiunile sunt simple) și nu se atinge interogarea de revendicare
 cu `for update skip locked`, pe care H2 nu o poate parsa.
 
-### 2.8 `async: false` pentru depanare
+### 2.9 `async: false` pentru depanare
 
 Cu `async: false`, `POST /messages/send` trimite pe loc și întoarce rezultatul
 final (`SENT` / `PARTIAL` / `FAILED`), nu `QUEUED`. E comportamentul de dinaintea
 cozii și e util când vrei să vezi eroarea unui provider imediat, în răspuns. Merge
 prin exact aceleași clase ca dispecerul — doar declanșatorul diferă.
 
-### 2.9 Timeout-uri de rețea
+### 2.10 Timeout-uri de rețea
 
 `application-dev.yml` și `application-prod.yml` setează
 `mail.smtp.connectiontimeout`, `timeout` și `writetimeout`. **Nu le scoate.**
 Fără ele JavaMail așteaptă la nesfârșit, iar un singur socket blocat oprește
 dispecerul împreună cu restul task-urilor programate.
 
-Aceeași grijă, în cod, la Telegram: `TelegramClient` își construiește fabrica de
-cereri cu 10s la conectare și 20s la citire. Nu sunt configurabile din yaml — sunt
-o măsură de protecție a dispecerului, nu un buton.
+Aceeași grijă, în cod, la Telegram și Discord: `TelegramClient` și `DiscordClient`
+își construiesc fabrica de cereri cu 10s la conectare și 20s la citire. Nu sunt
+configurabile din yaml — sunt o măsură de protecție a dispecerului, nu un buton.
 
-### 2.10 Ce e activ — linia de la pornire
+### 2.11 Ce e activ — linia de la pornire
 
 ```
-ChannelSenderRegistry : Canale de trimitere: EMAIL -> smtp · TELEGRAM -> telegram-bot · WHATSAPP -> mock
+ChannelSenderRegistry : Canale de trimitere: EMAIL -> smtp · TELEGRAM -> telegram-bot · DISCORD -> mock
 ```
 
 Singura sursă de adevăr despre ce pleacă real și ce e simulat.
@@ -279,7 +339,7 @@ Content-Type: application/json
 
 | Câmp | Obligatoriu | Note |
 |---|---|---|
-| `message.subject` | nu | Gol devine „Fara subiect". La Telegram/WhatsApp devine prima linie a corpului. |
+| `message.subject` | nu | Gol devine „Fara subiect". La Telegram/Discord devine prima linie a corpului. |
 | `message.bodyHtml` | nu | HTML. Suportă variabilele `{{nume}}`, `{{prenume}}`, `{{grup}}`, `{{email}}`, substituite per destinatar. |
 | `message.channels` | **da** | Cel puțin unul, altfel 400. |
 | `message.templateId` | nu | Doar pentru legătura cu șablonul în istoric. |
@@ -405,7 +465,49 @@ destinatar din organizație are deja acel chat ID, **404 `error.notfound`** dac�
 destinatarul nu există, **400 `error.invalidchatid`** dacă `chatId` lipsește,
 **502 `error.telegramunavailable`** dacă Telegram nu răspunde.
 
-### 3.7 Exemplu complet
+### 3.7 Conectarea membrilor Discord
+
+Două endpointuri, folosite de ecranul **Destinatari → Conectează Discord**. Ambele
+răspund **409 `error.discordnotactive`** dacă providerul activ pe DISCORD nu e
+`discord-bot`, sau dacă `DISCORD_GUILD_ID` e gol.
+
+**`GET /api/app/discord/members`** — membrii serverului, fără boți:
+
+```json
+{
+  "guildName": "Anunturi MUD",
+  "inviteUrl": "https://discord.com/oauth2/authorize?client_id=1101&scope=bot&permissions=0",
+  "members": [
+    {
+      "userId": "300100200300100200",
+      "name": "Ion Popescu",
+      "username": "ionp",
+      "recipientId": 1201,
+      "recipientName": "Ion Popescu"
+    }
+  ]
+}
+```
+
+`recipientId` e nenul când user ID-ul e deja legat. `name` preferă porecla de pe
+server (`nick`), apoi `global_name`, apoi `username`. `inviteUrl` e construit din
+id-ul botului (`GET /users/@me`), pentru cine încă nu e pe server. Cere **Server
+Members Intent** bifat în Developer Portal, altfel lista vine goală.
+
+**`POST /api/app/discord/link`** — leagă un membru la un destinatar:
+
+```json
+{ "userId": "300100200300100200", "recipientId": 1201 }
+```
+
+Răspunde **204**. Scrie sau actualizează `RecipientChannel(DISCORD, address,
+active = true, verified = true)`. Erori: **409 `error.discordidexists`** dacă alt
+destinatar din organizație are deja acel user ID, **404 `error.notfound`** dacă
+destinatarul nu există, **400 `error.invaliddiscordid`** dacă `userId` nu e un
+snowflake valid (17-20 cifre), **502 `error.discordunavailable`** dacă Discord nu
+răspunde.
+
+### 3.8 Exemplu complet
 
 ```bash
 BASE=http://localhost:8080
@@ -499,6 +601,19 @@ curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/app/messages/$ID/status"
 `service/app/TelegramLinkService` — contactele botului și legarea lor la
 destinatari (ecranul de conectare). Nu ia parte la trimitere.
 
+`service/messaging/discord/` — providerul `discord-bot`:
+
+| Clasă | Rol |
+|---|---|
+| `DiscordChannelSender` | Providerul. Subiectul devine prima linie (îngroșată), textul se taie în mesaje, atașamentele pleacă separat, în loturi de 10. |
+| `DiscordClient` | Clientul HTTP (`openDm`, `sendMessage`, `sendFiles`, `botUser`, `guildName`, `members`). Verbe HTTP reale, nu un singur plic ca la Telegram — reușita se vede din codul HTTP. |
+| `DiscordMarkdownFormatter` | Reduce HTML-ul editorului la Markdown-ul Discord (cu jsoup) și îl împarte la 2000. |
+| `DiscordFailureClassifier` | Traduce statusul HTTP + codul numeric Discord în `retry` / `permanent`, cu `retry_after`. |
+| `DiscordResponses`, `DiscordApiException` | Forma răspunsurilor Discord API v10 și refuzul lor. |
+
+`service/app/DiscordLinkService` — membrii serverului și legarea lor la
+destinatari (ecranul de conectare). Nu ia parte la trimitere.
+
 `service/messaging/dispatch/` — coada:
 
 | Clasă | Rol |
@@ -572,6 +687,21 @@ classpath-ul de compilare. Textul începe însă mereu cu codul (`550-5.1.1 ...`
 | 5xx, conexiune refuzată, timeout | reîncercabil |
 | Orice altceva | reîncercabil |
 
+`DiscordFailureClassifier` face același lucru pentru Discord API, dar pe codul
+numeric `code` din corp, nu pe text de căutat cu `contains` — Discord îl ține stabil:
+
+| Situație | Verdict |
+|---|---|
+| 401 token greșit/revocat | **definitiv** |
+| Cod `50007` (DM refuzate sau niciun server comun) | **definitiv** |
+| Cod `10013` (Unknown User) / `10003` (Unknown Channel) | **definitiv** |
+| Cod `50035` (Invalid Form Body) | **definitiv** |
+| Cod `40005` / HTTP 413 (fișier prea mare) | **definitiv** |
+| Alte 400 / 403 / 404 | **definitiv** |
+| 429 | reîncercabil, **la momentul cerut în `retry_after`** (rotunjit în sus) |
+| 5xx, conexiune refuzată, timeout | reîncercabil |
+| Orice altceva | reîncercabil |
+
 Un `retry_after` mai lung decât backoff-ul nostru îl înlocuiește
 (`RetryPolicy.delayFor(attempt, retryAfter)`). Motivul: o pauză de flood poate cere
 o oră, iar reîncercările din 30 în 30 de secunde ar consuma toate încercările pe
@@ -635,18 +765,19 @@ Un provider nou e **o clasă nouă plus două linii de yaml**. Nu se modifică
 la locul lui — nu se înlocuiește, doar nu mai e selectat.
 
 Modelul de urmat e `service/messaging/telegram/` — providerul `telegram-bot`, scris
-exact pe tiparul de mai jos. Singurul canal rămas fără client real e **WHATSAPP**.
+exact pe tiparul de mai jos. Toate canalele din `Channel` au deja un client real;
+tiparul rămâne valabil pentru un canal nou (adaugi și valoarea în enum).
 
 ### Pasul 1 — clasa
 
 ```java
 @Service
-public class WhatsAppChannelSender implements ChannelSender {
+public class NewChannelSender implements ChannelSender {
 
-    private final WhatsAppClient client;   // clientul HTTP, separat de sender
+    private final NewChannelClient client;   // clientul HTTP, separat de sender
 
-    @Override public Channel channel()   { return Channel.WHATSAPP; }
-    @Override public String providerId() { return "whatsapp-cloud"; }
+    @Override public Channel channel()   { return Channel.NEW_CHANNEL; }
+    @Override public String providerId() { return "new-channel-api"; }
 
     @Override
     public void validateConfiguration() {
@@ -659,7 +790,7 @@ public class WhatsAppChannelSender implements ChannelSender {
         try {
             return SendOutcome.ok(String.valueOf(client.sendText(delivery.address(), text)));
         } catch (Exception e) {
-            return WhatsAppFailureClassifier.classify(e);   // retry / permanent
+            return NewChannelFailureClassifier.classify(e);   // retry / permanent
         }
     }
 }
@@ -671,11 +802,10 @@ public class WhatsAppChannelSender implements ChannelSender {
 application:
   messaging:
     channels:
-      whatsapp:
-        provider: ${MESSAGING_WHATSAPP_PROVIDER:mock}
+      new-channel:
+        provider: ${MESSAGING_NEW_CHANNEL_PROVIDER:mock}
         options:
-          access-token: ${WHATSAPP_TOKEN:}
-          phone-number-id: ${WHATSAPP_PHONE_ID:}
+          access-token: ${NEW_CHANNEL_TOKEN:}
 ```
 
 Harta `options` e motivul pentru care acest pas **nu** cere un câmp nou în
@@ -683,7 +813,7 @@ Harta `options` e motivul pentru care acest pas **nu** cere un câmp nou în
 
 ### Pasul 3 — restart
 
-Logul confirmă: `Canale de trimitere: ... · WHATSAPP -> whatsapp-cloud`.
+Logul confirmă: `Canale de trimitere: ... · NEW_CHANNEL -> new-channel-api`.
 Dacă `providerId()` nu corespunde cu `provider` din yaml, aplicația refuză să
 pornească și listează ce e disponibil.
 
@@ -700,7 +830,7 @@ pornească și listează ce e disponibil.
    task-uri; un socket blocat îl oprește cu totul. Vezi `TelegramClient`.
 5. **Nu loga tokenul.** La Telegram el stă chiar în calea URL-ului.
 
-### Cum arată la Telegram — de citit înainte de WhatsApp
+### Cum arată la Telegram — de citit înainte de orice canal de chat
 
 `TelegramChannelSender` rezolvă deja trei probleme pe care orice canal de chat le
 are, și merită copiate:
@@ -720,19 +850,14 @@ are, și merită copiate:
 Ce **nu** pleacă pe Telegram: imaginile inline din corp. `<img>` e aruncat de
 formatter — Bot API nu are imagini în interiorul unui mesaj text.
 
-### Capcana WhatsApp (Cloud API)
+### Ce cere un canal de chat nou
 
-Text liber e permis **doar în fereastra de 24h** de la ultimul mesaj al
-utilizatorului. În afara ei se pot trimite doar șabloane aprobate de Meta, cu
-parametri. Asta e o constrângere de **produs** asupra ecranului de compunere, nu un
-detaliu de implementare al clientului — de discutat înainte de a scrie codul.
+**Fără subiect.** Canalele de chat nu au subiect (regula 8 din `app.jdl`). Convenția
+pe care mock-ul o stabilește deja și pe care `telegram-bot` o respectă: subiectul
+devine prima linie a corpului. Păstrează-o.
 
-La fel ca la Telegram, va avea nevoie și de un pas de consimțământ: numărul trebuie
-să fi scris primul. Ecranul **Conectează Telegram** e modelul pentru asta.
-
-**Ambele.** Nu au subiect (regula 8 din `app.jdl`). Convenția pe care mock-ul o
-stabilește deja și pe care `telegram-bot` o respectă: subiectul devine prima linie a
-corpului. Păstrează-o.
+**Consimțământ.** Un bot nu poate scrie primul: omul trebuie să-i scrie, iar adresa
+se leagă abia după. Ecranul **Conectează Telegram** e modelul pentru asta.
 
 ---
 
@@ -743,7 +868,7 @@ corpului. Păstrează-o.
 Linia de la pornire e singura sursă de adevăr:
 
 ```
-ChannelSenderRegistry : Canale de trimitere: EMAIL -> smtp · TELEGRAM -> telegram-bot · WHATSAPP -> mock
+ChannelSenderRegistry : Canale de trimitere: EMAIL -> smtp · TELEGRAM -> telegram-bot · DISCORD -> discord-bot
 ```
 
 ### Ce s-a întâmplat cu o trimitere
@@ -771,6 +896,10 @@ select channel, status, attempt_count, next_attempt_at, error_message, provider_
 | **Telegram:** `PENDING` cu „Limita de rată" și `next_attempt_at` departe | 429 cu `retry_after`. Se reia singur. Dacă se repetă, mărește `channels.telegram.min-interval`. |
 | **Telegram:** „Telegramul real nu e pornit" în ecranul de conectare | `MESSAGING_TELEGRAM_PROVIDER` nu e `telegram-bot`. |
 | **Telegram:** lista de contacte e goală deși omul a scris | Au trecut peste ~24h de la mesajul lui. Trebuie să scrie din nou. |
+| **Discord:** `FAILED` cu codul `50007` | Destinatarul nu e pe același server cu botul, sau a dezactivat DM-urile de la membrii serverului. Nu se rezolvă din aplicație. |
+| **Discord:** lista de membri e goală | **Server Members Intent** nu e bifat în Developer Portal, sau botul nu e (încă) invitat pe server. |
+| **Discord:** „Discordul real nu e pornit" în ecranul de conectare | `MESSAGING_DISCORD_PROVIDER` nu e `discord-bot`, sau lipsește `DISCORD_GUILD_ID`. |
+| **Discord:** `PENDING` cu „Limita de rată" și `next_attempt_at` departe | 429 cu `retry_after`. Se reia singur. Dacă se repetă, mărește `channels.discord.min-interval`. |
 
 ### Exersarea retry-ului fără rețea
 

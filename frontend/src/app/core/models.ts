@@ -1,4 +1,4 @@
-export type Channel = 'EMAIL' | 'TELEGRAM' | 'WHATSAPP';
+export type Channel = 'EMAIL' | 'TELEGRAM' | 'DISCORD';
 export type MessageStatus = 'DRAFT' | 'QUEUED' | 'SENT' | 'PARTIAL' | 'FAILED';
 
 export interface Recipient {
@@ -8,8 +8,8 @@ export interface Recipient {
   name: string;
   email: string;
   group: string;
-  phoneNumber: string | null;
   telegramChatId: string | null;
+  discordUserId: string | null;
   channels: Channel[];
 }
 
@@ -18,8 +18,8 @@ export interface RecipientUpsert {
   lastName: string;
   email: string;
   group: string;
-  phoneNumber?: string | null;
   telegramChatId?: string | null;
+  discordUserId?: string | null;
 }
 
 export interface Group {
@@ -46,6 +46,24 @@ export interface TelegramContact {
 export interface TelegramDirectory {
   botUsername: string | null;
   contacts: TelegramContact[];
+}
+
+/**
+ * Un membru al serverului Discord. `recipientId` e setat cand userId-ul e
+ * deja legat la un destinatar.
+ */
+export interface DiscordMember {
+  userId: string;
+  name: string;
+  username: string | null;
+  recipientId: number | null;
+  recipientName: string | null;
+}
+
+export interface DiscordDirectory {
+  guildName: string | null;
+  inviteUrl: string | null;
+  members: DiscordMember[];
 }
 
 export interface Template {
@@ -122,9 +140,9 @@ export const CHANNELS: { id: Channel; title: string; hint: string }[] = [
   { id: 'EMAIL', title: 'Email', hint: 'Mesajul va fi livrat ca email, cu subiect și imagini atașate.' },
   { id: 'TELEGRAM', title: 'Telegram', hint: 'Mesajul va fi livrat ca mesaj Telegram simplu; subiectul devine prima linie.' },
   {
-    id: 'WHATSAPP',
-    title: 'WhatsApp',
-    hint: 'Mesajul va fi livrat ca mesaj WhatsApp; subiectul devine prima linie, imaginile se trimit separat.',
+    id: 'DISCORD',
+    title: 'Discord',
+    hint: 'Mesaj privat de la bot; subiectul devine prima linie, atașamentele pleacă separat.',
   },
 ];
 
